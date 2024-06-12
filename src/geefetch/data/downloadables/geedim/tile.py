@@ -72,8 +72,6 @@ class Tile:
             adapter = requests.adapters.HTTPAdapter(pool_maxsize=num_threads)
             session.mount("https://", adapter)
         with self._ee_lock:
-            with open("test.txt", "w+") as test:
-                test.write(str(self._exp_image.ee_image.getInfo()))
             url = self._exp_image.ee_image.getDownloadURL(
                 dict(
                     crs=self._exp_image.crs,

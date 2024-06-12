@@ -140,11 +140,7 @@ def post_omegaconf_load(config: Any) -> None:
     )
 
 
-CONFIG = None
-
-
 def load(path: Path) -> Config:
-    global CONFIG
     if path.is_dir():
         from_yaml = OmegaConf.merge(
             *[OmegaConf.load(file) for file in path.iterdir() if file.suffix == ".yaml"]
@@ -154,5 +150,4 @@ def load(path: Path) -> Config:
     post_omegaconf_load(from_yaml)
     from_structured = OmegaConf.structured(Config)
     merged = OmegaConf.merge(from_structured, from_yaml)
-    CONFIG = merged
     return OmegaConf.to_object(merged)  # type: ignore
