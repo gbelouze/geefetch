@@ -90,7 +90,7 @@ def download_s1(config_path: Path) -> None:
     config = load(config_path)
     if config.s1 is None:
         raise RuntimeError(
-            "GEDI is not configured. Pass `s1: {}` in the config file to use `satellite_default`."
+            "Sentinel-1 is not configured. Pass `s1: {}` in the config file to use `satellite_default`."
         )
     save_config(config.s1, config.data_dir / "s1")
 
@@ -120,7 +120,7 @@ def download_s2(config_path: Path) -> None:
     config = load(config_path)
     if config.s2 is None:
         raise RuntimeError(
-            "GEDI is not configured. Pass `s2: {}` in the config file to use `satellite_default`."
+            "Sentinel-2 is not configured. Pass `s2: {}` in the config file to use `satellite_default`."
         )
     save_config(config.s2, config.data_dir / "s2")
 
@@ -152,7 +152,7 @@ def download_dynworld(config_path: Path) -> None:
     config = load(config_path)
     if config.dynworld is None:
         raise RuntimeError(
-            "GEDI is not configured. Pass `dynworld: {}` in the config file to use `satellite_default`."
+            "Dynamic World is not configured. Pass `dynworld: {}` in the config file to use `satellite_default`."
         )
     save_config(config.dynworld, config.data_dir / "dyn_world")
 
