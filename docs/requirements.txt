@@ -1,15 +1,2 @@
-click==8.1.7
-earthengine_api==0.1.398
-GDAL==3.8.4
-geopandas==0.14.3
-numpy==1.26.4
-omegaconf==2.3.0
-pandas==2.2.2
-Requests==2.32.3
-rich==13.7.1
-Shapely==2.0.4
-tqdm==4.66.2
-typing_extensions==4.12.2
-utm==0.7.0
 sphinx==7.3.7
 sphinx-rtd-theme==2.0.0
