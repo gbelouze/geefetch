@@ -17,7 +17,6 @@ log = logging.getLogger(__name__)
 
 def tif_is_clean(path: Path) -> bool:
     """Check that a 'tif' file is valid and not full of NODATA.
-
     Meant to be used with :func:`TilerABC.clean`.
     """
     try:

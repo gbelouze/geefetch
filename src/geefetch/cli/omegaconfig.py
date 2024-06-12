@@ -54,13 +54,28 @@ class AOIConfig:
 
 @dataclass
 class SatelliteDefaultConfig:
+    """The structured type for a GeeFetch default satellite configuration
+
+    Attributes
+    ----------
+    aoi : AOIConfig
+        The temporal/spatial Area of Interest
+    gee : GEEConfig
+        Google Earth Engine specific configurationss
+    tile_size : int
+        The pixel side length for downloaded images
+    resolution : int
+        The resolution for downloaded images, in meters
+    dtype : DType
+        The data type for downloaded images. Can be used to
+        reduce file size and download speed at the cost of
+        some loss of precision.
+    """
+
     aoi: AOIConfig
     gee: GEEConfig
-    # The pixel side length for downloaded images
     tile_size: int = 5_000
-    # The resolution for downloaded images, in meters
     resolution: int = 10
-    # The pixel data type. Using Uint over Float may speed up download.
     dtype: DType = DType.Float32
 
 
@@ -88,6 +103,24 @@ class DynWorldConfig(SatelliteDefaultConfig):
 
 @dataclass
 class Config:
+    """The structured type for a GeeFetch configuration.
+
+    Attributes
+    ----------
+    data_dir : Path
+        The path to store downloaded data.
+    satellite_default : SatelliteDefaultConfig
+        Default satellite configuration.
+    gedi : GediConfig
+        GEDI specific configuration / variation to the default.
+    s1 : S1Config
+        Sentinel-1 specific configuration / variation to the default.
+    s2 : S2Config
+        Sentinel-2 specific configuration / variation to the default.
+    dynworld : DynWorldConfig
+        Dynamic world specific configuration / variation to the default.
+    """
+
     data_dir: Path
     satellite_default: SatelliteDefaultConfig
     gedi: Optional[GediConfig]

@@ -35,21 +35,26 @@ def download_chip(
     check_clean: bool = True,
     **kwargs: Any,
 ) -> Path:
+    """Download a specific chip of data from the satellite."""
     bands = satellite.selected_bands
     if out.exists():
         log.debug(f"Found feature chip [cyan]{out}[/]. Skipping download.")
         return out
     data = data_get_lazy(**data_get_kwargs)
 
-    data.download(
-        out,
-        crs=bbox.crs,
-        region=bbox.transform(WGS84).to_ee_geometry(),
-        bands=bands,
-        scale=scale,
-        **kwargs,
-    )
-    log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
+    try:
+        data.download(
+            out,
+            crs=bbox.crs,
+            region=bbox.transform(WGS84).to_ee_geometry(),
+            bands=bands,
+            scale=scale,
+            **kwargs,
+        )
+        log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
+    except Exception as e:
+        log.error(f"Failed to download chip to {out}: {e}")
+        raise DownloadError from e
     if satellite.is_raster and check_clean and not tif_is_clean(out):
         log.error(f"Tif file {out} contains missing data.")
         raise DownloadError
@@ -75,7 +80,7 @@ def download(
     in_parallel: bool = False,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
-    to `dir`. Additionnally a file `.vrt` is written to combine all the chips.
+    to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
 
     Parameters
     ----------
@@ -84,29 +89,31 @@ def download(
         the default `satellite` name is used as a base name.
     bbox : BoundingBox
         The box defining the region of interest.
-    satellite: SatelliteABC
+    satellite : SatelliteABC
         The satellite which the images should originate from.
-    start_date, end_date: str
-        The start and end of the time period of interest.
-    composite_method: gd.CompositeMethod | str, optional
-        The composite method to mosaic the image collection. Default is "median".
+    start_date : str
+        The start date of the time period of interest.
+    end_date : str
+        The end date of the time period of interest.
     resolution : int, optional
-        Resolution of the downloaded data, in meter.
+        Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
-        Side length of a downloaded chip, in pixel.
+        Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : int, optional
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error.
-        Default is 10 Mb.
-    filter_polygon: shapely.Polygon, optional
-        More fine grained AOI than `bbox`. See :meth:`Tiler.split`.
-    in_parallel: bool
+        Defaults to 10 Mb.
+    satellite_get_kwargs : Optional[dict[str, Any]], optional
+        Satellite-dependent parameters for getting data. Defaults to None.
+    satellite_download_kwargs : Optional[dict[str, Any]], optional
+        Satellite-dependent parameters for downloading data. Defaults to None.
+    check_clean : bool, optional
+        Whether to check if the data is clean. Defaults to True.
+    filter_polygon : Optional[shapely.Polygon], optional
+        More fine-grained AOI than `bbox`. Defaults to None.
+    in_parallel : bool, optional
         Whether to send parallel download requests. Do not use if the download backend
-        is aready threaded (e.g. ..class:`geefetch.data.downloadable.geedim`). Default is
-        False.
-    **kwargs
-        Satellite-dependent parameters. See the corresponding `download_[satellite]`
-        function help.
+        is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
     """
     if not data_dir.is_dir():
         raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
@@ -196,11 +203,27 @@ def download_gedi(
     filter_polygon: Optional[shapely.Polygon] = None,
 ) -> None:
     """Download GEDI images fused as rasters. Images are written in several .tif chips
-    to `data_dir`. Additionnally a file `gedi.vrt` is written to combine all the chips.
+    to `data_dir`. Additionally, a file `gedi.vrt` is written to combine all the chips.
 
     Parameters
     ----------
-    See :func:`download`.
+    data_dir : Path
+        Directory to write the downloaded files to.
+    bbox : BoundingBox
+        The box defining the region of interest.
+    start_date : str
+        The start date of the time period of interest.
+    end_date : str
+        The end date of the time period of interest.
+    resolution : int, optional
+        Resolution of the downloaded data, in meters. Defaults to 10.
+    tile_shape : int, optional
+        Side length of a downloaded chip, in pixels. Defaults to 500.
+    max_tile_size : int, optional
+        Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
+        Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
+    filter_polygon : Optional[shapely.Polygon], optional
+        More fine-grained AOI than `bbox`. Defaults to None.
     """
     download(
         data_dir=data_dir,
@@ -231,7 +254,22 @@ def download_gedi_vector(
 
     Parameters
     ----------
-    See :func:`download`.
+    data_dir : Path
+        Directory to write the downloaded files to.
+    bbox : BoundingBox
+        The box defining the region of interest.
+    start_date : str
+        The start date of the time period of interest.
+    end_date : str
+        The end date of the time period of interest.
+    tile_shape : int, optional
+        Side length of a downloaded chip, in pixels. Defaults to 500.
+    resolution : int, optional
+        Resolution of the downloaded data, in meters. Defaults to 10.
+    filter_polygon : Optional[shapely.Polygon], optional
+        More fine-grained AOI than `bbox`. Defaults to None.
+    format : Format, optional
+        Format in which to save the vector points. Defaults to Format.CSV.
     """
     download(
         data_dir=data_dir,
@@ -260,11 +298,31 @@ def download_s1(
     filter_polygon: Optional[shapely.Polygon] = None,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
-    to `data_dir`. Additionnally a file `s1.vrt` is written to combine all the chips.
+    to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.
 
     Parameters
     ----------
-    See :func:`download`.
+    data_dir : Path
+        Directory to write the downloaded files to.
+    bbox : BoundingBox
+        The box defining the region of interest.
+    start_date : str
+        The start date of the time period of interest.
+    end_date : str
+        The end date of the time period of interest.
+    resolution : int, optional
+        Resolution of the downloaded data, in meters. Defaults to 10.
+    tile_shape : int, optional
+        Side length of a downloaded chip, in pixels. Defaults to 500.
+    max_tile_size : int, optional
+        Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
+        Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
+    composite_method : CompositeMethod, optional
+        The composite method to mosaic the image collection. Defaults to CompositeMethod.MEDIAN.
+    dtype : DType, optional
+        The data type of the downloaded images. Defaults to DType.Float32.
+    filter_polygon : Optional[shapely.Polygon], optional
+        More fine-grained AOI than `bbox`. Defaults to None.
     """
     download(
         data_dir=data_dir,
@@ -296,16 +354,36 @@ def download_s2(
     cloud_prb_thresh: int = 40,
 ) -> None:
     """Download Sentinel-2 images. Images are written in several .tif chips
-    to `data_dir`. Additionnally a file `s2.vrt` is written to combine all the chips.
+    to `data_dir`. Additionally, a file `s2.vrt` is written to combine all the chips.
 
     Parameters
     ----------
-    See :func:`download`.
-    cloudless_portion: int, optional
-        See :meth:`geefetch.data.s2.get`. Default is 60.
-    cloud_prb_thresh: int, optional
-        See :meth:`geefetch.data.s2.get`. Default is 40.
-        Default is 40.
+    data_dir : Path
+        Directory to write the downloaded files to.
+    bbox : BoundingBox
+        The box defining the region of interest.
+    start_date : str
+        The start date of the time period of interest.
+    end_date : str
+        The end date of the time period of interest.
+    resolution : int, optional
+        Resolution of the downloaded data, in meters. Defaults to 10.
+    tile_shape : int, optional
+        Side length of a downloaded chip, in pixels. Defaults to 500.
+    max_tile_size : int, optional
+        Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
+        Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
+    composite_method : CompositeMethod, optional
+        The composite method to mosaic the image collection. Defaults to CompositeMethod.MEDIAN.
+    dtype : DType, optional
+        The data type of the downloaded images. Defaults to DType.Float32.
+    filter_polygon : Optional[shapely.Polygon], optional
+        More fine-grained AOI than `bbox`. Defaults to None.
+    cloudless_portion : int, optional
+        Portion of the image expected to be cloudless.
+        See :meth:`geefetch.data.s2.get`. Defaults to 60.
+    cloud_prb_thresh : int, optional
+        Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
     """
     download(
         data_dir=data_dir,
@@ -336,17 +414,35 @@ def download_dynworld(
     tile_shape: int = 500,
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
+    dtype: DType = DType.Float32,
     filter_polygon: Optional[shapely.Polygon] = None,
-    cloudless_portion: int = 60,
 ) -> None:
     """Download Dynamic World images. Images are written in several .tif chips
     to `data_dir`. Additionnally a file `dynworld.vrt` is written to combine all the chips.
 
     Parameters
     ----------
-    See :func:`download`.
-    cloudless_portion: int, optional
-        See :meth:`geefetch.data.dynworld.get`. Default is 60.
+    data_dir : Path
+        Directory to write the downloaded files to.
+    bbox : BoundingBox
+        The box defining the region of interest.
+    start_date : str
+        The start date of the time period of interest.
+    end_date : str
+        The end date of the time period of interest.
+    resolution : int, optional
+        Resolution of the downloaded data, in meters. Defaults to 10.
+    tile_shape : int, optional
+        Side length of a downloaded chip, in pixels. Defaults to 500.
+    max_tile_size : int, optional
+        Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
+        Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
+    composite_method : CompositeMethod, optional
+        The composite method to mosaic the image collection. Defaults to CompositeMethod.MEDIAN.
+    dtype : DType, optional
+        The data type of the downloaded images. Defaults to DType.Float32.
+    filter_polygon : Optional[shapely.Polygon], optional
+        More fine-grained AOI than `bbox`. Defaults to None.
     """
     download(
         data_dir=data_dir,
@@ -360,5 +456,7 @@ def download_dynworld(
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
+            "dtype": dtype,
         },
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )
