@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from ..log import setup
+from ..utils.log import setup
 from . import debug as debug_flag
 
 log = logging.getLogger(__name__)
