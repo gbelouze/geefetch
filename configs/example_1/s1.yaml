@@ -1,0 +1,6 @@
+s1:
+  aoi:
+    spatial: ${satellite_default.aoi.spatial}
+    temporal:
+      start_date: "2020-04-01"
+      end_date: "2020-06-31"

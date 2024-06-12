@@ -1,0 +1,2 @@
+# The root directory where all the data will be stored
+data_dir: /path/to/datadir

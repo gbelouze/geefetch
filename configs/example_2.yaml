@@ -1,0 +1,25 @@
+# The root directory where all the data will be stored
+data_dir: /path/to/datadir
+satellite_default:
+  resolution: 10
+  tile_size: 5_000
+  dtype: Float32
+  aoi:
+    spatial:
+      left: 0
+      right: 1
+      bottom: 0
+      top: 1
+      epsg: 4326 # the CRS in which the AOI is expressed
+    temporal:
+      start_date: 2020-01-01
+      end_date: 2020-01-31
+  gee:
+    ee_project_id: ee-project-id # add your Earth Engine project id here.
+    max_tile_size: 8 # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.
+    composite_method: MEDIAN # see geoml.utils.gee.CompositeMethod
+s1:
+  gee:
+    composite_method: MEAN
+s2: {} # use satellite_default
+dynworld: {}

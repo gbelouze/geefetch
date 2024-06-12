@@ -1,0 +1,17 @@
+satellite_default:
+  resolution: 10
+  tile_size: 5_000
+  aoi:
+    spatial:
+      left: 30
+      right: 31
+      top: -3
+      bottom: -4
+      epsg: 4326
+    temporal:
+      start_date: "2020-01-01"
+      end_date: "2020-01-31"
+  gee:
+    ee_project_id: "ee-project-id"
+    max_tile_size: 8 # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.
+    composite_method: "MEDIAN" # see geoml.utils.gee.CompositeMethod
