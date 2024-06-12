@@ -92,7 +92,7 @@ def download_s1(config_path: Path) -> None:
         raise RuntimeError(
             "GEDI is not configured. Pass `s1: {}` in the config file to use `satellite_default`."
         )
-    save_config(config.gedi, config.data_dir / "s1")
+    save_config(config.s1, config.data_dir / "s1")
 
     data_dir = Path(config.data_dir)
     auth(config.s1.gee.ee_project_id)
@@ -122,7 +122,7 @@ def download_s2(config_path: Path) -> None:
         raise RuntimeError(
             "GEDI is not configured. Pass `s2: {}` in the config file to use `satellite_default`."
         )
-    save_config(config.gedi, config.data_dir / "s2")
+    save_config(config.s2, config.data_dir / "s2")
 
     data_dir = Path(config.data_dir)
     auth(config.s2.gee.ee_project_id)
@@ -154,7 +154,7 @@ def download_dynworld(config_path: Path) -> None:
         raise RuntimeError(
             "GEDI is not configured. Pass `dynworld: {}` in the config file to use `satellite_default`."
         )
-    save_config(config.gedi, config.data_dir / "dynworld")
+    save_config(config.dynworld, config.data_dir / "dynworld")
 
     data_dir = Path(config.data_dir)
     auth(config.dynworld.gee.ee_project_id)
