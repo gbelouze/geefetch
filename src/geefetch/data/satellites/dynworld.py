@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 class DynWorldBase(SatelliteABC):
     _bands = [
         "water",
-        "tree",
+        "trees",
         "grass",
         "flooded_vegetation",
         "crops",
@@ -27,7 +27,7 @@ class DynWorldBase(SatelliteABC):
     ]
     _selected_bands = [
         "water",
-        "tree",
+        "trees",
         "grass",
         "flooded_vegetation",
         "crops",
