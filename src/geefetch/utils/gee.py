@@ -21,12 +21,15 @@ def auth(project: str) -> None:
 
 
 class DType(Enum):
+    UInt8 = "UINT8"
     UInt16 = "UINT16"
     Float32 = "FLOAT32"
     Float64 = "FLOAT64"
 
     def transform(self, im: ee.Image) -> ee.Image:
         match self:
+            case DType.UInt8:
+                return im.toUint8()
             case DType.UInt16:
                 return im.toUint16()
             case DType.Float32:

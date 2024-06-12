@@ -4,7 +4,7 @@ from typing import Any
 import ee
 
 from ...utils.coords import WGS84, BoundingBox
-from ...utils.gee import CompositeMethod
+from ...utils.gee import CompositeMethod, DType
 from ..downloadables import DownloadableGeedimImage
 from ..downloadables.geedim import BaseImage
 from .abc import SatelliteABC
@@ -25,7 +25,17 @@ class DynWorldBase(SatelliteABC):
         "snow_and_ice",
         "label",
     ]
-    _selected_bands = ["label"]
+    _selected_bands = [
+        "water",
+        "tree",
+        "grass",
+        "flooded_vegetation",
+        "crops",
+        "shrub_and_scrub",
+        "built",
+        "bare",
+        "snow_and_ice",
+    ]
 
     @property
     def bands(self):
@@ -37,7 +47,7 @@ class DynWorldBase(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return 0, 9
+        return 0, 1
 
     @property
     def resolution(self):
@@ -80,6 +90,7 @@ class DynWorldGeedim(DynWorldBase):
         start_date: str,
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
+        dtype: DType = DType.Float32,
         buffer: float = 100,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
@@ -113,11 +124,19 @@ class DynWorldGeedim(DynWorldBase):
         )
         min_p, max_p = self.pixel_range
         dynworld_im = (
-            composite_method.transform(dynworld_col)
-            .clip(bounds)
-            .clamp(min_p, max_p)
-            .toUint8()
+            composite_method.transform(dynworld_col).clip(bounds).clamp(min_p, max_p)
         )
+        match dtype:
+            case DType.Float64:
+                dynworld_im = dynworld_im.toUint64()
+            case DType.Float32:
+                pass
+            case DType.UInt16:
+                dynworld_im = dynworld_im.multiply((2**16 - 1) / max_p).toUint16()
+            case DType.UInt8:
+                dynworld_im = dynworld_im.multiply((2**8 - 1) / max_p).toUint8()
+            case _:
+                raise ValueError(f"Unsupported {dtype=}.")
         dynworld_im = BaseImage(dynworld_im)
         n_images = len(dynworld_col.getInfo()["features"])
         if n_images > 500:

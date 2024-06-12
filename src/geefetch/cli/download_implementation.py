@@ -154,7 +154,7 @@ def download_dynworld(config_path: Path) -> None:
         raise RuntimeError(
             "GEDI is not configured. Pass `dynworld: {}` in the config file to use `satellite_default`."
         )
-    save_config(config.dynworld, config.data_dir / "dynworld")
+    save_config(config.dynworld, config.data_dir / "dyn_world")
 
     data_dir = Path(config.data_dir)
     auth(config.dynworld.gee.ee_project_id)
