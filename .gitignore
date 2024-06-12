@@ -5,6 +5,9 @@ notebooks/
 _tests/
 .rsync_ignore.txt
 
+# docs
+docs/source/generated
+
 ### JupyterNotebooks ###
 .ipynb_checkpoints
 */.ipynb_checkpoints/*

@@ -50,7 +50,12 @@ tracker = "https://github.com/gbelouze/geefetch/issues"
 dev = [
     "mypy",
     "pytest",
-    "pre-commit"
+    "pre-commit",
+]
+doc = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinxcontrib-napoleon",
 ]
 
 [project.scripts]
