@@ -16,13 +16,13 @@ Welcome to GeeFetch's documentation!
    :maxdepth: 2
 
    readme
-
+   cli
+   api
 
 API
 ===
 
 .. autosummary::
-   :toctree: generated
 
    geefetch
 

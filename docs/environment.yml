@@ -1,0 +1,13 @@
+name: _geefetch
+channels:
+- conda-forge
+- defaults
+dependencies:
+- python=3.12.*
+- libgdal=3.8.4
+- gdal=3.8.4
+- geopandas=0.14.3
+- omegaconf=2.3.0
+- rich=13.7.1
+- sphinx-click
+- sphinx-rtd-theme
