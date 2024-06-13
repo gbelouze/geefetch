@@ -73,6 +73,7 @@ class Tiler:
         -------
         List[BoundingBox]
         """
+        skip_count = 0
         for utm in aoi.to_utms():
             log.debug(f"AOI intersects UTM zone {utm}.")
             utm_bbox = BoundingBox.from_utm(utm) & aoi.transform(WGS84)
@@ -106,9 +107,10 @@ class Tiler:
                         ):
                             yield bbox
                         else:
-                            log.debug(
-                                f"Tile {bbox84} does not intersect the country polygon. Skipping it."
-                            )
+                            skip_count += 1
+        log.debug(
+            f"Skipped {skip_count} tiles that did not intersect the country polygon."
+        )
 
 
 class TileTracker:
