@@ -38,21 +38,27 @@ def rangeContains(band: ee.Image, mini: int | float, maxi: int | float) -> ee.Im
     return band.gte(mini).And(band.lte(maxi))
 
 
-def qualityFilter() -> ee.Filter:
-    return ee.Filter.And(
+def qualityFilter(strict: bool = False) -> ee.Filter:
+    filter = ee.Filter.And(
         ee.Filter.rangeContains("rh98", 0, 80),
         ee.Filter.eq("quality_flag", 1),
         ee.Filter.eq("degrade_flag", 0),
         ee.Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
         ee.Filter.eq("elevation_bias_flag", 0),
         ee.Filter.gte("sensitivity", 0.98),
-        # ee.Filter.Or(
-        #     ee.Filter.rangeContains("solar_azimuth", 70, 120),
-        #     ee.Filter.rangeContains("solar_azimuth", 240, 290),
-        # ),
-        # ee.Filter.lte("solar_elevation", -10),
-        # ee.Filter.gte("energy_total", 5_000),
     )
+
+    if strict:
+        filter = ee.Filter.And(
+            filter,
+            ee.Filter.Or(
+                ee.Filter.rangeContains("solar_azimuth", 70, 120),
+                ee.Filter.rangeContains("solar_azimuth", 240, 290),
+            ),
+            ee.Filter.lte("solar_elevation", -10),
+            ee.Filter.gte("energy_total", 5_000),
+        )
+    return filter
 
 
 def qualityMask(
