@@ -17,12 +17,12 @@ Welcome to GeeFetch's documentation!
 
    readme
    cli
+   api
 
 API
 ===
 
 .. autosummary::
-   :toctree: generated
 
    geefetch
 

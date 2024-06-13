@@ -1,4 +1,0 @@
-﻿geefetch
-========
-
-.. automodule:: geefetch
