@@ -16,7 +16,7 @@ Welcome to GeeFetch's documentation!
    :maxdepth: 2
 
    readme
-
+   cli
 
 API
 ===
