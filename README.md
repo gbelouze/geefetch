@@ -5,7 +5,8 @@
 
 A python library/CLI to download large scale satellite data from Google Earth Engine.
 
-[![asciicast](https://asciinema.org/a/IuapVy0T9ErtyvgDMb8rMLftC)](CLI demo)
+[![CLI demo](https://asciinema.org/a/IuapVy0T9ErtyvgDMb8rMLftC)](https://asciinema.org/a/IuapVy0T9ErtyvgDMb8rMLftC)
+
 
 
 ## Overview
