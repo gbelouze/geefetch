@@ -5,8 +5,8 @@ from typing import Any, Optional
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 
-from ..utils.coords import BoundingBox
-from ..utils.gee import CompositeMethod, DType, Format
+from geefetch.utils.coords import BoundingBox
+from geefetch.utils.gee import CompositeMethod, DType, Format
 
 
 @dataclass

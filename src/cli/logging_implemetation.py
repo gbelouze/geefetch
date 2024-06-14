@@ -1,7 +1,8 @@
 import logging
 from pathlib import Path
 
-from ..utils.log import setup
+from geefetch.utils.log import setup
+
 from . import debug as debug_flag
 
 log = logging.getLogger(__name__)

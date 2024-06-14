@@ -6,9 +6,10 @@ import geopandas
 import shapely
 from omegaconf import OmegaConf
 
-from .. import data
-from ..utils.config import git_style_diff
-from ..utils.gee import auth
+from geefetch import data
+from geefetch.utils.config import git_style_diff
+from geefetch.utils.gee import auth
+
 from .omegaconfig import load
 
 log = logging.getLogger(__name__)
