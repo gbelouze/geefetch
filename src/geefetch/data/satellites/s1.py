@@ -82,7 +82,13 @@ class S1GEE(S1Base):
             case DType.Float32:
                 pass
             case DType.UInt16:
-                s1_im = s1_im.multiply((2**16 - 1) / max_p).toUint16()
+                s1_im = (
+                    s1_im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
+                )
+            case DType.UInt8:
+                s1_im = (
+                    s1_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+                )
             case _:
                 raise ValueError(f"Unsupported {dtype=}.")
         return DownloadableGEEImage(s1_im)
@@ -154,7 +160,13 @@ class S1Geedim(S1Base):
             case DType.Float32:
                 pass
             case DType.UInt16:
-                s1_im = s1_im.multiply((2**16 - 1) / max_p).toUint16()
+                s1_im = (
+                    s1_im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
+                )
+            case DType.UInt8:
+                s1_im = (
+                    s1_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+                )
             case _:
                 raise ValueError(f"Unsupported {dtype=}.")
         s1_im = BaseImage(s1_im)

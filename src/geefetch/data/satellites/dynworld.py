@@ -132,9 +132,17 @@ class DynWorldGeedim(DynWorldBase):
             case DType.Float32:
                 pass
             case DType.UInt16:
-                dynworld_im = dynworld_im.multiply((2**16 - 1) / max_p).toUint16()
+                dynworld_im = (
+                    dynworld_im.add(-min_p)
+                    .multiply((2**16 - 1) / (max_p - min_p))
+                    .toUint16()
+                )
             case DType.UInt8:
-                dynworld_im = dynworld_im.multiply((2**8 - 1) / max_p).toUint8()
+                dynworld_im = (
+                    dynworld_im.add(-min_p)
+                    .multiply((2**8 - 1) / (max_p - min_p))
+                    .toUint8()
+                )
             case _:
                 raise ValueError(f"Unsupported {dtype=}.")
         dynworld_im = BaseImage(dynworld_im)

@@ -245,7 +245,16 @@ class GEDI_raster(SatelliteABC):
                 pass
             case DType.UInt16:
                 min_p, max_p = self.pixel_range
-                gedi_im = gedi_im.multiply((2**16 - 1) / max_p).toUint16()
+                gedi_im = (
+                    gedi_im.add(-min_p)
+                    .multiply((2**16 - 1) / (max_p - min_p))
+                    .toUint16()
+                )
+            case DType.UInt8:
+                min_p, max_p = self.pixel_range
+                gedi_im = (
+                    gedi_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+                )
             case _:
                 raise ValueError(f"Unsupported {dtype=}.")
         return DownloadableGeedimImage(BaseImage(gedi_im))
