@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import shapely
+from retry import retry
 
 from ..utils.coords import WGS84, BoundingBox
 from ..utils.gee import CompositeMethod, DType, Format
@@ -25,6 +26,11 @@ class DownloadError(Exception):
     pass
 
 
+class BadDataError(Exception):
+    pass
+
+
+@retry(exceptions=DownloadError, tries=5)
 def download_chip(
     data_get_lazy: Callable[[Any, ...], DownloadableABC],
     data_get_kwargs: dict[Any],
@@ -57,10 +63,10 @@ def download_chip(
         raise DownloadError from e
     if satellite.is_raster and check_clean and not tif_is_clean(out):
         log.error(f"Tif file {out} contains missing data.")
-        raise DownloadError
+        raise BadDataError
     if satellite.is_vector and check_clean and not vector_is_clean(out):
         log.error(f"Geojson file {out} contains no data.")
-        raise DownloadError
+        raise BadDataError
     return out
 
 
