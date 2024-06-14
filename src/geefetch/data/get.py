@@ -6,16 +6,27 @@ from typing import Any, Callable, Optional
 import shapely
 from retry import retry
 
-from ..utils.coords import WGS84, BoundingBox
+from ..utils.coords import UTM, WGS84, BoundingBox
 from ..utils.gee import CompositeMethod, DType, Format
 from ..utils.progress import default_bar
-from ..utils.rasterio import create_vrts
+from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
 from .process import tif_is_clean, vector_is_clean
 from .satellites import SatelliteABC, dynworld, gedi_raster, gedi_vector, s1, s2
 from .tiler import Tiler, TileTracker
 
 log = logging.getLogger(__name__)
+
+
+def _create_vrts(tracker: TileTracker) -> None:
+    """Create .vrt files for the tracked tif files."""
+    crs_to_paths = tracker.crs_to_paths()
+    for crs, paths in crs_to_paths.items():
+        out = (
+            tracker.root
+            / f"{tracker.satellite.name}_{UTM.utm_strip_name_from_crs(crs)}.vrt"
+        )
+        create_vrt(out, paths)
 
 
 class UserMemoryLimitExceeded(Exception):
@@ -192,7 +203,7 @@ def download(
                     )
                     raise
         if satellite.is_raster:
-            create_vrts(tracker)
+            _create_vrts(tracker)
     log.info(
         f"[green]Finished[/] downloading {satellite.full_name} chips to [cyan]{tracker.root}[/]"
     )
