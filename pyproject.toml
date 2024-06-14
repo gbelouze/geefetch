@@ -25,17 +25,15 @@ dependencies = [
     "click",
     "earthengine-api",
     "gdal",
+    "geedim@git+https://github.com/gbelouze/geedim.git",
     "geopandas",
     "jsons",
-    "lightning",
     "numpy",
-    "pygedi",
+    "omegaconf",
     "rasterio",
+    "retry",
     "rich",
     "shapely",
-    "tensorboard",
-    "torch",
-    "torchvision",
     "utm"
 ]
 

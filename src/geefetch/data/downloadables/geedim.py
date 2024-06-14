@@ -3,17 +3,17 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 import ee
+from geedim.download import BaseImage
+from geedim.enums import ExportType
 from rasterio.crs import CRS
 from rich.progress import Progress
 
-from ..abc import DownloadableABC
-from .download import BaseImage
-from .enums import ExportType
+from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
 
 
-__all__ = ["BaseImage", "ExportableGeedimImage", "DownloadableGeedimImage"]
+__all__ = ["ExportableGeedimImage", "DownloadableGeedimImage"]
 
 
 class ExportableGeedimImage(DownloadableABC):
