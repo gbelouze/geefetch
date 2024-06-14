@@ -21,6 +21,7 @@ In its current state, `geefetch` allows you to download Sentinel-1, Sentinel-2, 
 
 ## Development
 
+Install GDAL beforehand (see [instructions](https://pypi.org/project/GDAL/)).
 Install `geefetch` locally in editable mode
 
 ```bash

@@ -23,6 +23,7 @@ or vector files. See ``geefetch download --help``.
 Development
 -----------
 
+Install GDAL beforehand (see `instructions <https://pypi.org/project/GDAL/>`__).
 Install ``geefetch`` locally in editable mode
 
 .. code:: bash
