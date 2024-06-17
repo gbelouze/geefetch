@@ -9,7 +9,11 @@ import ee
 
 from ...utils.coords import WGS84, BoundingBox
 from ...utils.gee import DType
-from ..downloadables import DownloadableGEECollection, DownloadableGeedimImage
+from ..downloadables import (
+    DownloadableGEECollection,
+    DownloadableGeedimImage,
+    DownloadableGeedimImageCollection,
+)
 from ..downloadables.geedim import BaseImage
 from .abc import SatelliteABC
 
@@ -194,6 +198,84 @@ class GEDI_raster(SatelliteABC):
     def pixel_range(self):
         return 0, 100
 
+    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
+        match dtype:
+            case DType.Float32:
+                return im
+            case DType.UInt16:
+                min_p, max_p = self.pixel_range
+                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
+            case DType.UInt8:
+                min_p, max_p = self.pixel_range
+                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+            case _:
+                raise ValueError(f"Unsupported {dtype=}.")
+
+    def get_col(self, aoi: BoundingBox, start_date: str, end_date: str):
+        """Get GEDI collection.
+
+        Parameters
+        ----------
+        aoi : BoundingBox
+            Area of interest.
+        start_date : str
+            Start date in "YYYY-MM-DD" format.
+        end_date : str
+            End date in "YYYY-MM-DD" format.
+
+        Returns
+        -------
+        gedi_col : ee.ImageCollection
+            A GEDI collection of the specified AOI and time range.
+        """
+        return (
+            ee.ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY")
+            .filterBounds(aoi.to_ee_geometry())
+            .filterDate(start_date, end_date)
+            .map(qualityMask)
+            .select(self.selected_bands)
+        )
+
+    def get_time_series(
+        self,
+        aoi: BoundingBox,
+        start_date: str,
+        end_date: str,
+        dtype: DType = DType.Float32,
+        **kwargs: Any,
+    ) -> DownloadableGeedimImage:
+        """Get GEDI collection.
+
+        Parameters
+        ----------
+        aoi : BoundingBox
+            Area of interest.
+        start_date : str
+            Start date in "YYYY-MM-DD" format.
+        end_date : str
+            End date in "YYYY-MM-DD" format.
+
+        Returns
+        -------
+        gedi_im: DownloadableGeedimImageCollection
+            A GEDI time series collection of the specified AOI and time range.
+        """
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        gedi_col = self.get_col(aoi, start_date, end_date)
+
+        images = {}
+        info = gedi_col.getInfo()
+        n_images = len(info["features"])
+        if n_images == 0:
+            log.error(f"Found 0 GEDI image." f"Check region {aoi.transform(WGS84)}.")
+            raise RuntimeError("Collection of 0 GEDI image.")
+        for feature in info["features"]:
+            id_ = feature["id"]
+            im = ee.Image(id_).clip(bounds)
+            im = self.convert_image(im, dtype)
+            images[id_.removeprefix("LARSE/GEDI/GEDI02_A_002_MONTHLY/")] = BaseImage(im)
+        return DownloadableGeedimImageCollection(images)
+
     def get(
         self,
         aoi: BoundingBox,
@@ -232,31 +314,9 @@ class GEDI_raster(SatelliteABC):
                 f"No GEDI data is collected bellow latitude 51.6°S."
                 f"Your AOI down to latitude {aoi_wgs84.bottom:.1f}° will not be fully represented."
             )
-        gedi_im = (
-            ee.ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY")
-            .filterBounds(aoi.to_ee_geometry())
-            .filterDate(start_date, end_date)
-            .map(qualityMask)
-            .select("rh98")
-            .mosaic()
-        )
-        match dtype:
-            case DType.Float32:
-                pass
-            case DType.UInt16:
-                min_p, max_p = self.pixel_range
-                gedi_im = (
-                    gedi_im.add(-min_p)
-                    .multiply((2**16 - 1) / (max_p - min_p))
-                    .toUint16()
-                )
-            case DType.UInt8:
-                min_p, max_p = self.pixel_range
-                gedi_im = (
-                    gedi_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-                )
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
+        gedi_col = self.get_col(aoi, start_date, end_date)
+        gedi_im = gedi_col.mosaic()
+        gedi_im = self.convert_image(gedi_im, dtype)
         return DownloadableGeedimImage(BaseImage(gedi_im))
 
     @property

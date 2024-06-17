@@ -5,7 +5,11 @@ import ee
 
 from ...utils.coords import WGS84, BoundingBox
 from ...utils.gee import CompositeMethod, DType
-from ..downloadables import DownloadableGeedimImage, DownloadableGEEImage
+from ..downloadables import (
+    DownloadableGeedimImage,
+    DownloadableGeedimImageCollection,
+    DownloadableGEEImage,
+)
 from ..downloadables.geedim import BaseImage
 from .abc import SatelliteABC
 
@@ -66,6 +70,19 @@ class S2Base(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
+
+    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
+        min_p, max_p = self.pixel_range
+        im = im.clamp(min_p, max_p)
+        match dtype:
+            case DType.Float32:
+                return im
+            case DType.UInt16:
+                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
+            case DType.UInt8:
+                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+            case _:
+                raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
         self,
@@ -209,6 +226,58 @@ class S2GEE(S2Base):
 
 
 class S2Geedim(S2Base):
+    def get_time_series(
+        self,
+        aoi: BoundingBox,
+        start_date: str,
+        end_date: str,
+        dtype: DType = DType.Float32,
+        cloudless_portion: int = 60,
+        cloud_prb_thresh: int = 40,
+        **kwargs: Any,
+    ) -> DownloadableGeedimImage:
+        """Get Sentinel-2 collection.
+
+        Parameters
+        ----------
+        aoi : BoundingBox
+            Area of interest.
+        start_date : str
+            Start date in "YYYY-MM-DD" format.
+        end_date : str
+            End date in "YYYY-MM-DD" format.
+
+        Returns
+        -------
+        s2_im: DownloadableGeedimImageCollection
+            A Sentinel-2 time series collection of the specified AOI and time range.
+        """
+        for kwarg in kwargs:
+            log.warn(f"Argument {kwarg} is ignored.")
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        s2_cloudless = self.get_col(
+            aoi,
+            start_date,
+            end_date,
+            cloudless_portion=cloudless_portion,
+            cloud_prb_thresh=cloud_prb_thresh,
+        )
+
+        images = {}
+        info = s2_cloudless.getInfo()
+        n_images = len(info["features"])
+        if n_images == 0:
+            log.error(
+                f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}."
+            )
+            raise RuntimeError("Collection of 0 Sentinel-2 image.")
+        for feature in info["features"]:
+            id_ = feature["id"]
+            im = ee.Image(id_).clip(bounds)
+            im = self.convert_image(im, dtype)
+            images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = BaseImage(im)
+        return DownloadableGeedimImageCollection(images)
+
     def get(
         self,
         aoi: BoundingBox,
@@ -259,22 +328,8 @@ class S2Geedim(S2Base):
             cloud_prb_thresh=cloud_prb_thresh,
         )
         min_p, max_p = self.pixel_range
-        s2_im = (
-            composite_method.transform(s2_cloudless).clip(bounds).clamp(min_p, max_p)
-        )
-        match dtype:
-            case DType.Float32:
-                pass
-            case DType.UInt16:
-                s2_im = (
-                    s2_im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-                )
-            case DType.UInt8:
-                s2_im = (
-                    s2_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-                )
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
+        s2_im = composite_method.transform(s2_cloudless).clip(bounds)
+        s2_im = self.convert_image(s2_im, dtype)
         s2_im = BaseImage(s2_im)
         n_images = len(s2_cloudless.getInfo()["features"])
         if n_images > 500:

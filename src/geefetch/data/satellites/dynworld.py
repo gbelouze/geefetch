@@ -5,7 +5,7 @@ import ee
 
 from ...utils.coords import WGS84, BoundingBox
 from ...utils.gee import CompositeMethod, DType
-from ..downloadables import DownloadableGeedimImage
+from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import BaseImage
 from .abc import SatelliteABC
 
@@ -57,6 +57,21 @@ class DynWorldBase(SatelliteABC):
     def is_raster(self) -> bool:
         return True
 
+    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
+        min_p, max_p = self.pixel_range
+        im = im.clamp(min_p, max_p)
+        match dtype:
+            case DType.Float64:
+                return im.toFloat64()
+            case DType.Float32:
+                return im
+            case DType.UInt16:
+                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
+            case DType.UInt8:
+                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+            case _:
+                raise ValueError(f"Unsupported {dtype=}.")
+
     def get_col(
         self,
         aoi: BoundingBox,
@@ -84,6 +99,48 @@ class DynWorldBase(SatelliteABC):
 
 
 class DynWorldGeedim(DynWorldBase):
+    def get_time_series(
+        self,
+        aoi: BoundingBox,
+        start_date: str,
+        end_date: str,
+        dtype: DType = DType.Float32,
+        **kwargs: Any,
+    ) -> DownloadableGeedimImage:
+        """Get Dynamic World collection.
+
+        Parameters
+        ----------
+        aoi : BoundingBox
+            Area of interest.
+        start_date : str
+            Start date in "YYYY-MM-DD" format.
+        end_date : str
+            End date in "YYYY-MM-DD" format.
+
+        Returns
+        -------
+        dynworld_im: DownloadableGeedimImageCollection
+            A Dynamic World time series collection of the specified AOI and time range.
+        """
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        dynworld_col = self.get_col(aoi, start_date, end_date)
+
+        images = {}
+        info = dynworld_col.getInfo()
+        n_images = len(info["features"])
+        if n_images == 0:
+            log.error(
+                f"Found 0 Dynamic World image." f"Check region {aoi.transform(WGS84)}."
+            )
+            raise RuntimeError("Collection of 0 Dynamic World image.")
+        for feature in info["features"]:
+            id_ = feature["id"]
+            im = ee.Image(id_).clip(bounds)
+            im = self.convert_image(im, dtype)
+            images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = BaseImage(im)
+        return DownloadableGeedimImageCollection(images)
+
     def get(
         self,
         aoi: BoundingBox,
@@ -122,29 +179,8 @@ class DynWorldGeedim(DynWorldBase):
             start_date,
             end_date,
         )
-        min_p, max_p = self.pixel_range
-        dynworld_im = (
-            composite_method.transform(dynworld_col).clip(bounds).clamp(min_p, max_p)
-        )
-        match dtype:
-            case DType.Float64:
-                dynworld_im = dynworld_im.toUint64()
-            case DType.Float32:
-                pass
-            case DType.UInt16:
-                dynworld_im = (
-                    dynworld_im.add(-min_p)
-                    .multiply((2**16 - 1) / (max_p - min_p))
-                    .toUint16()
-                )
-            case DType.UInt8:
-                dynworld_im = (
-                    dynworld_im.add(-min_p)
-                    .multiply((2**8 - 1) / (max_p - min_p))
-                    .toUint8()
-                )
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
+        dynworld_im = composite_method.transform(dynworld_col).clip(bounds)
+        dynworld_im = self.convert_image(dynworld_im, dtype)
         dynworld_im = BaseImage(dynworld_im)
         n_images = len(dynworld_col.getInfo()["features"])
         if n_images > 500:
