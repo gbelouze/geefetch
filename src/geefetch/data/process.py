@@ -14,6 +14,14 @@ from .tiler import TileTracker
 
 log = logging.getLogger(__name__)
 
+__all__ = [
+    "tif_is_clean",
+    "gedi_is_clean",
+    "vector_is_clean",
+    "merge_geojson",
+    "clean",
+]
+
 
 def tif_is_clean(path: Path) -> bool:
     """Check that a 'tif' file is valid and not full of NODATA.

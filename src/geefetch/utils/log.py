@@ -6,6 +6,8 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.traceback import install
 
+__all__ = ["setup"]
+
 
 def setup(level: int = logging.NOTSET, logfile: Optional[Path] = None) -> None:
     """Configure the logging level and message format."""

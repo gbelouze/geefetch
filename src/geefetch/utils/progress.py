@@ -6,6 +6,8 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
+__all__ = ["default_bar"]
+
 
 def default_bar() -> Progress:
     return Progress(

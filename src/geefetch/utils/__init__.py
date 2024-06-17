@@ -1,5 +1,5 @@
 """Miscellaneous utility functions."""
 
-from . import coords, gee, log, path, rasterio
+from . import gee, log, path, rasterio
 
-__all__ = ["coords", "gee", "log", "path", "rasterio"]
+__all__ = ["gee", "log", "path", "rasterio"]

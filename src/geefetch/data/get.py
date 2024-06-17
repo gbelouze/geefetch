@@ -18,6 +18,19 @@ from .tiler import Tiler, TileTracker
 
 log = logging.getLogger(__name__)
 
+__all__ = [
+    "UserMemoryLimitExceeded",
+    "DownloadError",
+    "BadDataError",
+    "download",
+    "download_time_series",
+    "download_s1",
+    "download_s2",
+    "download_dynworld",
+    "download_gedi",
+    "download_gedi_vector",
+]
+
 
 def _create_vrts(tracker: TileTracker) -> None:
     """Create .vrt files for the tracked tif files."""
