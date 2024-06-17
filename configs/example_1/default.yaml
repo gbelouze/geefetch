@@ -1,6 +1,7 @@
 satellite_default:
   resolution: 10
   tile_size: 5_000
+  composite_method: "MEDIAN" # see geoml.utils.gee.CompositeMethod
   aoi:
     spatial:
       left: 30
@@ -14,4 +15,3 @@ satellite_default:
   gee:
     ee_project_id: "ee-project-id"
     max_tile_size: 8 # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.
-    composite_method: "MEDIAN" # see geoml.utils.gee.CompositeMethod

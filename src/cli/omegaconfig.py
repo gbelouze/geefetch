@@ -15,7 +15,6 @@ class GEEConfig:
     max_tile_size: int = (
         10  # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.
     )
-    composite_method: CompositeMethod = CompositeMethod.MEDIAN
 
 
 @dataclass
@@ -77,6 +76,7 @@ class SatelliteDefaultConfig:
     tile_size: int = 5_000
     resolution: int = 10
     dtype: DType = DType.Float32
+    composite_method: CompositeMethod = CompositeMethod.MEDIAN
 
 
 @dataclass
