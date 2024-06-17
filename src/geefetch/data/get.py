@@ -157,7 +157,9 @@ def download(
             for tile in tiles:
                 data_get_kwargs = (
                     dict(
-                        aoi=tile.buffer(1_000), start_date=start_date, end_date=end_date
+                        aoi=tile.buffer(10_000),
+                        start_date=start_date,
+                        end_date=end_date,
                     )
                     | satellite_get_kwargs
                 )
