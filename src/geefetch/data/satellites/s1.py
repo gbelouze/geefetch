@@ -3,8 +3,8 @@ from typing import Any
 
 import ee
 
-from ...utils.coords import WGS84, BoundingBox
-from ...utils.gee import CompositeMethod, DType
+from ...coords import WGS84, BoundingBox
+from ...enums import CompositeMethod, DType
 from ..downloadables import (
     DownloadableGeedimImage,
     DownloadableGeedimImageCollection,

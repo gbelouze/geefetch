@@ -7,8 +7,8 @@ from typing import Any, List, Optional
 
 import ee
 
-from ...utils.coords import WGS84, BoundingBox
-from ...utils.gee import DType
+from ...coords import WGS84, BoundingBox
+from ...enums import DType
 from ..downloadables import (
     DownloadableGEECollection,
     DownloadableGeedimImage,

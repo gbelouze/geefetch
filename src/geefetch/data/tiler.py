@@ -8,8 +8,8 @@ import rasterio as rio
 import shapely
 from rasterio.crs import CRS
 
-from ..utils.coords import UTM, WGS84, BoundingBox
-from ..utils.gee import Format
+from ..coords import UTM, WGS84, BoundingBox
+from ..enums import Format
 from .satellites import SatelliteABC
 
 log = logging.getLogger(__name__)

@@ -7,8 +7,8 @@ import shapely
 from retry import retry
 from rich.progress import Progress
 
-from ..utils.coords import UTM, WGS84, BoundingBox
-from ..utils.gee import CompositeMethod, DType, Format
+from ..coords import UTM, WGS84, BoundingBox
+from ..enums import CompositeMethod, DType, Format
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC

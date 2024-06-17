@@ -6,8 +6,8 @@ A python library/CLI to download large scale satellite data from Google Earth En
 
 from __future__ import annotations
 
-from . import data, utils
+from . import coords, data, utils
 
-__all__ = ["data", "utils"]
+__all__ = ["coords", "data", "utils"]
 
 __version__ = "0.2"

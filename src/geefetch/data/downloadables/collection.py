@@ -10,8 +10,8 @@ import ee
 import requests
 from rasterio.crs import CRS
 
-from ...utils.coords import WGS84
-from ...utils.gee import Format
+from ...coords import WGS84
+from ...enums import Format
 from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)

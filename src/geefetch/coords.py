@@ -21,6 +21,8 @@ if (sys.version_info.major, sys.version_info.minor) < (3, 10):
 else:
     from typing import Iterator, Optional, Self, TypeAlias
 
+__all__ = ["UTM", "WGS84", "BoundingBox"]
+
 
 Coordinate: TypeAlias = tuple[float, float]
 
