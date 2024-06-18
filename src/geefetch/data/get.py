@@ -61,7 +61,6 @@ def download_chip_ts(
     satellite: SatelliteABC,
     scale: int,
     out: Path,
-    check_clean: bool = True,
     progress: Optional[Progress] = None,
     **kwargs: Any,
 ) -> Path:
@@ -83,12 +82,6 @@ def download_chip_ts(
     except Exception as e:
         log.error(f"Failed to download chip to {out}: {e}")
         raise DownloadError from e
-    if satellite.is_raster and check_clean and not tif_is_clean(out):
-        log.error(f"Tif file {out} contains missing data.")
-        raise BadDataError
-    if satellite.is_vector and check_clean and not vector_is_clean(out):
-        log.error(f"Geojson file {out} contains no data.")
-        raise BadDataError
     return out
 
 
@@ -223,7 +216,6 @@ def download_time_series(
                 tile_path.with_name(tile_path.stem),
                 progress=progress,
                 max_tile_size=max_tile_size,
-                check_clean=check_clean,
                 **satellite_download_kwargs,
             )
             progress.update(overall_task, advance=1)
