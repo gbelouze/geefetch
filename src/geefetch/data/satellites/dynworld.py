@@ -25,17 +25,7 @@ class DynWorldBase(SatelliteABC):
         "snow_and_ice",
         "label",
     ]
-    _selected_bands = [
-        "water",
-        "trees",
-        "grass",
-        "flooded_vegetation",
-        "crops",
-        "shrub_and_scrub",
-        "built",
-        "bare",
-        "snow_and_ice",
-    ]
+    _selected_bands = ["label"]
 
     @property
     def bands(self):

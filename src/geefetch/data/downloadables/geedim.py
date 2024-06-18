@@ -113,6 +113,9 @@ class DownloadableGeedimImageCollection(DownloadableABC):
         )
         for id_, image in self.id_to_images.items():
             dst_path = out / f"{id_}.tif"
+            if dst_path.exists():
+                log.debug(f"Found existing {dst_path}. Skipping download.")
+                continue
             image.download(
                 dst_path,
                 region=region,

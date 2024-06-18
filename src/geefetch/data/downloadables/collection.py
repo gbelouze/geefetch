@@ -63,7 +63,7 @@ class DownloadableGEECollection(DownloadableABC):
                 log.warn(f"Argument {key} is ignored.")
 
         if format == Format.GEOJSON and crs != WGS84:
-            log.warn(f".geojson files must be in WGS84. Ignoring argurment {crs=}.")
+            log.warn(f".geojson files must be in WGS84. Ignoring argument {crs=}.")
             crs = WGS84
 
         # get image download url and response
