@@ -146,6 +146,12 @@ class UTM:
         return epsg % 100
 
     @classmethod
+    def is_utm_crs(cls, crs: CRS) -> bool:
+        """Whether the given `crs` is a UTM local CRS."""
+        epsg: int = crs.to_epsg()
+        return 32600 < epsg <= 32660 or 32700 < epsg <= 32760
+
+    @classmethod
     def utm_strip_name_from_crs(cls, crs: CRS) -> str:
         return f"UTM{cls.utm_zone_from_crs(crs)}{cls.utm_hemisphere_from_crs(crs)}"
 

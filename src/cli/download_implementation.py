@@ -5,6 +5,7 @@ from typing import Any
 import geopandas
 import shapely
 from omegaconf import OmegaConf
+from rasterio.crs import CRS
 
 from geefetch import data
 from geefetch.utils.config import git_style_diff
@@ -60,6 +61,11 @@ def download_gedi(config_path: Path, vector: bool) -> None:
             bounds,
             config.gedi.aoi.temporal.start_date,
             config.gedi.aoi.temporal.end_date,
+            crs=(
+                CRS.from_epsg(config.gedi.aoi.spatial.epsg)
+                if config.s1.aoi.spatial.epsg != 4326
+                else None
+            ),
             resolution=config.gedi.resolution,
             tile_shape=config.gedi.tile_size,
             filter_polygon=(
@@ -76,6 +82,11 @@ def download_gedi(config_path: Path, vector: bool) -> None:
             bounds,
             config.gedi.aoi.temporal.start_date,
             config.gedi.aoi.temporal.end_date,
+            crs=(
+                CRS.from_epsg(config.gedi.aoi.spatial.epsg)
+                if config.s1.aoi.spatial.epsg != 4326
+                else None
+            ),
             composite_method=config.s1.composite_method,
             dtype=config.gedi.dtype,
             resolution=config.gedi.resolution,
@@ -105,6 +116,11 @@ def download_s1(config_path: Path) -> None:
         bounds,
         config.s1.aoi.temporal.start_date,
         config.s1.aoi.temporal.end_date,
+        crs=(
+            CRS.from_epsg(config.s1.aoi.spatial.epsg)
+            if config.s1.aoi.spatial.epsg != 4326
+            else None
+        ),
         composite_method=config.s1.composite_method,
         dtype=config.s1.dtype,
         resolution=config.s1.resolution,
@@ -135,6 +151,11 @@ def download_s2(config_path: Path) -> None:
         bounds,
         config.s2.aoi.temporal.start_date,
         config.s2.aoi.temporal.end_date,
+        crs=(
+            CRS.from_epsg(config.s2.aoi.spatial.epsg)
+            if config.s1.aoi.spatial.epsg != 4326
+            else None
+        ),
         composite_method=config.s2.composite_method,
         dtype=config.s2.dtype,
         resolution=config.s2.resolution,
@@ -167,6 +188,11 @@ def download_dynworld(config_path: Path) -> None:
         bounds,
         config.dynworld.aoi.temporal.start_date,
         config.dynworld.aoi.temporal.end_date,
+        crs=(
+            CRS.from_epsg(config.dynworld.aoi.spatial.epsg)
+            if config.s1.aoi.spatial.epsg != 4326
+            else None
+        ),
         composite_method=config.dynworld.composite_method,
         resolution=config.dynworld.resolution,
         tile_shape=config.dynworld.tile_size,

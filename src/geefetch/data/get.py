@@ -4,10 +4,11 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import shapely
+from rasterio.crs import CRS
 from retry import retry
 from rich.progress import Progress
 
-from ..coords import UTM, WGS84, BoundingBox
+from ..coords import WGS84, BoundingBox
 from ..enums import CompositeMethod, DType, Format
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
@@ -36,10 +37,7 @@ def _create_vrts(tracker: TileTracker) -> None:
     """Create .vrt files for the tracked tif files."""
     crs_to_paths = tracker.crs_to_paths()
     for crs, paths in crs_to_paths.items():
-        out = (
-            tracker.root
-            / f"{tracker.satellite.name}_{UTM.utm_strip_name_from_crs(crs)}.vrt"
-        )
+        out = tracker.root / f"{tracker.satellite.name}_{tracker.name_crs(crs)}.vrt"
         create_vrt(out, paths)
 
 
@@ -140,6 +138,7 @@ def download_time_series(
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -164,6 +163,9 @@ def download_time_series(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -238,6 +240,7 @@ def download(
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -263,6 +266,9 @@ def download(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -295,7 +301,9 @@ def download(
     tracker = TileTracker(satellite, data_dir)
     with default_bar() as progress:
         tiles = list(
-            tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon)
+            tiler.split(
+                bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs
+            )
         )
 
         overall_task = progress.add_task(
@@ -367,6 +375,7 @@ def download_gedi(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -387,6 +396,9 @@ def download_gedi(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -414,6 +426,7 @@ def download_gedi(
         satellite=gedi_raster,
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
@@ -432,6 +445,7 @@ def download_gedi_vector(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     tile_shape: int = 500,
     resolution: int = 10,
     filter_polygon: Optional[shapely.Polygon] = None,
@@ -450,6 +464,9 @@ def download_gedi_vector(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     tile_shape : int, optional
         Side length of a downloaded chip, in pixels. Defaults to 500.
     resolution : int, optional
@@ -465,6 +482,7 @@ def download_gedi_vector(
         satellite=gedi_vector,
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         tile_shape=tile_shape,
         resolution=resolution,
         filter_polygon=filter_polygon,
@@ -478,6 +496,7 @@ def download_s1(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -498,6 +517,9 @@ def download_s1(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -525,6 +547,7 @@ def download_s1(
         satellite=s1,
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
@@ -542,6 +565,7 @@ def download_s2(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -564,6 +588,9 @@ def download_s2(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -596,6 +623,7 @@ def download_s2(
         satellite=s2,
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
@@ -615,6 +643,7 @@ def download_dynworld(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -635,6 +664,9 @@ def download_dynworld(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -662,6 +694,7 @@ def download_dynworld(
         satellite=dynworld,
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
