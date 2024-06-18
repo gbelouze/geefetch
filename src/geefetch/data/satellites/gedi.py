@@ -230,7 +230,7 @@ class GEDI_raster(SatelliteABC):
         """
         return (
             ee.ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY")
-            .filterBounds(aoi.to_ee_geometry())
+            .filterBounds(aoi.buffer(10_000).to_ee_geometry())
             .filterDate(start_date, end_date)
             .map(qualityMask)
             .select(self.selected_bands)

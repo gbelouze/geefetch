@@ -79,7 +79,7 @@ class DynWorldBase(SatelliteABC):
         end_date : str
             End date in "YYYY-MM-DD" format.
         """
-        bounds = aoi.transform(WGS84).to_ee_geometry()
+        bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
         return (
             ee.ImageCollection("GOOGLE/DYNAMICWORLD/V1")

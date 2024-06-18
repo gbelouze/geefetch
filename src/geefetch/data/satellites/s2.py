@@ -108,7 +108,7 @@ class S2Base(SatelliteABC):
         cloud_prb_thresh : int, optional
             Threshold for cloud probability above which a pixel is filtered out (%).
         """
-        bounds = aoi.transform(WGS84).to_ee_geometry()
+        bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
         s2_cloud = (
             ee.ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY")

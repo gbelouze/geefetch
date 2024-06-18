@@ -201,7 +201,7 @@ def download_time_series(
 
         for tile in tiles:
             data_get_kwargs = (
-                dict(aoi=tile.buffer(10_000), start_date=start_date, end_date=end_date)
+                dict(aoi=tile, start_date=start_date, end_date=end_date)
                 | satellite_get_kwargs
             )
             tile_path = tracker.get_path(
@@ -308,7 +308,7 @@ def download(
             for tile in tiles:
                 data_get_kwargs = (
                     dict(
-                        aoi=tile.buffer(10_000),
+                        aoi=tile,
                         start_date=start_date,
                         end_date=end_date,
                     )

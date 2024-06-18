@@ -70,7 +70,7 @@ class S1Base(SatelliteABC):
         s1_col : ee.ImageCollection
             A Sentinel-1 collection of the specified AOI and time range.
         """
-        bounds = aoi.transform(WGS84).to_ee_geometry()
+        bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
         return (
             ee.ImageCollection("COPERNICUS/S1_GRD")
             .filterDate(start_date, end_date)
