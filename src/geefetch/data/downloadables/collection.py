@@ -10,11 +10,13 @@ import ee
 import requests
 from rasterio.crs import CRS
 
-from ...utils.coords import WGS84
-from ...utils.gee import Format
+from ...coords import WGS84
+from ...enums import Format
 from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
+
+__all__ = []
 
 
 class DownloadableGEECollection(DownloadableABC):
@@ -63,7 +65,7 @@ class DownloadableGEECollection(DownloadableABC):
                 log.warn(f"Argument {key} is ignored.")
 
         if format == Format.GEOJSON and crs != WGS84:
-            log.warn(f".geojson files must be in WGS84. Ignoring argurment {crs=}.")
+            log.warn(f".geojson files must be in WGS84. Ignoring argument {crs=}.")
             crs = WGS84
 
         # get image download url and response

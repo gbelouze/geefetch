@@ -4,17 +4,39 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import shapely
+from rasterio.crs import CRS
+from retry import retry
+from rich.progress import Progress
 
-from ..utils.coords import WGS84, BoundingBox
-from ..utils.gee import CompositeMethod, DType, Format
+from ..coords import BoundingBox
+from ..enums import CompositeMethod, DType, Format
 from ..utils.progress import default_bar
-from ..utils.rasterio import create_vrts
+from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
 from .process import tif_is_clean, vector_is_clean
-from .satellites import SatelliteABC, dynworld, gedi_raster, gedi_vector, s1, s2
+from .satellites import S1, S2, DynWorld, GEDIraster, GEDIvector, SatelliteABC
 from .tiler import Tiler, TileTracker
 
 log = logging.getLogger(__name__)
+
+__all__ = [
+    "UserMemoryLimitExceeded",
+    "DownloadError",
+    "BadDataError",
+    "download_s1",
+    "download_s2",
+    "download_dynworld",
+    "download_gedi",
+    "download_gedi_vector",
+]
+
+
+def _create_vrts(tracker: TileTracker) -> None:
+    """Create .vrt files for the tracked tif files."""
+    crs_to_paths = tracker.crs_to_paths()
+    for crs, paths in crs_to_paths.items():
+        out = tracker.root / f"{tracker.satellite.name}_{tracker.name_crs(crs)}.vrt"
+        create_vrt(out, paths)
 
 
 class UserMemoryLimitExceeded(Exception):
@@ -25,6 +47,43 @@ class DownloadError(Exception):
     pass
 
 
+class BadDataError(Exception):
+    pass
+
+
+# @retry(exceptions=DownloadError, tries=5)
+def download_chip_ts(
+    data_get_lazy: Callable[[Any, ...], DownloadableABC],
+    data_get_kwargs: dict[Any],
+    bbox: BoundingBox,
+    satellite: SatelliteABC,
+    scale: int,
+    out: Path,
+    progress: Optional[Progress] = None,
+    **kwargs: Any,
+) -> Path:
+    """Download a specific chip of data from the satellite."""
+    bands = satellite.selected_bands
+    data = data_get_lazy(**data_get_kwargs)
+
+    try:
+        data.download(
+            out,
+            crs=bbox.crs,
+            region=bbox.to_ee_geometry(),
+            bands=bands,
+            scale=scale,
+            progress=progress,
+            **kwargs,
+        )
+        log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
+    except Exception as e:
+        log.error(f"Failed to download chip to {out}: {e}")
+        raise DownloadError from e
+    return out
+
+
+@retry(exceptions=DownloadError, tries=5)
 def download_chip(
     data_get_lazy: Callable[[Any, ...], DownloadableABC],
     data_get_kwargs: dict[Any],
@@ -46,7 +105,7 @@ def download_chip(
         data.download(
             out,
             crs=bbox.crs,
-            region=bbox.transform(WGS84).to_ee_geometry(),
+            region=bbox.to_ee_geometry(),
             bands=bands,
             scale=scale,
             **kwargs,
@@ -57,19 +116,20 @@ def download_chip(
         raise DownloadError from e
     if satellite.is_raster and check_clean and not tif_is_clean(out):
         log.error(f"Tif file {out} contains missing data.")
-        raise DownloadError
+        raise BadDataError
     if satellite.is_vector and check_clean and not vector_is_clean(out):
         log.error(f"Geojson file {out} contains no data.")
-        raise DownloadError
+        raise BadDataError
     return out
 
 
-def download(
+def download_time_series(
     data_dir: Path,
     bbox: BoundingBox,
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -77,7 +137,6 @@ def download(
     satellite_download_kwargs: Optional[dict[str, Any]] = None,
     check_clean: bool = True,
     filter_polygon: Optional[shapely.Polygon] = None,
-    in_parallel: bool = False,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
     to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
@@ -95,6 +154,9 @@ def download(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -127,7 +189,113 @@ def download(
     tracker = TileTracker(satellite, data_dir)
     with default_bar() as progress:
         tiles = list(
-            tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon)
+            tiler.split(
+                bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs
+            )
+        )
+
+        overall_task = progress.add_task(
+            f"[magenta]Downloading {satellite.full_name} chips...[/]",
+            total=len(tiles),
+        )
+
+        for tile in tiles:
+            data_get_kwargs = (
+                dict(aoi=tile, start_date=start_date, end_date=end_date)
+                | satellite_get_kwargs
+            )
+            tile_path = tracker.get_path(
+                tile, format=satellite_download_kwargs.get("format", None)
+            )
+            download_chip_ts(
+                satellite.get_time_series,
+                data_get_kwargs,
+                tile,
+                satellite,
+                resolution,
+                tile_path.with_name(tile_path.stem),
+                progress=progress,
+                max_tile_size=max_tile_size,
+                **satellite_download_kwargs,
+            )
+            progress.update(overall_task, advance=1)
+        if satellite.is_raster:
+            _create_vrts(tracker)
+    log.info(
+        f"[green]Finished[/] downloading {satellite.full_name} chips to [cyan]{tracker.root}[/]"
+    )
+
+
+def download(
+    data_dir: Path,
+    bbox: BoundingBox,
+    satellite: SatelliteABC,
+    start_date: str,
+    end_date: str,
+    crs: Optional[CRS] = None,
+    resolution: int = 10,
+    tile_shape: int = 500,
+    max_tile_size: int = 10,
+    satellite_get_kwargs: Optional[dict[str, Any]] = None,
+    satellite_download_kwargs: Optional[dict[str, Any]] = None,
+    check_clean: bool = True,
+    filter_polygon: Optional[shapely.Polygon] = None,
+    in_parallel: bool = False,
+) -> None:
+    """Download images from a specific satellite. Images are written in several .tif chips
+    to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
+
+    Parameters
+    ----------
+    data_dir : Path
+        Directory or file name to write the downloaded files to. If a directory,
+        the default `satellite` name is used as a base name.
+    bbox : BoundingBox
+        The box defining the region of interest.
+    satellite : SatelliteABC
+        The satellite which the images should originate from.
+    start_date : str
+        The start date of the time period of interest.
+    end_date : str
+        The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
+    resolution : int, optional
+        Resolution of the downloaded data, in meters. Defaults to 10.
+    tile_shape : int, optional
+        Side length of a downloaded chip, in pixels. Defaults to 500.
+    max_tile_size : int, optional
+        Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
+        Choose the highest possible that doesn't raise a User Memory Excess error.
+        Defaults to 10 Mb.
+    satellite_get_kwargs : Optional[dict[str, Any]], optional
+        Satellite-dependent parameters for getting data. Defaults to None.
+    satellite_download_kwargs : Optional[dict[str, Any]], optional
+        Satellite-dependent parameters for downloading data. Defaults to None.
+    check_clean : bool, optional
+        Whether to check if the data is clean. Defaults to True.
+    filter_polygon : Optional[shapely.Polygon], optional
+        More fine-grained AOI than `bbox`. Defaults to None.
+    in_parallel : bool, optional
+        Whether to send parallel download requests. Do not use if the download backend
+        is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
+    """
+    if not data_dir.is_dir():
+        raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
+    satellite_get_kwargs = (
+        satellite_get_kwargs if satellite_get_kwargs is not None else {}
+    )
+    satellite_download_kwargs = (
+        satellite_download_kwargs if satellite_download_kwargs is not None else {}
+    )
+    tiler = Tiler()
+    tracker = TileTracker(satellite, data_dir)
+    with default_bar() as progress:
+        tiles = list(
+            tiler.split(
+                bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs
+            )
         )
 
         overall_task = progress.add_task(
@@ -140,7 +308,9 @@ def download(
             for tile in tiles:
                 data_get_kwargs = (
                     dict(
-                        aoi=tile.buffer(1_000), start_date=start_date, end_date=end_date
+                        aoi=tile,
+                        start_date=start_date,
+                        end_date=end_date,
                     )
                     | satellite_get_kwargs
                 )
@@ -186,7 +356,7 @@ def download(
                     )
                     raise
         if satellite.is_raster:
-            create_vrts(tracker)
+            _create_vrts(tracker)
     log.info(
         f"[green]Finished[/] downloading {satellite.full_name} chips to [cyan]{tracker.root}[/]"
     )
@@ -197,9 +367,12 @@ def download_gedi(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
+    composite_method: CompositeMethod = CompositeMethod.MEDIAN,
+    dtype: DType = DType.Float32,
     filter_polygon: Optional[shapely.Polygon] = None,
 ) -> None:
     """Download GEDI images fused as rasters. Images are written in several .tif chips
@@ -215,6 +388,9 @@ def download_gedi(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -222,20 +398,37 @@ def download_gedi(
     max_tile_size : int, optional
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
+    composite_method : CompositeMethod, optional
+        The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
+        download data as a time series instead of turning it into a mosaic.
+        Defaults to CompositeMethod.MEDIAN.
+    dtype : DType, optional
+        The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : Optional[shapely.Polygon], optional
         More fine-grained AOI than `bbox`. Defaults to None.
     """
-    download(
+    download_func = (
+        download_time_series
+        if composite_method == CompositeMethod.TIMESERIES
+        else download
+    )
+    download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=gedi_raster,
+        satellite=GEDIraster(),
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         check_clean=False,
         filter_polygon=filter_polygon,
+        satellite_get_kwargs={
+            "composite_method": composite_method,
+            "dtype": dtype,
+        },
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
 
@@ -244,6 +437,7 @@ def download_gedi_vector(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     tile_shape: int = 500,
     resolution: int = 10,
     filter_polygon: Optional[shapely.Polygon] = None,
@@ -262,6 +456,9 @@ def download_gedi_vector(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     tile_shape : int, optional
         Side length of a downloaded chip, in pixels. Defaults to 500.
     resolution : int, optional
@@ -274,9 +471,10 @@ def download_gedi_vector(
     download(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=gedi_vector,
+        satellite=GEDIvector(),
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         tile_shape=tile_shape,
         resolution=resolution,
         filter_polygon=filter_polygon,
@@ -290,6 +488,7 @@ def download_s1(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -310,6 +509,9 @@ def download_s1(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -318,23 +520,34 @@ def download_s1(
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod, optional
-        The composite method to mosaic the image collection. Defaults to CompositeMethod.MEDIAN.
+        The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
+        download data as a time series instead of turning it into a mosaic.
+        Defaults to CompositeMethod.MEDIAN.
     dtype : DType, optional
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : Optional[shapely.Polygon], optional
         More fine-grained AOI than `bbox`. Defaults to None.
     """
-    download(
+    download_func = (
+        download_time_series
+        if (composite_method == CompositeMethod.TIMESERIES)
+        else download
+    )
+    download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=s1,
+        satellite=S1(),
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         filter_polygon=filter_polygon,
-        satellite_get_kwargs={"composite_method": composite_method, "dtype": dtype},
+        satellite_get_kwargs={
+            "composite_method": composite_method,
+            "dtype": dtype,
+        },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
@@ -344,6 +557,7 @@ def download_s2(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -366,6 +580,9 @@ def download_s2(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -374,7 +591,9 @@ def download_s2(
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod, optional
-        The composite method to mosaic the image collection. Defaults to CompositeMethod.MEDIAN.
+        The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
+        download data as a time series instead of turning it into a mosaic.
+        Defaults to CompositeMethod.MEDIAN.
     dtype : DType, optional
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : Optional[shapely.Polygon], optional
@@ -385,12 +604,18 @@ def download_s2(
     cloud_prb_thresh : int, optional
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
     """
-    download(
+    download_func = (
+        download_time_series
+        if composite_method == CompositeMethod.TIMESERIES
+        else download
+    )
+    download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=s2,
+        satellite=S2(),
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
@@ -410,6 +635,7 @@ def download_dynworld(
     bbox: BoundingBox,
     start_date: str,
     end_date: str,
+    crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
@@ -430,6 +656,9 @@ def download_dynworld(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
     resolution : int, optional
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int, optional
@@ -438,18 +667,26 @@ def download_dynworld(
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod, optional
-        The composite method to mosaic the image collection. Defaults to CompositeMethod.MEDIAN.
+        The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
+        download data as a time series instead of turning it into a mosaic.
+        Defaults to CompositeMethod.MEDIAN.
     dtype : DType, optional
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : Optional[shapely.Polygon], optional
         More fine-grained AOI than `bbox`. Defaults to None.
     """
-    download(
+    download_func = (
+        download_time_series
+        if composite_method == CompositeMethod.TIMESERIES
+        else download
+    )
+    download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=dynworld,
+        satellite=DynWorld(),
         start_date=start_date,
         end_date=end_date,
+        crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,

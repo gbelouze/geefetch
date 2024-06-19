@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any, List
 
-from ...utils.coords import BoundingBox
+from ...coords import BoundingBox
 from ..downloadables import DownloadableABC
+
+__all__ = []
 
 
 class SatelliteABC(ABC):

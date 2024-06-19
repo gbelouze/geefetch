@@ -4,6 +4,7 @@ satellite_default:
   resolution: 10
   tile_size: 5_000
   dtype: Float32
+  composite_method: MEDIAN # see geoml.utils.gee.CompositeMethod
   aoi:
     spatial:
       left: 0
@@ -17,9 +18,7 @@ satellite_default:
   gee:
     ee_project_id: ee-project-id # add your Earth Engine project id here.
     max_tile_size: 8 # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.
-    composite_method: MEDIAN # see geoml.utils.gee.CompositeMethod
 s1:
-  gee:
-    composite_method: MEAN
+  composite_method: MEAN
 s2: {} # use satellite_default
 dynworld: {}

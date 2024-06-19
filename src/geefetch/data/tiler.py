@@ -8,11 +8,20 @@ import rasterio as rio
 import shapely
 from rasterio.crs import CRS
 
-from ..utils.coords import UTM, WGS84, BoundingBox
-from ..utils.gee import Format
+from ..coords import UTM, WGS84, BoundingBox
+from ..enums import Format
 from .satellites import SatelliteABC
 
 log = logging.getLogger(__name__)
+
+__all__ = ["Tiler", "TileTracker"]
+
+
+class MaximumIterationError(Exception):
+    pass
+
+
+MAX_TILE_LIMIT = 100_000_000
 
 
 class Tiler:
@@ -52,10 +61,36 @@ class Tiler:
                 return True
         return False
 
+    def _split_in_grid(self, bbox: BoundingBox, shape: int) -> Iterator[BoundingBox]:
+        count = 0
+        for left in range(
+            self._multiple_below(bbox.left, shape),
+            self._multiple_above(bbox.right, shape),
+            shape,
+        ):
+            for bottom in range(
+                self._multiple_below(bbox.bottom, shape),
+                self._multiple_above(bbox.top, shape),
+                shape,
+            ):
+                yield BoundingBox(
+                    left=left,
+                    bottom=bottom,
+                    right=left + shape,
+                    top=bottom + shape,
+                    crs=bbox.crs,
+                )
+                count += 1
+                if count > MAX_TILE_LIMIT:
+                    raise MaximumIterationError(
+                        f"AOI is split in more than {MAX_TILE_LIMIT} tiles. This may be caused by CRS distortion."
+                    )
+
     def split(
         self,
         aoi: BoundingBox,
         shape: int,
+        crs: Optional[CRS] = None,
         filter_polygon: Optional[shapely.Polygon] = None,
     ) -> Iterator[BoundingBox]:
         """Split a region into non-overlapping tiles having shape `shape`x`shape`.
@@ -66,6 +101,9 @@ class Tiler:
             The area of interest.
         shape : int
             The desired side length for tiles (in meters).
+        crs : Optional[CRS], optional
+            The CRS in which to download data. If None, AOI is split in UTM zones and
+            data is downloaded in their local UTM zones. Defaults to None.
         filter_polygon : shapely.Polygon, optional
             If given, only yields tiles which WGS84 bounding boxes intersect the polygon.
 
@@ -73,33 +111,26 @@ class Tiler:
         -------
         List[BoundingBox]
         """
+        if crs is not None and crs.units_factor[0] != "metre":
+            log.warn("Using a tiler with non-metric CRS.")
+
         skip_count = 0
-        for utm in aoi.to_utms():
-            log.debug(f"AOI intersects UTM zone {utm}.")
-            utm_bbox = BoundingBox.from_utm(utm) & aoi.transform(WGS84)
-            ys, xs = zip(utm_bbox.ll, utm_bbox.lr, utm_bbox.ul, utm_bbox.ur)
-            xs, ys = rio.warp.transform(WGS84, utm.crs, xs, ys)
-            _left = min(xs)
-            _right = max(xs)
-            _bottom = min(ys)
-            _top = max(ys)
-            for left in range(
-                self._multiple_below(_left, shape),
-                self._multiple_above(_right, shape),
-                shape,
-            ):
-                for bottom in range(
-                    self._multiple_below(_bottom, shape),
-                    self._multiple_above(_top, shape),
-                    shape,
+
+        if crs is not None:
+            bbox = aoi.transform(crs)
+            for bbox in self._split_in_grid(aoi.transform(crs), shape):
+                bbox84 = bbox.transform(WGS84)
+                if filter_polygon is None or filter_polygon.intersects(
+                    bbox84.to_shapely_polygon()
                 ):
-                    bbox = BoundingBox(
-                        left=left,
-                        bottom=bottom,
-                        right=left + shape,
-                        top=bottom + shape,
-                        crs=utm.crs,
-                    )
+                    yield bbox
+                else:
+                    skip_count += 1
+        else:
+            for utm in aoi.to_utms():
+                log.debug(f"AOI intersects UTM zone {utm}.")
+                utm_bbox = BoundingBox.from_utm(utm) & aoi.transform(WGS84)
+                for bbox in self._split_in_grid(utm_bbox.transform(utm.crs), shape):
                     bbox84 = bbox.transform(WGS84)
                     if bbox84.intersects(utm_bbox):
                         if filter_polygon is None or filter_polygon.intersects(
@@ -148,13 +179,18 @@ class TileTracker:
         """The satellite associated to the data that the dataset handles."""
         return self._satellite
 
+    def name_crs(self, crs: CRS) -> str:
+        if UTM.is_utm_crs(crs):
+            return UTM.utm_strip_name_from_crs(crs)
+        return f"EPSG{crs.to_epsg()}"
+
     def get_path(self, bbox: BoundingBox, format: Optional[Format] = None) -> Path:
         tile_suffix = (
             ".tif"
             if self.satellite.is_raster
             else ".geojson" if format is None else format.value
         )
-        tile_stem = f"{self.satellite.name}_{UTM.utm_strip_name_from_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
+        tile_stem = f"{self.satellite.name}_{self.name_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
         tile_path = self.root / (tile_stem + tile_suffix)
         if not self.filter(tile_path):
             raise RuntimeError(

@@ -5,21 +5,60 @@ from typing import Any, Optional
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 
-from ..utils.coords import BoundingBox
-from ..utils.gee import CompositeMethod, DType, Format
+from geefetch.coords import BoundingBox
+from geefetch.enums import CompositeMethod, DType, Format
+
+__all__ = [
+    "Config",
+    "SatelliteDefaultConfig",
+    "AOIConfig",
+    "TemporalAOIConfig",
+    "SpatialAOIConfig",
+    "GEEConfig",
+    "DynWorldConfig",
+    "GediConfig",
+    "S1Config",
+    "S2Config",
+    "load",
+]
 
 
 @dataclass
 class GEEConfig:
+    """Configuration of Google Earth Engine.
+
+    Attributes
+    ----------
+    ee_project_id : str
+        Your GEE id, to connect to the API.
+
+        .. see also:: https://developers.google.com/earth-engine/apidocs/ee-initialize
+    max_tile_size : int, optional
+        Size constraint in MB for the request sent to GEE. This is heuristical and depends
+        in general on what satellite you are interested in.
+        Decrease if User Memory Excess Error, but choose highest possible otherwise. Defaults is 10.
+    """
+
     ee_project_id: str = "my-ee-project"
-    max_tile_size: int = (
-        10  # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.
-    )
-    composite_method: CompositeMethod = CompositeMethod.MEDIAN
+    max_tile_size: int = 10
 
 
 @dataclass
 class SpatialAOIConfig:
+    """Configuration of the spatial area of interest.
+
+    Attributes
+    ----------
+    left : float
+    right : float
+    top : float
+    bottom : float
+    epsg : int, optional
+        EPSG code for the CRS in which the boundaries are given. If given,
+        the downloaded data will be expressed in that same CRS.
+        Defaults is 4326, corresponding to WGS84 (latitude, longitude).
+    """
+
     left: float
     right: float
     top: float
@@ -38,12 +77,36 @@ class SpatialAOIConfig:
 
 @dataclass
 class TemporalAOIConfig:
+    """Configuration of the temporal range of interest.
+
+    Attributes
+    ----------
+    start_date : str
+        Start date in 'YYYY-MM-DD' format.
+    end_date : str
+        End date in 'YYYY-MM-DD' format.
+    """
+
     start_date: str
     end_date: str
 
 
 @dataclass
 class AOIConfig:
+    """Configuration of a spatial/temporal Area of Interest (AOI).
+
+    Attributes
+    ----------
+    spatial : SpatialAOIConfig
+    temporal : TemporalAOIConfig
+    country : Optional[str]
+        The name of a country. If given, spatial AOI is further restricted to its area
+        that intersects the country boundaries. Defaults to None.
+
+        .. note:: See https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
+            for possible values
+    """
+
     spatial: SpatialAOIConfig
     temporal: TemporalAOIConfig
     # The name of a line in geopandas.datasets "naturalearth_lowres"
@@ -77,27 +140,49 @@ class SatelliteDefaultConfig:
     tile_size: int = 5_000
     resolution: int = 10
     dtype: DType = DType.Float32
+    composite_method: CompositeMethod = CompositeMethod.MEDIAN
 
 
 @dataclass
 class GediConfig(SatelliteDefaultConfig):
-    # Filetype for downloading vector GEDI
+    """The structured type for configuring GEDI.
+
+    Attributes
+    ----------
+    format : Filetype for downloading vector GEDI
+    """
+
     format: Format = Format.CSV
 
 
 @dataclass
 class S1Config(SatelliteDefaultConfig):
+    """The structured type for configuring Sentinel-1."""
+
     pass
 
 
 @dataclass
 class S2Config(SatelliteDefaultConfig):
+    """The structured type for configuring Sentinel-2.
+
+    Attributes
+    ----------
+    cloudless_portion : int, optional
+        Threshold for the portion of filled pixels that must be cloud/shadow free (%).
+        Images that do not fullfill the requirement are filtered out before mosaicking.
+    cloud_prb_thresh : int, optional
+        Threshold for cloud probability above which a pixel is filtered out (%).
+    """
+
     cloudless_portion: int = 40
     cloud_prb_threshold: int = 40
 
 
 @dataclass
 class DynWorldConfig(SatelliteDefaultConfig):
+    """The structured type for configuring Dynamic World."""
+
     pass
 
 
@@ -174,6 +259,7 @@ def post_omegaconf_load(config: Any) -> None:
 
 
 def load(path: Path) -> Config:
+    """Load a config file."""
     if path.is_dir():
         from_yaml = OmegaConf.merge(
             *[OmegaConf.load(file) for file in path.iterdir() if file.suffix == ".yaml"]

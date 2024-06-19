@@ -25,17 +25,15 @@ dependencies = [
     "click",
     "earthengine-api",
     "gdal",
+    "geedim",
     "geopandas",
     "jsons",
-    "lightning",
     "numpy",
-    "pygedi",
+    "omegaconf",
     "rasterio",
+    "retry",
     "rich",
     "shapely",
-    "tensorboard",
-    "torch",
-    "torchvision",
     "utm"
 ]
 
@@ -56,10 +54,11 @@ doc = [
     "sphinx",
     "sphinx_rtd_theme",
     "sphinxcontrib-napoleon",
+    "sphinx-click"
 ]
 
 [project.scripts]
-geefetch = "geefetch.cli:main "
+geefetch = "geefetch.cli:main"
 
 
 [tool.isort]
@@ -77,7 +76,6 @@ testpaths = [
 
 [tool.black]
 line-length = 88
-include = '\.pyi?$'
 exclude = '''
 /(
     \.eggs

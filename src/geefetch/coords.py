@@ -21,6 +21,8 @@ if (sys.version_info.major, sys.version_info.minor) < (3, 10):
 else:
     from typing import Iterator, Optional, Self, TypeAlias
 
+__all__ = ["UTM", "WGS84", "BoundingBox"]
+
 
 Coordinate: TypeAlias = tuple[float, float]
 
@@ -142,6 +144,12 @@ class UTM:
         if not (32600 < epsg <= 32660 or 32700 < epsg <= 32760):
             raise ValueError(f"{crs} is not a UTM local CRS.")
         return epsg % 100
+
+    @classmethod
+    def is_utm_crs(cls, crs: CRS) -> bool:
+        """Whether the given `crs` is a UTM local CRS."""
+        epsg: int = crs.to_epsg()
+        return 32600 < epsg <= 32660 or 32700 < epsg <= 32760
 
     @classmethod
     def utm_strip_name_from_crs(cls, crs: CRS) -> str:
@@ -420,6 +428,10 @@ class BoundingBox:
     def transform(self, dst_crs: CRS) -> Self:
         """Transform a bounding box to `dst_crs`.
 
+        If mapping to the new CRS generates distortions, the smallest box encapsulating
+        the corners of the distorted box is returned. This is in general the smallest encapsulating
+        box of the distorted box.
+
         Parameters
         ----------
         dst : CRS
@@ -434,16 +446,13 @@ class BoundingBox:
             log.warn("Transforming an empty BoundingBox")
             assert False
             return self.__class__(0, 0, 0, 0, dst_crs)
-        x, y = rio.warp.transform(
-            self.crs, dst_crs, [self.left, self.right], [self.top, self.bottom]
-        )
-        # self.crs and dst_crs may not have the same up/down orientation so we check
-        # because of distortions, left and right may also be switched.
+        ys, xs = zip(self.ll, self.lr, self.ul, self.ur)
+        xs, ys = rio.warp.transform(self.crs, dst_crs, xs, ys)
         return self.__class__(
-            left=min(x),
-            bottom=min(y),
-            right=max(x),
-            top=max(y),
+            left=min(xs),
+            bottom=min(ys),
+            right=max(xs),
+            top=max(ys),
             crs=dst_crs,
         )
 
