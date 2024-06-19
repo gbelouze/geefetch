@@ -13,7 +13,7 @@ Welcome to GeeFetch's documentation!
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    readme
    cli

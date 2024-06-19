@@ -26,6 +26,10 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = []
 
+# -- Autodoc configuration ---------------------------------------------------
+autodoc_default_options = {
+    "ignore-module-all": True  # see https://github.com/sphinx-doc/sphinx/issues/4961#issuecomment-1543858623
+}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

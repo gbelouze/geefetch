@@ -12,18 +12,18 @@ geefetch.utils.config module
    :undoc-members:
    :show-inheritance:
 
-geefetch.utils.coords module
-----------------------------
-
-.. automodule:: geefetch.utils.coords
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 geefetch.utils.gee module
 -------------------------
 
 .. automodule:: geefetch.utils.gee
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+geefetch.utils.log module
+-------------------------
+
+.. automodule:: geefetch.utils.log
    :members:
    :undoc-members:
    :show-inheritance:

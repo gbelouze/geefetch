@@ -1,14 +1,6 @@
 geefetch.data.downloadables package
 ===================================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   geefetch.data.downloadables.geedim
-
 Submodules
 ----------
 
@@ -24,6 +16,14 @@ geefetch.data.downloadables.collection module
 ---------------------------------------------
 
 .. automodule:: geefetch.data.downloadables.collection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+geefetch.data.downloadables.geedim module
+-----------------------------------------
+
+.. automodule:: geefetch.data.downloadables.geedim
    :members:
    :undoc-members:
    :show-inheritance:
