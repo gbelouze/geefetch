@@ -13,7 +13,7 @@ from .abc import DownloadableABC
 log = logging.getLogger(__name__)
 
 
-__all__ = ["ExportableGeedimImage", "DownloadableGeedimImage"]
+__all__ = []
 
 
 class ExportableGeedimImage(DownloadableABC):

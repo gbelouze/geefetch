@@ -11,6 +11,8 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
+__all__ = []
+
 
 class DynWorldBase(SatelliteABC):
     _bands = [
@@ -25,7 +27,17 @@ class DynWorldBase(SatelliteABC):
         "snow_and_ice",
         "label",
     ]
-    _selected_bands = ["label"]
+    _selected_bands = [
+        "water",
+        "trees",
+        "grass",
+        "flooded_vegetation",
+        "crops",
+        "shrub_and_scrub",
+        "built",
+        "bare",
+        "snow_and_ice",
+    ]
 
     @property
     def bands(self):
@@ -88,7 +100,7 @@ class DynWorldBase(SatelliteABC):
         )
 
 
-class DynWorldGeedim(DynWorldBase):
+class DynWorld(DynWorldBase):
     def get_time_series(
         self,
         aoi: BoundingBox,
@@ -187,6 +199,3 @@ class DynWorldGeedim(DynWorldBase):
     @property
     def full_name(self) -> str:
         return "Dynamic World (Geedim)"
-
-
-dynworld = DynWorldGeedim()

@@ -14,7 +14,7 @@ from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
 from .process import tif_is_clean, vector_is_clean
-from .satellites import SatelliteABC, dynworld, gedi_raster, gedi_vector, s1, s2
+from .satellites import S1, S2, DynWorld, GEDIraster, GEDIvector, SatelliteABC
 from .tiler import Tiler, TileTracker
 
 log = logging.getLogger(__name__)
@@ -23,8 +23,6 @@ __all__ = [
     "UserMemoryLimitExceeded",
     "DownloadError",
     "BadDataError",
-    "download",
-    "download_time_series",
     "download_s1",
     "download_s2",
     "download_dynworld",
@@ -53,7 +51,7 @@ class BadDataError(Exception):
     pass
 
 
-@retry(exceptions=DownloadError, tries=5)
+# @retry(exceptions=DownloadError, tries=5)
 def download_chip_ts(
     data_get_lazy: Callable[[Any, ...], DownloadableABC],
     data_get_kwargs: dict[Any],
@@ -69,6 +67,7 @@ def download_chip_ts(
     data = data_get_lazy(**data_get_kwargs)
 
     try:
+        # breakpoint()
         data.download(
             out,
             crs=bbox.crs,
@@ -191,7 +190,9 @@ def download_time_series(
     tracker = TileTracker(satellite, data_dir)
     with default_bar() as progress:
         tiles = list(
-            tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon)
+            tiler.split(
+                bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs
+            )
         )
 
         overall_task = progress.add_task(
@@ -415,7 +416,7 @@ def download_gedi(
     download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=gedi_raster,
+        satellite=GEDIraster(),
         start_date=start_date,
         end_date=end_date,
         crs=crs,
@@ -471,7 +472,7 @@ def download_gedi_vector(
     download(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=gedi_vector,
+        satellite=GEDIvector(),
         start_date=start_date,
         end_date=end_date,
         crs=crs,
@@ -536,7 +537,7 @@ def download_s1(
     download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=s1,
+        satellite=S1(),
         start_date=start_date,
         end_date=end_date,
         crs=crs,
@@ -612,7 +613,7 @@ def download_s2(
     download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=s2,
+        satellite=S2(),
         start_date=start_date,
         end_date=end_date,
         crs=crs,
@@ -683,7 +684,7 @@ def download_dynworld(
     download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=dynworld,
+        satellite=DynWorld(),
         start_date=start_date,
         end_date=end_date,
         crs=crs,

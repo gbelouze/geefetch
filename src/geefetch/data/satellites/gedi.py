@@ -19,6 +19,8 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
+__all__ = []
+
 
 class EsaClass(Enum):
     TREE_COVER = 10
@@ -109,7 +111,7 @@ def qualityMask(
     return data
 
 
-class GEDI_vector(SatelliteABC):
+class GEDIvector(SatelliteABC):
     @property
     def bands(self):
         raise NotImplementedError
@@ -185,7 +187,7 @@ class GEDI_vector(SatelliteABC):
         return False
 
 
-class GEDI_raster(SatelliteABC):
+class GEDIraster(SatelliteABC):
     @property
     def bands(self):
         raise NotImplementedError
@@ -330,7 +332,3 @@ class GEDI_raster(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
-
-
-gedi_raster = GEDI_raster()
-gedi_vector = GEDI_vector()

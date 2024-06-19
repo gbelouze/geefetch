@@ -15,6 +15,8 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
+__all__ = []
+
 
 class S1Base(SatelliteABC):
     _bands = ["HH", "HV", "VV", "VH", "angle"]
@@ -126,7 +128,7 @@ class S1GEE(S1Base):
         return "Sentinel-1 (GEE)"
 
 
-class S1Geedim(S1Base):
+class S1(S1Base):
     def get_time_series(
         self,
         aoi: BoundingBox,
@@ -226,7 +228,3 @@ class S1Geedim(S1Base):
     @property
     def full_name(self) -> str:
         return "Sentinel-1"
-
-
-s1gee = S1GEE()
-s1 = S1Geedim()

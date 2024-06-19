@@ -4,6 +4,8 @@ from typing import Any, List
 from ...coords import BoundingBox
 from ..downloadables import DownloadableABC
 
+__all__ = []
+
 
 class SatelliteABC(ABC):
     """Abstract base class for a satellite class, describing how to obtain data and various metadata
