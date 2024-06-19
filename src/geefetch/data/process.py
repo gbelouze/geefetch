@@ -24,9 +24,7 @@ __all__ = [
 
 
 def tif_is_clean(path: Path) -> bool:
-    """Check that a 'tif' file is valid and not full of NODATA.
-    Meant to be used with :func:`TilerABC.clean`.
-    """
+    """Check that a 'tif' file is valid and not full of NODATA."""
     try:
         with rio.open(path) as x:
             if x.read_masks().sum() / x.read().size < 0.9:
@@ -38,9 +36,7 @@ def tif_is_clean(path: Path) -> bool:
 
 
 def gedi_is_clean(path: Path) -> bool:
-    """Check if the rasterized gedi at location `path` is not full of NODATA.
-    Meant to be used with :func:`TilerABC.clean`.
-    """
+    """Check if the rasterized gedi at location `path` is not full of NODATA."""
     try:
         with rio.open(path) as x:
             if x.read_masks().sum() / x.read().size < 0.005:
@@ -52,10 +48,7 @@ def gedi_is_clean(path: Path) -> bool:
 
 
 def vector_is_clean(path: Path) -> bool:
-    """Check if the geojson file at location `path` is not empty.
-
-    Meant to be used with :func:`TilecABC.clean`.
-    """
+    """Check if the geojson file at location `path` is not empty."""
     try:
         match path.suffix:
             case ".geojson":

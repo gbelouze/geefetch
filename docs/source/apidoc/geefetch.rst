@@ -1,39 +1,34 @@
 geefetch package
 ================
 
+.. automodule:: geefetch
+    :members:
+    :show-inheritance:
+
 Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+    :maxdepth: 2
 
-   geefetch.cli
-   geefetch.data
-   geefetch.utils
+    geefetch.cli
+    geefetch.data
 
 Submodules
 ----------
 
 geefetch.coords module
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: geefetch.coords
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 geefetch.enums module
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: geefetch.enums
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: geefetch
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:
