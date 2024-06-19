@@ -11,7 +11,7 @@ from ..downloadables import (
     DownloadableGeedimImageCollection,
     DownloadableGEEImage,
 )
-from ..downloadables.geedim import BaseImage
+from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
@@ -275,13 +275,15 @@ class S2(S2Base):
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
         for feature in info["features"]:
             id_ = feature["id"]
-            if Polygon(BaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            if Polygon(
+                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
+            ).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = BaseImage(im)
+                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = (
+                    PatchedBaseImage(im)
+                )
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -336,7 +338,7 @@ class S2(S2Base):
         min_p, max_p = self.pixel_range
         s2_im = composite_method.transform(s2_cloudless).clip(bounds)
         s2_im = self.convert_image(s2_im, dtype)
-        s2_im = BaseImage(s2_im)
+        s2_im = PatchedBaseImage(s2_im)
         n_images = len(s2_cloudless.getInfo()["features"])
         if n_images > 500:
             log.warn(

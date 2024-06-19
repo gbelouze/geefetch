@@ -7,7 +7,7 @@ from shapely import Polygon
 from ...coords import WGS84, BoundingBox
 from ...enums import CompositeMethod, DType
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
-from ..downloadables.geedim import BaseImage
+from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
@@ -138,13 +138,15 @@ class DynWorld(DynWorldBase):
             raise RuntimeError("Collection of 0 Dynamic World image.")
         for feature in info["features"]:
             id_ = feature["id"]
-            if Polygon(BaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            if Polygon(
+                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
+            ).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = BaseImage(im)
+                images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(
+                    im
+                )
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -187,7 +189,7 @@ class DynWorld(DynWorldBase):
         )
         dynworld_im = composite_method.transform(dynworld_col).clip(bounds)
         dynworld_im = self.convert_image(dynworld_im, dtype)
-        dynworld_im = BaseImage(dynworld_im)
+        dynworld_im = PatchedBaseImage(dynworld_im)
         n_images = len(dynworld_col.getInfo()["features"])
         if n_images > 500:
             log.warn(

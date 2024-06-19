@@ -11,7 +11,7 @@ from ..downloadables import (
     DownloadableGeedimImageCollection,
     DownloadableGEEImage,
 )
-from ..downloadables.geedim import BaseImage
+from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
@@ -166,13 +166,13 @@ class S1(S1Base):
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:
             id_ = feature["id"]
-            if Polygon(BaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            if Polygon(
+                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
+            ).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("COPERNICUS/S1_GRD/")] = BaseImage(im)
+                images[id_.removeprefix("COPERNICUS/S1_GRD/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -222,7 +222,7 @@ class S1(S1Base):
         log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
         s1_im = composite_method.transform(s1_col).clip(bounds)
         s1_im = self.convert_image(s1_im, dtype)
-        s1_im = BaseImage(s1_im)
+        s1_im = PatchedBaseImage(s1_im)
         return DownloadableGeedimImage(s1_im)
 
     @property

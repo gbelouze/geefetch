@@ -22,6 +22,7 @@ def setup(level: int = logging.NOTSET, logfile: Optional[Path] = None) -> None:
     logging.basicConfig(level=level, format=FORMAT, datefmt="[%X]", handlers=handlers)
 
     logging.getLogger("geedim").setLevel(max(logging.INFO, level))
+    logging.getLogger("patched_geedim").setLevel(max(logging.INFO, level))
     logging.getLogger("googleapiclient.discovery").setLevel(max(logging.INFO, level))
     logging.getLogger("matplotlib").setLevel(max(logging.INFO, level))
     logging.getLogger("fiona").setLevel(max(logging.INFO, level))

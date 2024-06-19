@@ -15,7 +15,7 @@ from ..downloadables import (
     DownloadableGeedimImage,
     DownloadableGeedimImageCollection,
 )
-from ..downloadables.geedim import BaseImage
+from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
@@ -273,14 +273,14 @@ class GEDIraster(SatelliteABC):
             raise RuntimeError("Collection of 0 GEDI image.")
         for feature in info["features"]:
             id_ = feature["id"]
-            if Polygon(BaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            if Polygon(
+                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
+            ).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
                 images[id_.removeprefix("LARSE/GEDI/GEDI02_A_002_MONTHLY/")] = (
-                    BaseImage(im)
+                    PatchedBaseImage(im)
                 )
         return DownloadableGeedimImageCollection(images)
 
@@ -325,7 +325,7 @@ class GEDIraster(SatelliteABC):
         gedi_col = self.get_col(aoi, start_date, end_date)
         gedi_im = gedi_col.mosaic()
         gedi_im = self.convert_image(gedi_im, dtype)
-        return DownloadableGeedimImage(BaseImage(gedi_im))
+        return DownloadableGeedimImage(PatchedBaseImage(gedi_im))
 
     @property
     def name(self) -> str:
