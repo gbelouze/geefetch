@@ -26,7 +26,7 @@ config_option = click.option(
 @click.option("--debug", is_flag=True)
 def main(verbose, quiet, logfile, debug):
     """The geefetch tool."""
-    from .logging_implemetation import logging_setup
+    from .logging_implementation import logging_setup
 
     logging_setup(verbose, quiet, logfile, debug)
 

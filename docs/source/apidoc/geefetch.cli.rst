@@ -20,10 +20,10 @@ geefetch.cli.download\_implementation module
    :undoc-members:
    :show-inheritance:
 
-geefetch.cli.logging\_implemetation module
-------------------------------------------
+geefetch.cli.logging\_implementation module
+-------------------------------------------
 
-.. automodule:: geefetch.cli.logging_implemetation
+.. automodule:: geefetch.cli.logging_implementation
    :members:
    :undoc-members:
    :show-inheritance:
