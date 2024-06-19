@@ -8,7 +8,7 @@ from rasterio.crs import CRS
 from retry import retry
 from rich.progress import Progress
 
-from ..coords import WGS84, BoundingBox
+from ..coords import BoundingBox
 from ..enums import CompositeMethod, DType, Format
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
@@ -67,11 +67,10 @@ def download_chip_ts(
     data = data_get_lazy(**data_get_kwargs)
 
     try:
-        # breakpoint()
         data.download(
             out,
             crs=bbox.crs,
-            region=bbox.transform(WGS84).to_ee_geometry(),
+            region=bbox.to_ee_geometry(),
             bands=bands,
             scale=scale,
             progress=progress,
@@ -106,7 +105,7 @@ def download_chip(
         data.download(
             out,
             crs=bbox.crs,
-            region=bbox.transform(WGS84).to_ee_geometry(),
+            region=bbox.to_ee_geometry(),
             bands=bands,
             scale=scale,
             **kwargs,

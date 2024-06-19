@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 import ee
+from shapely import Polygon
 
 from ...coords import WGS84, BoundingBox
 from ...enums import CompositeMethod, DType
@@ -256,7 +257,6 @@ class S2(S2Base):
         """
         for kwarg in kwargs:
             log.warn(f"Argument {kwarg} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         s2_cloudless = self.get_col(
             aoi,
             start_date,
@@ -275,9 +275,13 @@ class S2(S2Base):
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
         for feature in info["features"]:
             id_ = feature["id"]
-            im = ee.Image(id_).clip(bounds)
-            im = self.convert_image(im, dtype)
-            images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = BaseImage(im)
+            if Polygon(BaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
+                # aoi intersects im
+                im = ee.Image(id_)
+                im = self.convert_image(im, dtype)
+                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = BaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(

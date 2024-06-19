@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 import ee
+from shapely import Polygon
 
 from ...coords import WGS84, BoundingBox
 from ...enums import CompositeMethod, DType
@@ -153,7 +154,6 @@ class S1(S1Base):
         s1_im: DownloadableGeedimImageCollection
             A Sentinel-1 time series collection of the specified AOI and time range.
         """
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         s1_col = self.get_col(aoi, start_date, end_date)
 
         images = {}
@@ -166,9 +166,13 @@ class S1(S1Base):
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:
             id_ = feature["id"]
-            im = ee.Image(id_).clip(bounds)
-            im = self.convert_image(im, dtype)
-            images[id_.removeprefix("COPERNICUS/S1_GRD/")] = BaseImage(im)
+            if Polygon(BaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
+                # aoi intersects im
+                im = ee.Image(id_)
+                im = self.convert_image(im, dtype)
+                images[id_.removeprefix("COPERNICUS/S1_GRD/")] = BaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(

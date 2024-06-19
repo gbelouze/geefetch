@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Any, List, Optional
 
 import ee
+from shapely import Polygon
 
 from ...coords import WGS84, BoundingBox
 from ...enums import DType
@@ -262,7 +263,6 @@ class GEDIraster(SatelliteABC):
         gedi_im: DownloadableGeedimImageCollection
             A GEDI time series collection of the specified AOI and time range.
         """
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         gedi_col = self.get_col(aoi, start_date, end_date)
 
         images = {}
@@ -273,9 +273,15 @@ class GEDIraster(SatelliteABC):
             raise RuntimeError("Collection of 0 GEDI image.")
         for feature in info["features"]:
             id_ = feature["id"]
-            im = ee.Image(id_).clip(bounds)
-            im = self.convert_image(im, dtype)
-            images[id_.removeprefix("LARSE/GEDI/GEDI02_A_002_MONTHLY/")] = BaseImage(im)
+            if Polygon(BaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
+                # aoi intersects im
+                im = ee.Image(id_)
+                im = self.convert_image(im, dtype)
+                images[id_.removeprefix("LARSE/GEDI/GEDI02_A_002_MONTHLY/")] = (
+                    BaseImage(im)
+                )
         return DownloadableGeedimImageCollection(images)
 
     def get(
