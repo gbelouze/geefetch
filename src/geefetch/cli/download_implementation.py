@@ -194,6 +194,7 @@ def download_dynworld(config_path: Path) -> None:
             else None
         ),
         composite_method=config.dynworld.composite_method,
+        dtype=config.dynworld.dtype,
         resolution=config.dynworld.resolution,
         tile_shape=config.dynworld.tile_size,
         max_tile_size=config.dynworld.gee.max_tile_size,
