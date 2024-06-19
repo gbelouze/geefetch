@@ -58,7 +58,7 @@ doc = [
 ]
 
 [project.scripts]
-geefetch = "geefetch.cli:main "
+geefetch = "geefetch.cli:main"
 
 
 [tool.isort]
@@ -76,7 +76,6 @@ testpaths = [
 
 [tool.black]
 line-length = 88
-include = '\.pyi?$'
 exclude = '''
 /(
     \.eggs
