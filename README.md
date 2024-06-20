@@ -5,38 +5,36 @@
 
 A python library/CLI to download large scale satellite data from Google Earth Engine.
 
-[![CLI demo](https://asciinema.org/a/IuapVy0T9ErtyvgDMb8rMLftC)](https://asciinema.org/a/IuapVy0T9ErtyvgDMb8rMLftC)
+[![CLI demo](https://asciinema.org)](https://asciinema.org/a/1xT8v4UGXCNOPbKjluYun9Vu4)
 
-
+⚠️ This library is still in its early days and in active development. ⚠️
 
 ## Overview
 
-This library is still in its early days and in active development. After installing `geefetch`, you can check the available commands with
-
 ```bash
-geefetch --help
+$ geefetch --help
+Usage: geefetch [OPTIONS] COMMAND [ARGS]...
+
+  The geefetch tool.
+
+Options:
+  -v, --verbose
+  --quiet / --no-quiet
+  --logfile PATH        File to output the log messages in addition to
+                        stdout/stderr.
+  --debug
+  --help                Show this message and exit.
+
+Commands:
+  download  Download satellites from Google Earth Engine.
+  process   Pre/post processing tools for GEDI, Sentinel-1 and Sentinel-2...
 ```
 
-In its current state, `geefetch` allows you to download Sentinel-1, Sentinel-2, Dynamic World data as raster files, and GEDI data as raster or vector files. See `geefetch download --help`.
+Currently are supported
 
-## Development
+- [Sentinel-1](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD)
+- [Sentinel-2](https://developers.google.com/earth-engine/datasets/catalog/sentinel-2)
+- [GEDI](https://developers.google.com/earth-engine/datasets/catalog/LARSE_GEDI_GEDI02_A_002_MONTHLY)
+- [Dynamic World](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_DYNAMICWORLD_V1)
 
-Install GDAL beforehand (see [instructions](https://pypi.org/project/GDAL/)).
-Install `geefetch` locally in editable mode
-
-```bash
-git clone https://github.com/gbelouze/geefetch.git
-cd geefetch
-pip install -e .
-```
-Be sure to read [CONTRIBUTING.md](/CONTRIBUTING.md) before making your first pull request.
-
-### Adding autocompletion
-
-You can add autocompletion for the `geefetch` CLI, following [`click` doc](https://click.palletsprojects.com/en/8.1.x/shell-completion/).
-
-If you are using a `conda` environment, you need to activate autocompletion in that environment only. Following the instructions in [the doc](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#macos-and-linux), add the following command to `$CONDA_PREFIX/etc/conda/activate.d/env_vars.sh` (adapt for other shell than `zsh`)
-
-```bash
-eval "$(_GEEFETCH_COMPLETE=zsh_source geefetch)"
-```
+Read the [docs](https://geefetch.readthedocs.io/en/latest/) for more details.

@@ -47,16 +47,16 @@ config.yaml`
     data_dir: /path/to/datadir  # where the data is donwwloaded
     satellite_default:
       resolution: 10
-      tile_size: 5_000
+      tile_size: 5_000  # the side length, in pixel, of downloaded rasters
       dtype: Float32
-      composite_method: MEDIAN # see geoml.utils.gee.CompositeMethod
+      composite_method: MEDIAN  # see geefetch.enums.CompositeMethod
       aoi:
         spatial:
           left: 0
           right: 1
           bottom: 0
           top: 1
-          epsg: 4326 # the CRS in which the AOI is expressed
+          epsg: 4326  # the CRS in which the AOI is expressed
         temporal:
           start_date: 2020-01-01
           end_date: 2020-01-31
