@@ -241,6 +241,7 @@ def download(
     check_clean: bool = True,
     filter_polygon: Optional[shapely.Polygon] = None,
     in_parallel: bool = False,
+    max_workers: int = 10,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
     to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
@@ -280,6 +281,8 @@ def download(
     in_parallel : bool, optional
         Whether to send parallel download requests. Do not use if the download backend
         is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
+    max_workers : int, optional
+        How many parallel workers are used in case `in_parallel` is True. Defaults to 10.
     """
     if not data_dir.is_dir():
         raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
@@ -303,7 +306,7 @@ def download(
             total=len(tiles),
         )
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = []
             for tile in tiles:
                 data_get_kwargs = (
@@ -340,6 +343,7 @@ def download(
                         satellite,
                         resolution,
                         tile_path,
+                        progress=progress,
                         max_tile_size=max_tile_size,
                         check_clean=check_clean,
                         **satellite_download_kwargs,
@@ -422,6 +426,8 @@ def download_gedi(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
+        in_parallel=True,
+        max_workers=3,
         check_clean=False,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
@@ -544,6 +550,8 @@ def download_s1(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         filter_polygon=filter_polygon,
+        in_parallel=True,
+        max_workers=3,
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
@@ -619,6 +627,8 @@ def download_s2(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
+        in_parallel=True,
+        max_workers=3,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -690,6 +700,8 @@ def download_dynworld(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
+        in_parallel=True,
+        max_workers=3,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
