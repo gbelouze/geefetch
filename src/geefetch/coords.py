@@ -389,19 +389,24 @@ class BoundingBox:
         )
         return ee.Feature(geom, {}).geometry()
 
-    def to_shapely_polygon(self) -> shapely.Polygon:
+    def to_shapely_polygon(self, in_native_crs: bool = False) -> shapely.Polygon:
         """Translate a bounding box as a ee.Geometry polygon.
+
+        Parameters
+        ----------
+        in_native_crs : bool
+            Whether to use the bbox CRS (True) or WGS84 coordinates (False). Defaults to False.
 
         Returns
         -------
         shapely.Polygon
-            The shapely polygon representing the bbox WGS84 coordinates.
+            The shapely polygon representing the bbox coordinates in its CRS or WGS84 (depending on `in_native_crs`).
 
         Warning
         -------
         Georeferencement information is lost. The shapely polygon is just a mathematical object.
         """
-        bbox = self.transform(WGS84)
+        bbox = self.transform(WGS84) if not in_native_crs else self
         return shapely.Polygon(
             [
                 (bbox.left, bbox.top),
