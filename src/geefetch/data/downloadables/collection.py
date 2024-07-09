@@ -2,11 +2,13 @@
 similar to what `geedim` provides for Image and ImageCollection."""
 
 import logging
+import tempfile
 import threading
 from pathlib import Path
 from typing import Any, List
 
 import ee
+import geopandas as gpd
 import requests
 from rasterio.crs import CRS
 
@@ -67,6 +69,9 @@ class DownloadableGEECollection(DownloadableABC):
         if format == Format.GEOJSON and crs != WGS84:
             log.warn(f".geojson files must be in WGS84. Ignoring argument {crs=}.")
             crs = WGS84
+        if format == Format.PARQUET:
+            old_crs = crs
+            crs = WGS84
 
         # get image download url and response
         collection = (
@@ -74,7 +79,9 @@ class DownloadableGEECollection(DownloadableABC):
             .select(bands)
             .map(lambda feature: feature.transform(f"EPSG:{crs.to_epsg()}"))
         )
-        response, url = self._get_download_url(collection, format)
+        response, url = self._get_download_url(
+            collection, Format.GEOJSON if format == Format.PARQUET else format
+        )
 
         if not response.ok:
             resp_dict = response.json()
@@ -85,6 +92,14 @@ class DownloadableGEECollection(DownloadableABC):
                 ex_msg = str(response.json())
             raise IOError(ex_msg)
 
+        if format == Format.PARQUET:
+            with tempfile.NamedTemporaryFile(suffix=".geojson") as tmp_file:
+                for data in response.iter_content(chunk_size=1024):
+                    tmp_file.write(data)
+                tmp_file.flush()
+                gdf = gpd.read_file(tmp_file.name).to_crs(old_crs)
+                gdf.to_parquet(out)
+                return
         with open(out, "wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):
                 geojsonfile.write(data)

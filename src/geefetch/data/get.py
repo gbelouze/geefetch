@@ -13,7 +13,7 @@ from ..enums import CompositeMethod, DType, Format
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
-from .process import tif_is_clean, vector_is_clean
+from .process import merge_geojson, merge_parquet, tif_is_clean, vector_is_clean
 from .satellites import S1, S2, DynWorld, GEDIraster, GEDIvector, SatelliteABC
 from .tiler import Tiler, TileTracker
 
@@ -359,8 +359,21 @@ def download(
                         "Keyboard interrupt. Please wait while current download finish (up to a few minutes)."
                     )
                     raise
-        if satellite.is_raster:
-            _create_vrts(tracker)
+    if satellite.is_raster:
+        _create_vrts(tracker)
+    if satellite.is_vector and "format" in satellite_download_kwargs:
+        match satellite_download_kwargs["format"]:
+            case Format.PARQUET:
+                merge_parquet(
+                    TileTracker(
+                        satellite, data_dir, filter=lambda p: p.suffix == ".parquet"
+                    )
+                )
+            case Format.GEOJSON:
+                merge_geojson(tracker)
+            case _ as x:
+                log.info(f"Don't know how to merge data of type {x}. Not merging.")
+
     log.info(
         f"[green]Finished[/] downloading {satellite.full_name} chips to [cyan]{tracker.root}[/]"
     )

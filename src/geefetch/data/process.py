@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
+import geopandas as gpd
 import pandas as pd
 import rasterio as rio
 
@@ -57,6 +58,8 @@ def vector_is_clean(path: Path) -> bool:
                     return "features" in x and len(x["features"]) > 0
             case ".csv":
                 return len(pd.read_csv(path, header=0)) > 0
+            case ".parquet":
+                return len(gpd.read_parquet(path)) > 0
             case _ as suffix:
                 log.warn(f"Don't know how to check {suffix} file {path}")
                 return True
@@ -117,6 +120,26 @@ def clean(
         f"Removed {remove_count} ill formed or empty.tif files in [cyan]{tracker.root}[/]"
     )
     return remove_count
+
+
+def merge_parquet(tracker: TileTracker) -> None:
+    gdfs = []
+    merged_path = tracker.root / "merged.parquet"
+    if merged_path.exists():
+        log.error(f"A merged file {merged_path} already exists. Aborting...")
+        return
+    paths = [path for path in tracker]
+    if len(paths) == 0:
+        log.error(f"Found no file to merge in {tracker.root}.")
+        return
+    with default_bar() as progress:
+        task = progress.add_task("Merging .parquet files", total=len(paths))
+        for path in paths:
+            gdfs.append(gpd.read_parquet(path))
+            progress.advance(task, advance=1)
+            log.debug(f"Merged content of {path}")
+    gpd.GeoDataFrame(pd.concat(gdfs)).to_parquet(merged_path)
+    log.info(f"Merged parquet dataset into {merged_path}")
 
 
 def merge_geojson(tracker: TileTracker) -> None:
