@@ -87,6 +87,15 @@ def dynworld(config):
     download_dynworld(config)
 
 
+@download.command()
+@config_option
+def landsat8(config):
+    """Download Landsat 8 images."""
+    from .download_implementation import download_landsat8
+
+    download_landsat8(config)
+
+
 @main.group()
 def process():
     """Pre/post processing tools for GEDI, Sentinel-1 and Sentinel-2 data."""

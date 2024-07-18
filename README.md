@@ -36,5 +36,6 @@ Currently are supported
 - [Sentinel-2](https://developers.google.com/earth-engine/datasets/catalog/sentinel-2)
 - [GEDI](https://developers.google.com/earth-engine/datasets/catalog/LARSE_GEDI_GEDI02_A_002_MONTHLY)
 - [Dynamic World](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_DYNAMICWORLD_V1)
+- [Landsat-8](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T2_L2)
 
 Read the [docs](https://geefetch.readthedocs.io/en/latest/) for more details.
