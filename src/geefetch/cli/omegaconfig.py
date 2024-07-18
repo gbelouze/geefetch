@@ -187,6 +187,13 @@ class DynWorldConfig(SatelliteDefaultConfig):
 
 
 @dataclass
+class Landsat8Config(SatelliteDefaultConfig):
+    """The structured type for configuring Landsat 8."""
+
+    pass
+
+
+@dataclass
 class Config:
     """The structured type for a GeeFetch configuration.
 
@@ -204,6 +211,8 @@ class Config:
         Sentinel-2 specific configuration / variation to the default.
     dynworld : DynWorldConfig
         Dynamic world specific configuration / variation to the default.
+    landsat8 : Landsat8Config
+        Landsat 8 specific configuration / variation to the default.
     """
 
     data_dir: Path
@@ -212,6 +221,7 @@ class Config:
     s1: Optional[S1Config]
     s2: Optional[S2Config]
     dynworld: Optional[DynWorldConfig]
+    landsat8: Optional[Landsat8Config]
 
     def __post_init__(self):
         self.data_dir = self.data_dir.expanduser().absolute()
@@ -254,6 +264,15 @@ def post_omegaconf_load(config: Any) -> None:
             config.dynworld,
         )
         if "dynworld" in config
+        else None
+    )
+    config.landsat8 = (
+        OmegaConf.merge(
+            OmegaConf.structured(Landsat8Config),
+            config.satellite_default,
+            config.landsat8,
+        )
+        if "landsat8" in config
         else None
     )
 
