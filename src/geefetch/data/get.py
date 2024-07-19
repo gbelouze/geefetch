@@ -370,7 +370,11 @@ def download(
                     )
                 )
             case Format.GEOJSON:
-                merge_geojson(tracker)
+                merge_geojson(
+                    TileTracker(
+                        satellite, data_dir, filter=lambda p: p.suffix == ".geojson"
+                    )
+                )
             case _ as x:
                 log.info(f"Don't know how to merge data of type {x}. Not merging.")
 
