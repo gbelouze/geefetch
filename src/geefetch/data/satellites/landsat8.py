@@ -95,7 +95,6 @@ class Landsat8Base(SatelliteABC):
             .filterBounds(bounds)
         )
 
-        # PI = ee.Number(3.14159265359)
         PI = 3.14159265359
         MAX_SATELLITE_ZENITH = 7.5
         MAX_DISTANCE = 1000000
@@ -114,7 +113,7 @@ class Landsat8Base(SatelliteABC):
             # snowBitMask = (1 << 5)
             # waterBitMask = (1 << 7)
 
-            # Delet cloud pixels
+            # Delete cloud pixels
             qaMask = (
                 qa.bitwiseAnd(fillBitMask)
                 .eq(0)
@@ -125,7 +124,7 @@ class Landsat8Base(SatelliteABC):
                 # .And(qa.bitwiseAnd(snowBitMask).eq(0))
                 # .And(qa.bitwiseAnd(waterBitMask).eq(0))
             )
-            # Delet saturation pixels
+            # Delete saturation pixels
             saturationMask = im.select("QA_RADSAT").eq(0)
 
             # Apply the scaling factors to the appropriate bands
