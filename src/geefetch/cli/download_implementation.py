@@ -63,7 +63,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
             config.gedi.aoi.temporal.end_date,
             crs=(
                 CRS.from_epsg(config.gedi.aoi.spatial.epsg)
-                if config.s1.aoi.spatial.epsg != 4326
+                if config.gedi.aoi.spatial.epsg != 4326
                 else None
             ),
             resolution=config.gedi.resolution,
@@ -84,10 +84,10 @@ def download_gedi(config_path: Path, vector: bool) -> None:
             config.gedi.aoi.temporal.end_date,
             crs=(
                 CRS.from_epsg(config.gedi.aoi.spatial.epsg)
-                if config.s1.aoi.spatial.epsg != 4326
+                if config.gedi.aoi.spatial.epsg != 4326
                 else None
             ),
-            composite_method=config.s1.composite_method,
+            composite_method=config.gedi.composite_method,
             dtype=config.gedi.dtype,
             resolution=config.gedi.resolution,
             tile_shape=config.gedi.tile_size,
@@ -153,7 +153,7 @@ def download_s2(config_path: Path) -> None:
         config.s2.aoi.temporal.end_date,
         crs=(
             CRS.from_epsg(config.s2.aoi.spatial.epsg)
-            if config.s1.aoi.spatial.epsg != 4326
+            if config.s2.aoi.spatial.epsg != 4326
             else None
         ),
         composite_method=config.s2.composite_method,
@@ -190,7 +190,7 @@ def download_dynworld(config_path: Path) -> None:
         config.dynworld.aoi.temporal.end_date,
         crs=(
             CRS.from_epsg(config.dynworld.aoi.spatial.epsg)
-            if config.s1.aoi.spatial.epsg != 4326
+            if config.dynworld.aoi.spatial.epsg != 4326
             else None
         ),
         composite_method=config.dynworld.composite_method,
