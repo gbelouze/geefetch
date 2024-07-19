@@ -64,6 +64,7 @@ class Format(Enum):
     GEOJSON = ".geojson"
     KML = ".kml"
     KMZ = ".kmz"
+    PARQUET = ".parquet"
 
     def to_str(self) -> str:
         match self:
@@ -75,3 +76,5 @@ class Format(Enum):
                 return "kml"
             case Format.KMZ:
                 return "kmz"
+            case Format.PARQUET:
+                return "parquet"
