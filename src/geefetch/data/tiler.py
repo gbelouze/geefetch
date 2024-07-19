@@ -2,7 +2,7 @@ import logging
 import re
 from math import ceil, floor
 from pathlib import Path
-from typing import Any, Callable, Iterator, Optional
+from typing import Callable, Iterator, Optional
 
 import rasterio as rio
 import shapely
@@ -162,7 +162,6 @@ class TileTracker:
         self._filter = filter
         if self._filter is None and satellite.is_raster:
             self._filter = r".*\.tif"
-        self._meta_cache: dict[Path, dict[str, Any]] = {}
         if not self.root.exists():
             self.root.mkdir(parents=True)
             log.debug(f"Created data directory {self.root}")
@@ -217,6 +216,8 @@ class TileTracker:
         return re.match(satellite_re, path.name)["satellite"]
 
     def filter(self, file: Path) -> bool:
+        if file.stem.startswith("._"):
+            return False
         if self._filter is None:
             return True
         if isinstance(self._filter, str):
@@ -231,12 +232,8 @@ class TileTracker:
     def crs_to_paths(self) -> dict[CRS, list[Path]]:
         ret = {}
         for path in self:
-            if path in self._meta_cache:
-                meta = self._meta_cache[path]
-            else:
-                with rio.open(path) as ds:
-                    meta = ds.meta
-                    self._meta_cache[path] = meta
+            with rio.open(path) as ds:
+                meta = ds.meta
             crs = meta["crs"]
             if crs not in ret:
                 ret[crs] = []
