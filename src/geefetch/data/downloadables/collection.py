@@ -94,13 +94,14 @@ class DownloadableGEECollection(DownloadableABC):
 
         if format == Format.PARQUET:
             with tempfile.NamedTemporaryFile(
-                suffix=".geojson", delete_on_close=False
+                suffix=".geojson", delete=False
             ) as tmp_file:
                 for data in response.iter_content(chunk_size=1024):
                     tmp_file.write(data)
                 tmp_file.flush()
                 gdf = gpd.read_file(tmp_file.name).to_crs(old_crs)
                 gdf.to_parquet(out)
+                Path(tmp_file.name).unlink()
                 return
         with open(out, "wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):
