@@ -93,7 +93,9 @@ class DownloadableGEECollection(DownloadableABC):
             raise IOError(ex_msg)
 
         if format == Format.PARQUET:
-            with tempfile.NamedTemporaryFile(suffix=".geojson") as tmp_file:
+            with tempfile.NamedTemporaryFile(
+                suffix=".geojson", delete_on_close=False
+            ) as tmp_file:
                 for data in response.iter_content(chunk_size=1024):
                     tmp_file.write(data)
                 tmp_file.flush()
