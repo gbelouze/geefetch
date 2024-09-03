@@ -351,6 +351,7 @@ class S2(S2Base):
                     f"Found 0 Sentinel-2 image for {cloudless_portion=} which is already conservative"
                     f"Check region {aoi.transform(WGS84)}"
                 )
+                raise RuntimeError("Collection of 0 Sentinel-2 image.")
             new_cloudless_portion = max(0, cloudless_portion - 10)
             log.warn(
                 f"Found 0 Sentinel-2 image for {cloudless_portion=}."

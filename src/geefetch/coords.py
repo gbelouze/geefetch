@@ -366,6 +366,36 @@ class BoundingBox:
             top=self.top + buff,
         )
 
+    def unbuffer(self, buff: float) -> Self:
+        """Returns a bounding box decreased by a given buffer in all directions, that is, the same bounding box with
+        its outer perimeter of given width removed.
+
+        Parameters
+        ----------
+        buff : float
+
+        Returns
+        -------
+        BoundingBox
+            The unbuffered bounding box.
+        """
+        if buff < 0:
+            raise ValueError(f"Invalid buffer value {buff}. Expected a positive value.")
+        if 2 * buff >= self.right - self.width:
+            raise ValueError(
+                f"Invalid buffer value {buff} is greater than the half-width of the bbox."
+            )
+        if 2 * buff >= self.top - self.bottom:
+            raise ValueError(
+                f"Invalid buffer value {buff} is greater than the half-height of the bbox."
+            )
+        return self.with_(
+            left=self.left + buff,
+            right=self.right - buff,
+            bottom=self.bottom + buff,
+            top=self.top - buff,
+        )
+
     def to_ee_geometry(self) -> ee.Geometry:
         """Translate a bounding box as a ee.Geometry polygon.
 
