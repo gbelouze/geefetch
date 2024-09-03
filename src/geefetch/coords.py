@@ -378,10 +378,12 @@ class BoundingBox:
         -------
         BoundingBox
             The unbuffered bounding box.
+
+        ..available:: 0.2.2
         """
         if buff < 0:
             raise ValueError(f"Invalid buffer value {buff}. Expected a positive value.")
-        if 2 * buff >= self.right - self.width:
+        if 2 * buff >= self.right - self.left:
             raise ValueError(
                 f"Invalid buffer value {buff} is greater than the half-width of the bbox."
             )
