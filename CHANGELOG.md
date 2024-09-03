@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.2](https://github.com/gbelouze/geefetch/compare/0.2.2...0.2.1) (2024-07-21)
+
+### Bug fixes
+* Fix BoundingBox.unbuffer ([221e30f](https://github.com/gbelouze/geefetch/commit/221e30fd66d09783503ccb7b758ce526c10984db) )
+
+
 ## [0.2.1](https://github.com/gbelouze/geefetch/compare/0.2.1...0.2.0) (2024-07-21)
 
 ### Features
@@ -8,7 +14,7 @@
 * Add support for .parquet files ([c87f884](https://github.com/gbelouze/geefetch/commit/c87f88469568f6f34a5445ea09408597be138e29) )
 * Add bbox unbuffering ([eb9f506](https://github.com/gbelouze/geefetch/commit/eb9f506fbd82bb713d37969bb2dddb4568f0e507) )
 
-### Bug ](https://github.com/gbelouze/geefetch/commit/eed5352a1a6a344152400044e5a91cd02a917a7b)
+### Bug fixes
 * Don't cache .tif meta data ([3f47f83](https://github.com/gbelouze/geefetch/commit/3f47f8368f2ac0393f5fc436259d9b4f8b598b2c) )
 * Fix geojson merging ([aef8e6d](https://github.com/gbelouze/geefetch/commit/aef8e6dfc3f0cf855015d7b263fa42f11cf02c83) )
 * Fix config.s1 used for other satellites ([2333368](https://github.com/gbelouze/geefetch/commit/2333368d570689684e27f4d7fe9acaa0fb892a4f) )
