@@ -36,6 +36,7 @@ the `[doc]` and `[dev]` dependencies.
 
     git clone git@github.com:gbelouze/geefetch.git
     cd geefetch
+    conda env create -f environment.yml
     pip install -e '.[dev, doc]'
 
 Adding autocompletion
