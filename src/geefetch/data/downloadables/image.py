@@ -1,4 +1,5 @@
 """
+[LEGACY CODE]
 This module provides downloading utility functions for Google Earth Engine's Image,
 similar to what `geedim` provides for Image and ImageCollection.
 """
