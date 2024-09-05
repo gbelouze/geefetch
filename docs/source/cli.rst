@@ -15,7 +15,7 @@ modules to share a common namespace and handling of context variables.
 
     Usage: geefetch [OPTIONS] COMMAND [ARGS]...
 
-      The geefetch tool.
+      Download satellites from Google Earth Engine.
 
     Options:
       -v, --verbose
@@ -26,8 +26,11 @@ modules to share a common namespace and handling of context variables.
       --help                Show this message and exit.
 
     Commands:
-      download  Download satellites from Google Earth Engine.
-      process   Pre/post processing tools for GEDI, Sentinel-1 and Sentinel-2...
+      all       Download all satellites given in the config.
+      dynworld  Download Dynamic World images.
+      gedi      Download GEDI images.
+      s1        Download Sentinel-1 images.
+      s2        Download Sentinel-2 images.
 
 Commands are shown below. See ``--help`` of individual commands for more details.
 
@@ -36,11 +39,10 @@ download
 
 .. _config format:
 
-Configuration of `geefetch download`
+Configuration of `geefetch`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here is an example config given to the command `geefetch download [satellite] --config
-config.yaml`
+Here is an example config given to the command `geefetch [satellite] --config config.yaml`
 
 .. code-block:: yaml
 
@@ -60,6 +62,7 @@ config.yaml`
         temporal:
           start_date: 2020-01-01
           end_date: 2020-01-31
+        country: France  # optional country name to further refine AOI.
       gee:
         ee_project_id: ee-project-id # add your Earth Engine project id here.
         max_tile_size: 8 # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.
@@ -88,13 +91,6 @@ The config has
 
 .. _cli download options:
 
-.. click:: geefetch.cli.main:download
-    :prog: geefetch download
-    :nested: short
-
-process
--------
-
-.. click:: geefetch.cli.main:process
-    :prog: geefetch process
+.. click:: geefetch.cli.main
+    :prog: geefetch
     :nested: short
