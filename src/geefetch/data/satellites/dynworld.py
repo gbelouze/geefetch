@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 __all__ = []
 
 
-class DynWorldBase(SatelliteABC):
+class DynWorld(SatelliteABC):
     _bands = [
         "water",
         "trees",
@@ -100,8 +100,6 @@ class DynWorldBase(SatelliteABC):
             .filterBounds(bounds)
         )
 
-
-class DynWorld(DynWorldBase):
     def get_time_series(
         self,
         aoi: BoundingBox,
@@ -109,7 +107,7 @@ class DynWorld(DynWorldBase):
         end_date: str,
         dtype: DType = DType.Float32,
         **kwargs: Any,
-    ) -> DownloadableGeedimImage:
+    ) -> DownloadableGeedimImageCollection:
         """Get Dynamic World collection.
 
         Parameters

@@ -6,11 +6,7 @@ from shapely import Polygon
 
 from ...coords import WGS84, BoundingBox
 from ...enums import CompositeMethod, DType
-from ..downloadables import (
-    DownloadableGeedimImage,
-    DownloadableGeedimImageCollection,
-    DownloadableGEEImage,
-)
+from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
 
@@ -19,7 +15,7 @@ log = logging.getLogger(__name__)
 __all__ = []
 
 
-class S2Base(SatelliteABC):
+class S2(SatelliteABC):
     _bands = [
         "B1",
         "B2",
@@ -152,83 +148,6 @@ class S2Base(SatelliteABC):
 
         return s2_cloudless
 
-
-class S2GEE(S2Base):
-    def get(
-        self,
-        aoi: BoundingBox,
-        start_date: str,
-        end_date: str,
-        composite_method: CompositeMethod = CompositeMethod.MEDIAN,
-        dtype: DType = DType.Float32,
-        cloudless_portion: int = 60,
-        cloud_prb_thresh: int = 30,
-        **kwargs: Any,
-    ) -> DownloadableGEEImage:
-        """Get Sentinel-2 cloud free collection.
-
-        Parameters
-        ----------
-        aoi : BoundingBox
-            Area of interest.
-        start_date : str
-            Start date in "YYYY-MM-DD" format.
-        end_date : str
-            End date in "YYYY-MM-DD" format.
-        composite_method: CompositeMethod
-        dtype: DType
-            The data type for the image.
-        cloudless_portion : int, optional
-            Threshold for the portion of filled pixels that must be cloud/shadow free (%).
-            Images that do not fullfill the requirement are filtered out.
-        cloud_prb_thresh : int, optional
-            Threshold for cloud probability above which a pixel is filtered out (%).
-
-        Returns
-        -------
-        s2_im : DownloadableGEEImage
-            A Sentinel-2 composite image of the specified AOI and time range,
-            with clouds filtered out.
-        """
-        for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
-        s2_cloudless = self.get_col(
-            aoi,
-            start_date,
-            end_date,
-            cloudless_portion=cloudless_portion,
-            cloud_prb_thresh=cloud_prb_thresh,
-        )
-        min_p, max_p = self.pixel_range
-        s2_im = (
-            composite_method.transform(s2_cloudless).clip(bounds).clamp(min_p, max_p)
-        )
-        match dtype:
-            case DType.Float32:
-                pass
-            case DType.UInt16:
-                s2_im = (
-                    s2_im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-                )
-            case DType.UInt8:
-                s2_im = (
-                    s2_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-                )
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
-        return DownloadableGEEImage(s2_im)
-
-    @property
-    def name(self) -> str:
-        return "s2gee"
-
-    @property
-    def full_name(self) -> str:
-        return "Sentinel-2 (GEE)"
-
-
-class S2(S2Base):
     def get_time_series(
         self,
         aoi: BoundingBox,
