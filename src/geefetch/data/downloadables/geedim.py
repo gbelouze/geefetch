@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 geedim_log = logging.getLogger("patched_geedim")
 
 
-__all__ = []
+__all__: list[str] = []
 
 
 class PatchedBaseImage(BaseImage):
@@ -236,7 +236,7 @@ class DownloadableGeedimImage(DownloadableABC):
 class DownloadableGeedimImageCollection(DownloadableABC):
     """Wrapper to download a collection of geedim images."""
 
-    def __init__(self, id_to_images: List[PatchedBaseImage]):
+    def __init__(self, id_to_images: dict[str, PatchedBaseImage]):
         self.id_to_images = id_to_images
 
     def download(

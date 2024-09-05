@@ -5,7 +5,7 @@ from typing import Any, List
 import ee
 from rasterio.crs import CRS
 
-__all__ = []
+__all__: list[str] = []
 
 
 class DownloadableABC(ABC):

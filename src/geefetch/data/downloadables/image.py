@@ -16,7 +16,7 @@ from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
 
-__all__ = []
+__all__: list[str] = []
 
 
 class DownloadableGEEImage(DownloadableABC):
