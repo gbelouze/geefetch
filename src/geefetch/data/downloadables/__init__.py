@@ -5,12 +5,10 @@ from .geedim import (
     DownloadableGeedimImageCollection,
     ExportableGeedimImage,
 )
-from .image import DownloadableGEEImage
 
 __all__ = [
     "DownloadableABC",
     "DownloadableGEECollection",
-    "DownloadableGEEImage",
     "DownloadableGeedimImage",
     "DownloadableGeedimImageCollection",
     "ExportableGeedimImage",

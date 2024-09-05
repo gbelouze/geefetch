@@ -1,4 +1,5 @@
 """
+[LEGACY CODE]
 This module provides downloading utility functions for Google Earth Engine's Image,
 similar to what `geedim` provides for Image and ImageCollection.
 """
@@ -16,7 +17,7 @@ from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
 
-__all__ = []
+__all__: list[str] = []
 
 
 class DownloadableGEEImage(DownloadableABC):

@@ -6,11 +6,7 @@ from shapely import Polygon
 
 from ...coords import WGS84, BoundingBox
 from ...enums import CompositeMethod, DType
-from ..downloadables import (
-    DownloadableGeedimImage,
-    DownloadableGeedimImageCollection,
-    DownloadableGEEImage,
-)
+from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
 
@@ -19,7 +15,7 @@ log = logging.getLogger(__name__)
 __all__ = []
 
 
-class S1Base(SatelliteABC):
+class S1(SatelliteABC):
     _bands = ["HH", "HV", "VV", "VH", "angle"]
     _selected_bands = ["VV", "VH"]
 
@@ -84,52 +80,6 @@ class S1Base(SatelliteABC):
             .select(self.selected_bands)
         )
 
-
-class S1GEE(S1Base):
-    def get(
-        self,
-        aoi: BoundingBox,
-        start_date: str,
-        end_date: str,
-        composite_method: CompositeMethod = CompositeMethod.MEAN,
-        dtype: DType = DType.Float32,
-        **kwargs: Any,
-    ) -> DownloadableGEEImage:
-        """Get Sentinel-1 collection.
-
-        Parameters
-        ----------
-        aoi : BoundingBox
-            Area of interest.
-        start_date : str
-            Start date in "YYYY-MM-DD" format.
-        end_date : str
-            End date in "YYYY-MM-DD" format.
-        composite_method: CompositeMethod
-
-        Returns
-        -------
-        s1_im : gd.MaskedImage
-            A Sentinel-1 composite image of the specified AOI and time range.
-        """
-        for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
-        s1_col = self.get_col(aoi, start_date, end_date)
-        s1_im = composite_method.transform(s1_col).clip(bounds)
-        s1_im = self.convert_image(s1_im, dtype)
-        return DownloadableGEEImage(s1_im)
-
-    @property
-    def name(self) -> str:
-        return "s1gee"
-
-    @property
-    def full_name(self) -> str:
-        return "Sentinel-1 (GEE)"
-
-
-class S1(S1Base):
     def get_time_series(
         self,
         aoi: BoundingBox,

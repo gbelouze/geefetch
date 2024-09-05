@@ -21,6 +21,15 @@ class SatelliteABC(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_time_series(
+        self, aoi: BoundingBox, start_date: str, end_date: str, **kwargs: Any
+    ) -> DownloadableABC:
+        """Get downloadable data to fetch time series. It is up to the caller to make sure the computation will stay
+        within the compute resource limit, e.g. if Google Earth Engine is used as a backend.
+        """
+        ...
+
     @property
     @abstractmethod
     def bands(self) -> List[str]:

@@ -15,7 +15,7 @@ A python library/CLI to download large scale satellite data from Google Earth En
 $ geefetch --help
 Usage: geefetch [OPTIONS] COMMAND [ARGS]...
 
-  The geefetch tool.
+  Download satellites from Google Earth Engine.
 
 Options:
   -v, --verbose
@@ -26,8 +26,11 @@ Options:
   --help                Show this message and exit.
 
 Commands:
-  download  Download satellites from Google Earth Engine.
-  process   Pre/post processing tools for GEDI, Sentinel-1 and Sentinel-2...
+  all       Download all satellites given in the config.
+  dynworld  Download Dynamic World images.
+  gedi      Download GEDI images.
+  s1        Download Sentinel-1 images.
+  s2        Download Sentinel-2 images.
 ```
 
 Currently are supported

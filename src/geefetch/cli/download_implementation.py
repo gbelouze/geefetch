@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import geopandas
+import pooch
 import shapely
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
@@ -15,12 +16,45 @@ from .omegaconfig import load
 
 log = logging.getLogger(__name__)
 
+COUNTRY_BORDERS_URL = (
+    "https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/"
+    "world-administrative-boundaries/exports/geojson"
+)
+
+COUNTRY_BORDERS_SHA256 = (
+    "1f7e8a98461fdc86f3a71ce87cdee32e9c99a4760a5a2456a30b777fd0ae487e"
+)
+
+
+def get_mainland_geometry(shape: shapely.Geometry) -> shapely.Polygon:
+    """Get the largest geometry from a multipolygon-like shapely geometry."""
+    match type(shape):
+        case shapely.MultiPolygon:
+            max_area, max_geom = 0, None
+            for geom in shape.geoms:
+                if geom.area > max_area:
+                    max_area, max_geom = geom.area, geom
+            if max_geom is None:
+                raise ValueError("Empty shape.")
+            return max_geom
+        case shapely.Polygon:
+            return shape
+        case _:
+            raise TypeError(
+                f"Type {shape} cannot be interpreted as a country border shape."
+            )
+
 
 def load_country_filter_polygon(country: str) -> shapely.Polygon:
-    world = geopandas.read_file(geopandas.datasets.get_path("naturalearth_lowres"))
-    if country not in world.name.values:
+    """Load the mailand shape of a country."""
+    country_borders_path = pooch.retrieve(
+        url=COUNTRY_BORDERS_URL, known_hash=COUNTRY_BORDERS_SHA256
+    )
+    country_borders = geopandas.read_file(country_borders_path)
+    if country not in country_borders.name.values:
         raise ValueError(f"Unknown country {country}")
-    return world[world.name == country].iloc[0].geometry
+    country_borders = country_borders[country_borders.name == country].iloc[0].geometry
+    return get_mainland_geometry(country_borders)
 
 
 def save_config(config: Any, dir: Path) -> None:
