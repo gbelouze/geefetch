@@ -24,16 +24,17 @@ dynamic = ["version", "description"]
 dependencies = [
     "click",
     "earthengine-api",
-    "gdal",
+    "gdal>=3.9.2",
     "geedim",
-    "geopandas",
+    "geopandas>=1.0.1",
     "jsons",
-    "numpy",
+    "numpy>=2.0.0",
     "omegaconf",
-    "rasterio",
+    "pooch",
+    "rasterio>=1.3.11",
     "retry",
     "rich",
-    "shapely",
+    "shapely>=2.0.6",
     "utm"
 ]
 
