@@ -2,7 +2,7 @@
 
 ## [0.3.1](https://github.com/gbelouze/geefetch/compare/v0.3.1...v0.3.0) (2024-09-05)
 
-- Less strict numpy requirements ([1cdefd3]())
+- Less strict numpy requirements ([7ffe26f](https://github.com/gbelouze/geefetch/commit/7ffe26f8ca7fd74a97805d9fc49d1a84cdf98f2a))
 
 ## [0.3.0](https://github.com/gbelouze/geefetch/compare/v0.3.0...v0.2.2) (2024-09-05)
 
