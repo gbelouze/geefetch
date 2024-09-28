@@ -1,0 +1,25 @@
+data_dir: ~/data/france
+satellite_default:
+  resolution: 10
+  tile_size: 10_000
+  dtype: UInt16
+  composite_method: MEDIAN
+  aoi:
+    spatial:
+      left: 400_000
+      right: 6_000_000
+      bottom: 6_400_000
+      top: 6_600_000
+      epsg: 2154 # Lambert 93
+    temporal:
+      start_date: 2020-01-01
+      end_date: 2020-12-31
+    country: France
+  gee:
+    ee_project_id: geefetch
+    max_tile_size: 5 # in MB
+s1:
+  composite_method: MEAN
+s2: {}
+gedi:
+  format: PARQUET
