@@ -29,6 +29,7 @@ dependencies = [
     "jsons",
     "numpy>=2.0.0",
     "omegaconf",
+    "pyarrow",
     "pooch",
     "retry",
     "rich",
