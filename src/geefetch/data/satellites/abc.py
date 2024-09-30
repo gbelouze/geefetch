@@ -21,7 +21,6 @@ class SatelliteABC(ABC):
         """
         ...
 
-    @abstractmethod
     def get_time_series(
         self, aoi: BoundingBox, start_date: str, end_date: str, **kwargs: Any
     ) -> DownloadableABC:

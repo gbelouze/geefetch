@@ -8,8 +8,6 @@ from typing import Any, List, Optional
 import ee
 from shapely import Polygon
 
-from geefetch.data.downloadables import DownloadableABC
-
 from ...coords import WGS84, BoundingBox
 from ...enums import DType
 from ..downloadables import (
@@ -176,9 +174,6 @@ class GEDIvector(SatelliteABC):
         return DownloadableGEECollection(
             ee.FeatureCollection(ee.List(collections)).flatten()
         )
-    
-    def get_time_series(self, aoi: BoundingBox, start_date: str, end_date: str, **kwargs: Any) -> DownloadableABC:
-        raise Exception("the method 'get_time_series' should not be called for the GEDIvector class")
 
     @property
     def name(self) -> str:
