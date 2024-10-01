@@ -27,7 +27,7 @@ dependencies = [
     "geedim",
     "geopandas>=1.0.1",
     "jsons",
-    "numpy>=2.0.0",
+    "numpy",
     "omegaconf",
     "pyarrow",
     "pooch",
