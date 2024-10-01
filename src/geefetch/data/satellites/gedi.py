@@ -121,6 +121,16 @@ class GEDIvector(SatelliteABC):
     def selected_bands(self):
         return ["rh98", "delta_time", "orbit_number"]
 
+    def get_time_series(
+        self,
+        aoi: BoundingBox,
+        start_date: str,
+        end_date: str,
+        dtype: DType = DType.Float32,
+        **kwargs: Any,
+    ) -> DownloadableGeedimImage:
+        raise NotImplementedError
+
     def get(
         self, aoi: BoundingBox, start_date: str, end_date: str, **kwargs: Any
     ) -> DownloadableGEECollection:
