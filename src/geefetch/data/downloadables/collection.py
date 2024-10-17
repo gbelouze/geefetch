@@ -12,8 +12,9 @@ import geopandas as gpd
 import requests
 from rasterio.crs import CRS
 
-from ...coords import WGS84
+from ...coords import WGS84, BoundingBox
 from ...enums import Format
+from ...utils.geopandas import merge_geojson
 from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
@@ -38,10 +39,11 @@ class DownloadableGEECollection(DownloadableABC):
     def download(
         self,
         out: Path,
-        region: ee.Geometry,
+        region: BoundingBox,
         crs: CRS,
         bands: List[str],
         format: Format = Format.GEOJSON,
+        split_recursion_depth=0,
         **kwargs: Any,
     ) -> None:
         """Download a FeatureCollection in one go.
@@ -55,7 +57,7 @@ class DownloadableGEECollection(DownloadableABC):
             Path to the geojson file to download the collection to.
         bands : list[str]
             Properties of the collection to select for download.
-        region : ee.Geometry
+        region : BoundingBox
             The ROI.
         crs : CRS
             The CRS to use for the features' geometries.
@@ -75,7 +77,7 @@ class DownloadableGEECollection(DownloadableABC):
 
         # get image download url and response
         collection = (
-            self.collection.filterBounds(region)
+            self.collection.filterBounds(region.to_ee_geometry())
             .select(bands)
             .map(lambda feature: feature.transform(f"EPSG:{crs.to_epsg()}"))
         )
@@ -83,14 +85,40 @@ class DownloadableGEECollection(DownloadableABC):
             collection, Format.GEOJSON if format == Format.PARQUET else format
         )
 
-        if not response.ok:
+        def handle_error_response(response):
             resp_dict = response.json()
             if "error" in resp_dict and "message" in resp_dict["error"]:
                 msg = resp_dict["error"]["message"]
+                if (
+                    msg
+                    == "Unable to compute table: java.io.IOException: No space left on device"
+                ):
+                    if split_recursion_depth > 3:
+                        log.error(
+                            f"Attempted to split the download regions 3 times. Still getting error: {msg}. Aborting."
+                        )
+                        raise IOError(msg)
+                    log.debug(
+                        f"Caught GEE exception '[black]{msg}[/]' for tile {out}. "
+                        "Attempting to split into smaller regions ({split_recursion_depth=})."
+                    )
+                    self.split_then_download(
+                        out,
+                        region,
+                        crs,
+                        bands,
+                        format,
+                        split_recursion_depth=split_recursion_depth + 1,
+                        **kwargs,
+                    )
+                    return
                 ex_msg = f"Error downloading tile: {msg}"
             else:
                 ex_msg = str(response.json())
             raise IOError(ex_msg)
+
+        if not response.ok:
+            handle_error_response(response)
 
         if format == Format.PARQUET:
             with tempfile.NamedTemporaryFile(
@@ -106,3 +134,67 @@ class DownloadableGEECollection(DownloadableABC):
         with open(out, "wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):
                 geojsonfile.write(data)
+
+    def split_then_download(
+        self,
+        out: Path,
+        region: BoundingBox,
+        crs: CRS,
+        bands: List[str],
+        format: Format = Format.GEOJSON,
+        split_recursion_depth=0,
+        **kwargs: Any,
+    ) -> None:
+        """Download a FeatureCollection by splitting the AOI then merging the results.
+
+        Parameters
+        ----------
+        collection : ee.FeatureCollection
+            The collection to download.
+        out : Path
+            Path to the geojson file to download the collection to.
+        bands : list[str]
+            Properties of the collection to select for download.
+        region : BoundingBox
+            The ROI.
+        crs : CRS
+            The CRS to use for the features' geometries.
+        format : Format
+            The desired filetype.
+        """
+        match format:
+            case Format.GEOJSON | Format.PARQUET:
+                pass
+            case _:
+                raise NotImplementedError(
+                    f"Splitting and merging is not supported for download format {format}."
+                )
+        center_northing, center_easting = region.center
+        northings = [region.bottom, center_northing, region.top]
+        eastings = [region.left, center_easting, region.right]
+        regions = [
+            BoundingBox(left, bottom, right, top, crs=region.crs)
+            for left, right in zip(eastings[:-1], eastings[1:])
+            for bottom, top in zip(northings[:-1], northings[1:])
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_paths = []
+            for i, region in enumerate(regions):
+                tmp_path = Path(tmp_dir) / f"{i}.{format.to_str()}"
+                tmp_paths.append(tmp_path)
+                self.download(
+                    tmp_path,
+                    region,
+                    crs,
+                    bands,
+                    Format.GEOJSON,
+                    split_recursion_depth,
+                    **kwargs,
+                )
+                log.debug(f"Downloaded [{i+1}/4] split for {out}.")
+            gdf = merge_geojson(tmp_paths)
+        if format == Format.PARQUET:
+            gdf.to_parquet(out)
+        else:
+            gdf.to_file(out)

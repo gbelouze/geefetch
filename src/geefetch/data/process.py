@@ -10,6 +10,7 @@ import geopandas as gpd
 import pandas as pd
 import rasterio as rio
 
+from ..utils.geopandas import merge_geojson, merge_parquet
 from ..utils.progress import default_bar
 from .tiler import TileTracker
 
@@ -20,6 +21,7 @@ __all__ = [
     "gedi_is_clean",
     "vector_is_clean",
     "merge_geojson",
+    "merge_parquet",
     "clean",
 ]
 
@@ -122,8 +124,7 @@ def clean(
     return remove_count
 
 
-def merge_parquet(tracker: TileTracker) -> None:
-    gdfs = []
+def merge_tracked_parquet(tracker: TileTracker) -> None:
     merged_path = tracker.root / "merged.parquet"
     if merged_path.exists():
         log.error(f"A merged file {merged_path} already exists. Aborting...")
@@ -132,18 +133,12 @@ def merge_parquet(tracker: TileTracker) -> None:
     if len(paths) == 0:
         log.error(f"Found no file to merge in {tracker.root}.")
         return
-    with default_bar() as progress:
-        task = progress.add_task("Merging .parquet files", total=len(paths))
-        for path in paths:
-            gdfs.append(gpd.read_parquet(path))
-            progress.advance(task, advance=1)
-            log.debug(f"Merged content of {path}")
-    gpd.GeoDataFrame(pd.concat(gdfs)).to_parquet(merged_path)
+    merged_gpd = merge_parquet(paths)
+    merged_gpd.to_parquet(merged_path)
     log.info(f"Merged parquet dataset into {merged_path}")
 
 
-def merge_geojson(tracker: TileTracker) -> None:
-    merged = {"type": "FeatureCollection", "features": []}
+def merge_tracked_geojson(tracker: TileTracker) -> None:
     merged_path = tracker.root / "merged.geojson"
     if merged_path.exists():
         log.error(f"A merged file {merged_path} already exists. Aborting...")
@@ -152,15 +147,7 @@ def merge_geojson(tracker: TileTracker) -> None:
     if len(paths) == 0:
         log.error(f"Found no file to merge in {tracker.root}.")
         return
-    with default_bar() as progress:
-        task = progress.add_task("Merging .geojson files", total=len(paths))
-        for path in paths:
-            with open(path, "r") as f:
-                data = json.load(f)
-                assert merged["type"] == data["type"]
-                merged["features"].extend(data["features"])
-            progress.advance(task, advance=1)
-            log.debug(f"Merged content of {path}")
+    merged = merge_geojson(paths)
     with open(merged_path, "w") as f:
         json.dump(merged, f)
         log.info(f"Merged geojson dataset into {merged_path}")

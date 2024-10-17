@@ -16,6 +16,7 @@ from rasterio.crs import CRS
 from rich.progress import Progress
 from shapely import Polygon
 
+from ...coords import BoundingBox
 from ...utils.geedim import bounds_to_polygon, transform_polygon
 from .abc import DownloadableABC
 
@@ -208,7 +209,7 @@ class DownloadableGeedimImage(DownloadableABC):
     def download(
         self,
         out: Path,
-        region: ee.Geometry,
+        region: BoundingBox,
         crs: CRS,
         bands: List[str],
         max_tile_size: Optional[int] = None,
@@ -222,7 +223,7 @@ class DownloadableGeedimImage(DownloadableABC):
             log.warn(f"Argument {key} is ignored.")
         self.image.download(
             out,
-            region=region,
+            region=region.to_ee_geometry(),
             crs=f"EPSG:{crs.to_epsg()}",
             bands=bands,
             max_tile_size=max_tile_size,
@@ -242,7 +243,7 @@ class DownloadableGeedimImageCollection(DownloadableABC):
     def download(
         self,
         out: Path,
-        region: ee.Geometry,
+        region: BoundingBox,
         crs: CRS,
         bands: List[str],
         max_tile_size: Optional[int] = None,
@@ -271,7 +272,7 @@ class DownloadableGeedimImageCollection(DownloadableABC):
                 continue
             image.download(
                 dst_path,
-                region=region,
+                region=region.to_ee_geometry(),
                 crs=f"EPSG:{crs.to_epsg()}",
                 bands=bands,
                 max_tile_size=max_tile_size,

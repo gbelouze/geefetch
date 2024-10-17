@@ -13,7 +13,12 @@ from ..enums import CompositeMethod, DType, Format
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
-from .process import merge_geojson, merge_parquet, tif_is_clean, vector_is_clean
+from .process import (
+    merge_tracked_geojson,
+    merge_tracked_parquet,
+    tif_is_clean,
+    vector_is_clean,
+)
 from .satellites import S1, S2, DynWorld, GEDIraster, GEDIvector, Landsat8, SatelliteABC
 from .tiler import Tiler, TileTracker
 
@@ -70,7 +75,7 @@ def download_chip_ts(
         data.download(
             out,
             crs=bbox.crs,
-            region=bbox.to_ee_geometry(),
+            region=bbox,
             bands=bands,
             scale=scale,
             progress=progress,
@@ -105,7 +110,7 @@ def download_chip(
         data.download(
             out,
             crs=bbox.crs,
-            region=bbox.to_ee_geometry(),
+            region=bbox,
             bands=bands,
             scale=scale,
             **kwargs,
@@ -364,13 +369,13 @@ def download(
     if satellite.is_vector and "format" in satellite_download_kwargs:
         match satellite_download_kwargs["format"]:
             case Format.PARQUET:
-                merge_parquet(
+                merge_tracked_parquet(
                     TileTracker(
                         satellite, data_dir, filter=lambda p: p.suffix == ".parquet"
                     )
                 )
             case Format.GEOJSON:
-                merge_geojson(
+                merge_tracked_geojson(
                     TileTracker(
                         satellite, data_dir, filter=lambda p: p.suffix == ".geojson"
                     )
