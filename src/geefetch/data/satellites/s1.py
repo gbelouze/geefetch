@@ -79,6 +79,7 @@ class S1(SatelliteABC):
             .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
             .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VH"))
             .filter(ee.Filter.eq("instrumentMode", "IW"))
+            .filter(ee.Filter.eq("orbitProperties_pass", "ASCENDING"))
             .select(self.selected_bands)
         )
 
