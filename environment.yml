@@ -8,6 +8,6 @@ channels:
 # specify the python version & install non-pip dependencies
 dependencies:
   - python>=3.11
-  - gdal>=3.7
+  - gdal>=3.6
   - pip
   - rasterio>=1.3
