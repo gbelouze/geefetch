@@ -128,6 +128,7 @@ class DownloadableGEECollection(DownloadableABC):
                     tmp_file.write(data)
                 tmp_file.flush()
                 gdf = gpd.read_file(tmp_file.name).to_crs(old_crs)
+                gdf.reset_index(inplace=True, drop=True)
                 gdf.to_parquet(out)
                 Path(tmp_file.name).unlink()
                 return

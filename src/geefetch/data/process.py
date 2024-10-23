@@ -134,6 +134,7 @@ def merge_tracked_parquet(tracker: TileTracker) -> None:
         log.error(f"Found no file to merge in {tracker.root}.")
         return
     merged_gpd = merge_parquet(paths)
+    merged_gpd.reset_index(inplace=True, drop=True)
     merged_gpd.to_parquet(merged_path)
     log.info(f"Merged parquet dataset into {merged_path}")
 
