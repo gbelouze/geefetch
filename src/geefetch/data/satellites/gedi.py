@@ -74,8 +74,17 @@ def relaxedQualityFilter(strict: bool = False) -> ee.Filter:
         ee.Filter.eq("quality_flag", 1),
         ee.Filter.eq("degrade_flag", 0),
         ee.Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
-        # ee.Filter.eq("elevation_bias_flag", 0),
-        # ee.Filter.gte("sensitivity", 0.98),
+        ee.Filter.eq("elevation_bias_flag", 0),
+        ee.Or(
+            ee.Filter.And(
+                ee.Filter.rangeContains("rh98", 0, 5.0),
+                ee.Filter.gte("sensitivity", 0.9),
+            ),
+            ee.Filter.And(
+                ee.Filter.rangeContains("rh98", 5, 80),
+                ee.Filter.gte("sensitivity", 0.97),
+            ),
+        ),
     )
     return filter
 
