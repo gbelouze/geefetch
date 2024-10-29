@@ -52,7 +52,9 @@ class S1(SatelliteABC):
             case _:
                 raise ValueError(f"Unsupported {dtype=}.")
 
-    def get_col(self, aoi: BoundingBox, start_date: str, end_date: str):
+    def get_col(
+        self, aoi: BoundingBox, start_date: str, end_date: str
+    ) -> ee.ImageCollection:
         """Get Sentinel-1 collection.
 
         Parameters

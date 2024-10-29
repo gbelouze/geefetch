@@ -6,11 +6,7 @@ from shapely import Polygon
 
 from ...coords import WGS84, BoundingBox
 from ...enums import CompositeMethod, DType
-from ..downloadables import (
-    DownloadableGeedimImage,
-    DownloadableGeedimImageCollection,
-    DownloadableGEEImage,
-)
+from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
 
@@ -19,7 +15,7 @@ log = logging.getLogger(__name__)
 __all__ = []
 
 
-class Landsat8Base(SatelliteABC):
+class Landsat8(SatelliteABC):
     _bands = [
         "SR_B1",
         "SR_B2",
@@ -71,10 +67,7 @@ class Landsat8Base(SatelliteABC):
                 raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
-        self,
-        aoi: BoundingBox,
-        start_date: str,
-        end_date: str,
+        self, aoi: BoundingBox, start_date: str, end_date: str
     ) -> ee.ImageCollection:
         """Get Landsat 8 collection.
 
@@ -353,73 +346,6 @@ class Landsat8Base(SatelliteABC):
 
         return landsat_col.map(maskLandsat8cloud).map(applyBRDF_L8)
 
-
-class Landsat8GEE(Landsat8Base):
-    def get(
-        self,
-        aoi: BoundingBox,
-        start_date: str,
-        end_date: str,
-        composite_method: CompositeMethod = CompositeMethod.MEDIAN,
-        dtype: DType = DType.UInt16,
-        **kwargs: Any,
-    ) -> DownloadableGEEImage:
-        """Get Landsat 8 collection.
-
-        Parameters
-        ----------
-        aoi : BoundingBox
-            Area of interest.
-        start_date : str
-            Start date in "YYYY-MM-DD" format.
-        end_date : str
-            End date in "YYYY-MM-DD" format.
-        composite_method: CompositeMethod
-        dtype: DType
-            The data type for the image.
-
-        Returns
-        -------
-        landsat_im : DownloadableGEEImage
-            A Landsat 8 composite image of the specified AOI and time range.
-        """
-        for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
-        landsat_col = self.get_col(aoi, start_date, end_date)
-        min_p, max_p = self.pixel_range
-        landsat_im = (
-            composite_method.transform(landsat_col).clip(bounds).clamp(min_p, max_p)
-        )
-        match dtype:
-            case DType.Float32:
-                pass
-            case DType.UInt16:
-                landsat_im = (
-                    landsat_im.add(-min_p)
-                    .multiply((2**16 - 1) / (max_p - min_p))
-                    .toUint16()
-                )
-            case DType.UInt8:
-                landsat_im = (
-                    landsat_im.add(-min_p)
-                    .multiply((2**8 - 1) / (max_p - min_p))
-                    .toUint8()
-                )
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
-        return DownloadableGEEImage(landsat_im)
-
-    @property
-    def name(self) -> str:
-        return "landsat8gee"
-
-    @property
-    def full_name(self) -> str:
-        return "Landsat 8 (GEE)"
-
-
-class Landsat8(Landsat8Base):
     def get_time_series(
         self,
         aoi: BoundingBox,
@@ -524,4 +450,4 @@ class Landsat8(Landsat8Base):
 
     @property
     def full_name(self) -> str:
-        return "Landsat 8 (Geedim)"
+        return "Landsat-8"
