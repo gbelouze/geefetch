@@ -1,5 +1,11 @@
 # Changelog
 
+## pre-release
+
+### Features
+
+- Add Landsat-8 support [9af1bae](https://github.com/gbelouze/geefetch/commit/9af1baee8f1b96d491ddaaed97c570a73569f86b)
+
 ## [0.3.1](https://github.com/gbelouze/geefetch/compare/v0.3.1...v0.3.0) (2024-09-05)
 
 - Less strict numpy requirements ([7ffe26f](https://github.com/gbelouze/geefetch/commit/7ffe26f8ca7fd74a97805d9fc49d1a84cdf98f2a))

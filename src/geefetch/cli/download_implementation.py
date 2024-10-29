@@ -84,7 +84,6 @@ def download_gedi(config_path: Path, vector: bool) -> None:
         raise RuntimeError(
             "GEDI is not configured. Pass `gedi: {}` in the config file to use `satellite_default`."
         )
-
     data_dir = Path(config.data_dir)
     auth(config.gedi.gee.ee_project_id)
     bounds = config.gedi.aoi.spatial.as_bbox()
@@ -236,6 +235,41 @@ def download_dynworld(config_path: Path) -> None:
             None
             if config.dynworld.aoi.country is None
             else load_country_filter_polygon(config.dynworld.aoi.country)
+        ),
+    )
+
+
+def download_landsat8(config_path: Path) -> None:
+    """Download Landsat 8 images."""
+    config = load(config_path)
+    if config.landsat8 is None:
+        raise RuntimeError(
+            "Landsat 8 is not configured. Pass `landsat8: {}` in the config file to use `satellite_default`."
+        )
+    save_config(config.landsat8, config.data_dir / "landsat8")
+    data_dir = Path(config.data_dir)
+    auth(config.landsat8.gee.ee_project_id)
+    bounds = config.landsat8.aoi.spatial.as_bbox()
+    data.get.download_landsat8(
+        data_dir,
+        bounds,
+        config.landsat8.aoi.temporal.start_date,
+        config.landsat8.aoi.temporal.end_date,
+        crs=(
+            CRS.from_epsg(config.landsat8.aoi.spatial.epsg)
+            if config.landsat8.aoi.spatial.epsg
+            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
+            else None
+        ),
+        composite_method=config.landsat8.composite_method,
+        dtype=config.landsat8.dtype,
+        resolution=config.landsat8.resolution,
+        tile_shape=config.landsat8.tile_size,
+        max_tile_size=config.landsat8.gee.max_tile_size,
+        filter_polygon=(
+            None
+            if config.landsat8.aoi.country is None
+            else load_country_filter_polygon(config.landsat8.aoi.country)
         ),
     )
 

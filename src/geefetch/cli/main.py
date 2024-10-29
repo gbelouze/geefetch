@@ -80,3 +80,12 @@ def dynworld(config):
     from .download_implementation import download_dynworld
 
     download_dynworld(config)
+
+
+@main.command()
+@config_option
+def landsat8(config):
+    """Download Landsat 8 images."""
+    from .download_implementation import download_landsat8
+
+    download_landsat8(config)
