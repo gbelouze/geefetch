@@ -7,6 +7,7 @@ import pooch
 import shapely
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
+from thefuzz import process
 
 from geefetch import data
 from geefetch.utils.config import git_style_diff
@@ -22,7 +23,7 @@ COUNTRY_BORDERS_URL = (
 )
 
 COUNTRY_BORDERS_SHA256 = (
-    "1f7e8a98461fdc86f3a71ce87cdee32e9c99a4760a5a2456a30b777fd0ae487e"
+    "2ecf24ad6616808cc507db2fb7c5cc91d342827f424867617b9fe3878ea7524a"
 )
 
 
@@ -50,9 +51,13 @@ def load_country_filter_polygon(country: str) -> shapely.Polygon:
     country_borders_path = pooch.retrieve(
         url=COUNTRY_BORDERS_URL, known_hash=COUNTRY_BORDERS_SHA256
     )
+    log.debug(f"Country borders is downloaded to {country_borders_path}")
     country_borders = geopandas.read_file(country_borders_path)
     if country not in country_borders.name.values:
-        raise ValueError(f"Unknown country {country}")
+        best_match, match_score = process.extractOne(
+            country, country_borders.name.values
+        )
+        raise ValueError(f"Unknown country {country}. Did you mean {best_match} ?")
     country_borders = country_borders[country_borders.name == country].iloc[0].geometry
     return get_mainland_geometry(country_borders)
 

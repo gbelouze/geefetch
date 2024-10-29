@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, List
 
-import ee
 from rasterio.crs import CRS
+
+from ...coords import BoundingBox
 
 __all__: list[str] = []
 
@@ -11,7 +12,7 @@ __all__: list[str] = []
 class DownloadableABC(ABC):
     @abstractmethod
     def download(
-        self, out: Path, region: ee.Geometry, crs: CRS, bands: List[str], **kwargs: Any
+        self, out: Path, region: BoundingBox, crs: CRS, bands: List[str], **kwargs: Any
     ) -> None:
         """Download data.
 
@@ -19,7 +20,7 @@ class DownloadableABC(ABC):
         ----------
         out : Path
             The file to download the data to.
-        region : ee.Geometry
+        region : BoundingBox
             The AOI.
         crs : CRS
             The CRS in which `region` is expressed and in which to express the data.

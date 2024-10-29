@@ -68,6 +68,27 @@ def qualityFilter(strict: bool = False) -> ee.Filter:
     return filter
 
 
+def relaxedQualityFilter(strict: bool = False) -> ee.Filter:
+    filter = ee.Filter.And(
+        ee.Filter.rangeContains("rh98", 0, 80),
+        ee.Filter.eq("quality_flag", 1),
+        ee.Filter.eq("degrade_flag", 0),
+        ee.Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
+        ee.Filter.eq("elevation_bias_flag", 0),
+        ee.Or(
+            ee.Filter.And(
+                ee.Filter.rangeContains("rh98", 0, 5.0),
+                ee.Filter.gte("sensitivity", 0.9),
+            ),
+            ee.Filter.And(
+                ee.Filter.rangeContains("rh98", 5, 80),
+                ee.Filter.gte("sensitivity", 0.97),
+            ),
+        ),
+    )
+    return filter
+
+
 def qualityMask(
     data: ee.Image, esa: Optional[ee.Image] = None, strict: bool = False
 ) -> ee.Image:
@@ -112,6 +133,14 @@ def qualityMask(
     return data
 
 
+def relaxedQualityMask(
+    data: ee.Image, esa: Optional[ee.Image] = None, strict: bool = False
+) -> ee.Image:
+    rh98 = data.select("rh98")
+    data = data.updateMask(rangeContains(rh98, 0, 80))
+    return data
+
+
 class GEDIvector(SatelliteABC):
     @property
     def bands(self):
@@ -119,7 +148,21 @@ class GEDIvector(SatelliteABC):
 
     @property
     def selected_bands(self):
-        return ["rh98", "delta_time", "orbit_number"]
+        return [
+            "beam",
+            "degrade_flag",
+            "delta_time",
+            "elevation_bias_flag",
+            "energy_total",
+            "modis_treecover",
+            "orbit_number",
+            "quality_flag",
+            "rh98",
+            "selected_algorithm",
+            "sensitivity",
+            "solar_azimuth",
+            "solar_elevation",
+        ]
 
     def get_time_series(
         self,
@@ -172,7 +215,7 @@ class GEDIvector(SatelliteABC):
             feature["properties"]["table_id"]
             for feature in table_ids.getInfo()["features"]
         ]
-        gedi_filter = qualityFilter()
+        gedi_filter = relaxedQualityFilter()
         collections = [
             (
                 ee.FeatureCollection(gedi_id)
