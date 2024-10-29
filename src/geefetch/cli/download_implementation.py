@@ -23,7 +23,7 @@ COUNTRY_BORDERS_URL = (
 )
 
 COUNTRY_BORDERS_SHA256 = (
-    "2ecf24ad6616808cc507db2fb7c5cc91d342827f424867617b9fe3878ea7524a"
+    "074c1a32a0fbf7c60678b5a581b6d4dbad3710f99213f8f7411f199a88f1fef4"
 )
 
 
@@ -275,6 +275,41 @@ def download_landsat8(config_path: Path) -> None:
             None
             if config.landsat8.aoi.country is None
             else load_country_filter_polygon(config.landsat8.aoi.country)
+        ),
+    )
+
+
+def download_palsar2(config_path: Path) -> None:
+    """Download PALSAR-2 images."""
+    config = load(config_path)
+    if config.palsar2 is None:
+        raise RuntimeError(
+            "Palsar 2 is not configured. Pass `palsar2: {}` in the config file to use `satellite_default`."
+        )
+    save_config(config.palsar2, config.data_dir / "palsar2")
+    data_dir = Path(config.data_dir)
+    auth(config.palsar2.gee.ee_project_id)
+    bounds = config.palsar2.aoi.spatial.as_bbox()
+    data.get.download_palsar2(
+        data_dir,
+        bounds,
+        config.palsar2.aoi.temporal.start_date,
+        config.palsar2.aoi.temporal.end_date,
+        crs=(
+            CRS.from_epsg(config.palsar2.aoi.spatial.epsg)
+            if config.palsar2.aoi.spatial.epsg
+            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
+            else None
+        ),
+        composite_method=config.palsar2.composite_method,
+        dtype=config.palsar2.dtype,
+        resolution=config.palsar2.resolution,
+        tile_shape=config.palsar2.tile_size,
+        max_tile_size=config.palsar2.gee.max_tile_size,
+        filter_polygon=(
+            None
+            if config.palsar2.aoi.country is None
+            else load_country_filter_polygon(config.palsar2.aoi.country)
         ),
     )
 
