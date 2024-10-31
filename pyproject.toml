@@ -113,5 +113,7 @@ no_implicit_reexport = false
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "geefetch.data.downloadables.geedim.*"
+module = [
+    "geefetch.data.downloadables.geedim.*",
+]
 ignore_errors = true
