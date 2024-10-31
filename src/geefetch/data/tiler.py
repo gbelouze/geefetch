@@ -204,7 +204,10 @@ class TileTracker:
 
         Fails if the filename was not generated using a TileTracker."""
         id_re = r".*_(?P<tile_id>.*_\d*_\d*).*"
-        return re.match(id_re, path.name)["tile_id"]
+        match = re.match(id_re, path.name)
+        if match is None:
+            raise ValueError(f"Could not infer tile_id from {path.name}")
+        return match["tile_id"]
 
     @classmethod
     def satellite_from_filename(cls, path: Path) -> str:
@@ -213,7 +216,10 @@ class TileTracker:
 
         Fails if the filename was not generated using a TileTracker."""
         satellite_re = r"(?P<satellite>.*)_(.*_\d*_\d*)\..*"
-        return re.match(satellite_re, path.name)["satellite"]
+        match = re.match(satellite_re, path.name)
+        if match is None:
+            raise ValueError(f"Could not infer satelitte from {path.name}")
+        return match["satellite"]
 
     def filter(self, file: Path) -> bool:
         if file.stem.startswith("._"):
@@ -230,7 +236,7 @@ class TileTracker:
                 yield path
 
     def crs_to_paths(self) -> dict[CRS, list[Path]]:
-        ret = {}
+        ret: dict[CRS, list[Path]] = {}
         for path in self:
             with rio.open(path) as ds:
                 meta = ds.meta

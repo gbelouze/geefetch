@@ -43,7 +43,7 @@ class DownloadableGEECollection(DownloadableABC):
         crs: CRS,
         bands: List[str],
         format: Format = Format.GEOJSON,
-        split_recursion_depth=0,
+        split_recursion_depth: int = 0,
         **kwargs: Any,
     ) -> None:
         """Download a FeatureCollection in one go.
@@ -85,7 +85,7 @@ class DownloadableGEECollection(DownloadableABC):
             collection, Format.GEOJSON if format == Format.PARQUET else format
         )
 
-        def handle_error_response(response):
+        def handle_error_response(response: requests.Response) -> None:
             resp_dict = response.json()
             if "error" in resp_dict and "message" in resp_dict["error"]:
                 msg = resp_dict["error"]["message"]
@@ -143,7 +143,7 @@ class DownloadableGEECollection(DownloadableABC):
         crs: CRS,
         bands: List[str],
         format: Format = Format.GEOJSON,
-        split_recursion_depth=0,
+        split_recursion_depth: int = 0,
         **kwargs: Any,
     ) -> None:
         """Download a FeatureCollection by splitting the AOI then merging the results.

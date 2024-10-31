@@ -12,7 +12,7 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
-__all__ = []
+__all__ = ["DynWorld"]
 
 
 class DynWorld(SatelliteABC):
@@ -65,7 +65,7 @@ class DynWorld(SatelliteABC):
         im = im.clamp(min_p, max_p)
         match dtype:
             case DType.Float64:
-                return im.toFloat64()
+                raise TypeError("Google Earth Engine does not allow float64 data type.")
             case DType.Float32:
                 return im
             case DType.UInt16:
@@ -94,7 +94,7 @@ class DynWorld(SatelliteABC):
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
-        return (
+        return (  # type: ignore[no-any-return]
             ee.ImageCollection("GOOGLE/DYNAMICWORLD/V1")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
@@ -128,13 +128,13 @@ class DynWorld(SatelliteABC):
 
         images = {}
         info = dynworld_col.getInfo()
-        n_images = len(info["features"])
+        n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
             log.error(
                 f"Found 0 Dynamic World image." f"Check region {aoi.transform(WGS84)}."
             )
             raise RuntimeError("Collection of 0 Dynamic World image.")
-        for feature in info["features"]:
+        for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
             if Polygon(
                 PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
@@ -188,7 +188,7 @@ class DynWorld(SatelliteABC):
         dynworld_im = composite_method.transform(dynworld_col).clip(bounds)
         dynworld_im = self.convert_image(dynworld_im, dtype)
         dynworld_im = PatchedBaseImage(dynworld_im)
-        n_images = len(dynworld_col.getInfo()["features"])
+        n_images = len(dynworld_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
             log.warn(
                 f"Dynamic World mosaicking with a large amount of images (n={n_images}). Expect slower download time."

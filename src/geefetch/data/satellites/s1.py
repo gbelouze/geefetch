@@ -12,7 +12,7 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
-__all__ = []
+__all__ = ["S1"]
 
 
 class S1(SatelliteABC):
@@ -72,7 +72,7 @@ class S1(SatelliteABC):
             A Sentinel-1 collection of the specified AOI and time range.
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
-        return (
+        return (  # type: ignore[no-any-return]
             ee.ImageCollection("COPERNICUS/S1_GRD")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
@@ -90,7 +90,7 @@ class S1(SatelliteABC):
         end_date: str,
         dtype: DType = DType.Float32,
         **kwargs: Any,
-    ) -> DownloadableGeedimImage:
+    ) -> DownloadableGeedimImageCollection:
         """Get Sentinel-1 collection.
 
         Parameters
@@ -111,13 +111,13 @@ class S1(SatelliteABC):
 
         images = {}
         info = s1_col.getInfo()
-        n_images = len(info["features"])
+        n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
             log.error(
                 f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}."
             )
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
-        for feature in info["features"]:
+        for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
             if Polygon(
                 PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
@@ -161,7 +161,7 @@ class S1(SatelliteABC):
         s1_col = self.get_col(aoi, start_date, end_date)
 
         info = s1_col.getInfo()
-        n_images = len(info["features"])
+        n_images = len(info["features"])  # type: ignore[index]
         if n_images > 500:
             log.warn(
                 f"Sentinel-1 mosaicking with a large amount of images (n={n_images}). Expect slower download time."

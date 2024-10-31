@@ -4,7 +4,7 @@ from typing import Any, List
 from ...coords import BoundingBox
 from ..downloadables import DownloadableABC
 
-__all__ = []
+__all__ = ["SatelliteABC"]
 
 
 class SatelliteABC(ABC):

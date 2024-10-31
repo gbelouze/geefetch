@@ -20,9 +20,9 @@ class DType(Enum):
             case DType.UInt16:
                 return im.toUint16()
             case DType.Float32:
-                return im.toFloat32()
+                return im.toFloat()
             case DType.Float64:
-                return im.toFloat64()
+                raise TypeError("Google Earth Engine does not allow float64 data type.")
             case _:
                 raise ValueError(f"Unknown dtype {self.value}.")
 
@@ -46,7 +46,9 @@ class CompositeMethod(Enum):
             case CompositeMethod.MEDIAN:
                 return col.median()
             case CompositeMethod.MEDOID:
-                return col.medoid()
+                raise ValueError(
+                    "Google Earth Engine does not provide medoid composite."
+                )
             case CompositeMethod.MOSAIC:
                 return col.mosaic()
             case CompositeMethod.TIMESERIES:
