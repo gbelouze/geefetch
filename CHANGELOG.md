@@ -13,6 +13,7 @@
 
 - Make sure index of downloaded collection is unique [4cb5247](https://github.com/gbelouze/geefetch/commit/4cb5247c1d7fc3406b5dc7259fe46b85853b1ed3)
 - Split collection when download fails [14b696e](https://github.com/gbelouze/geefetch/commit/14b696e4e0d175d44e4065617a41ad139ec805bf)
+- Fix type checking [069f157](https://github.com/gbelouze/geefetch/commit/069f1574a0e1508594555f058645b7072adb5158)
 
 ## [0.3.1](https://github.com/gbelouze/geefetch/compare/v0.3.1...v0.3.0) (2024-09-05)
 
