@@ -419,7 +419,7 @@ class BoundingBox:
             proj=f"EPSG:{self.crs.to_epsg()}",
             evenOdd=False,
         )
-        return ee.Feature(geom, {}).geometry()
+        return ee.Feature(geom, {}).geometry()  # type: ignore[no-any-return]
 
     def to_shapely_polygon(self, in_native_crs: bool = False) -> shapely.Polygon:
         """Translate a bounding box as a ee.Geometry polygon.
@@ -512,8 +512,8 @@ class BoundingBox:
 
     @classmethod
     def from_ee_geometry(cls, geometry: ee.Geometry) -> Self:
-        coordinates = np.array(geometry.bounds().getInfo()["coordinates"][0])
-        proj = geometry.projection().getInfo()["crs"]
+        coordinates = np.array(geometry.bounds().getInfo()["coordinates"][0])  # type: ignore[index]
+        proj = geometry.projection().getInfo()["crs"]  # type: ignore[index]
         crs = CRS.from_string(proj)
         return cls(
             left=coordinates[:, 0].min(),
@@ -671,7 +671,7 @@ def get_shape_image(image: ee.Image) -> tuple[int, int]:
     -------
     w, h : tuple[int, int]
     """
-    shape: tuple[int, int] = image.getInfo()["bands"][0]["dimensions"]
+    shape: tuple[int, int] = image.getInfo()["bands"][0]["dimensions"]  # type: ignore[index]
     return shape
 
 

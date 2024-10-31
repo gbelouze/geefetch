@@ -67,8 +67,8 @@ class BadDataError(Exception):
 
 # @retry(exceptions=DownloadError, tries=5)
 def download_chip_ts(
-    data_get_lazy: Callable[[Any, ...], DownloadableABC],
-    data_get_kwargs: dict[Any],
+    data_get_lazy: Callable[..., DownloadableABC],
+    data_get_kwargs: dict[Any, Any],
     bbox: BoundingBox,
     satellite: SatelliteABC,
     scale: int,
@@ -99,8 +99,8 @@ def download_chip_ts(
 
 @retry(exceptions=DownloadError, tries=5)
 def download_chip(
-    data_get_lazy: Callable[[Any, ...], DownloadableABC],
-    data_get_kwargs: dict[Any],
+    data_get_lazy: Callable[..., DownloadableABC],
+    data_get_kwargs: dict[Any, Any],
     bbox: BoundingBox,
     satellite: SatelliteABC,
     scale: int,
@@ -151,6 +151,7 @@ def download_time_series(
     satellite_download_kwargs: Optional[dict[str, Any]] = None,
     check_clean: bool = True,
     filter_polygon: Optional[shapely.Polygon] = None,
+    **kwargs: Any,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
     to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
@@ -187,10 +188,9 @@ def download_time_series(
         Whether to check if the data is clean. Defaults to True.
     filter_polygon : Optional[shapely.Polygon], optional
         More fine-grained AOI than `bbox`. Defaults to None.
-    in_parallel : bool, optional
-        Whether to send parallel download requests. Do not use if the download backend
-        is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
     """
+    for kwarg in kwargs:
+        log.warn(f"Argument {kwarg} is ignored.")
     if not data_dir.is_dir():
         raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
     satellite_get_kwargs = (

@@ -6,7 +6,7 @@ from rasterio.crs import CRS
 
 from ...coords import BoundingBox
 
-__all__: list[str] = []
+__all__ = ["DownloadableABC"]
 
 
 class DownloadableABC(ABC):

@@ -12,7 +12,7 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
-__all__ = []
+__all__ = ["S2"]
 
 
 class S2(SatelliteABC):
@@ -146,7 +146,7 @@ class S2(SatelliteABC):
             )
         ).map(mask_s2_clouds)
 
-        return s2_cloudless
+        return s2_cloudless  # type: ignore[no-any-return]
 
     def get_time_series(
         self,
@@ -157,7 +157,7 @@ class S2(SatelliteABC):
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
         **kwargs: Any,
-    ) -> DownloadableGeedimImage:
+    ) -> DownloadableGeedimImageCollection:
         """Get Sentinel-2 collection.
 
         Parameters
@@ -186,13 +186,13 @@ class S2(SatelliteABC):
 
         images = {}
         info = s2_cloudless.getInfo()
-        n_images = len(info["features"])
+        n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
             log.error(
                 f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}."
             )
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
-        for feature in info["features"]:
+        for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
             if Polygon(
                 PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
@@ -258,7 +258,7 @@ class S2(SatelliteABC):
         s2_im = composite_method.transform(s2_cloudless).clip(bounds)
         s2_im = self.convert_image(s2_im, dtype)
         s2_im = PatchedBaseImage(s2_im)
-        n_images = len(s2_cloudless.getInfo()["features"])
+        n_images = len(s2_cloudless.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
             log.warn(
                 f"Sentinel-2 mosaicking with a large amount of images (n={n_images}). Expect slower download time."

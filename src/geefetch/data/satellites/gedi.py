@@ -20,7 +20,7 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
-__all__ = []
+__all__ = ["GEDIvector", "GEDIraster"]
 
 
 class EsaClass(Enum):
@@ -65,7 +65,7 @@ def qualityFilter(strict: bool = False) -> ee.Filter:
             ee.Filter.lte("solar_elevation", -10),
             ee.Filter.gte("energy_total", 5_000),
         )
-    return filter
+    return filter  # type: ignore[no-any-return]
 
 
 def relaxedQualityFilter(strict: bool = False) -> ee.Filter:
@@ -75,7 +75,7 @@ def relaxedQualityFilter(strict: bool = False) -> ee.Filter:
         ee.Filter.eq("degrade_flag", 0),
         ee.Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
         ee.Filter.eq("elevation_bias_flag", 0),
-        ee.Or(
+        ee.Filter.Or(
             ee.Filter.And(
                 ee.Filter.rangeContains("rh98", 0, 5.0),
                 ee.Filter.gte("sensitivity", 0.9),
@@ -86,7 +86,7 @@ def relaxedQualityFilter(strict: bool = False) -> ee.Filter:
             ),
         ),
     )
-    return filter
+    return filter  # type: ignore[no-any-return]
 
 
 def qualityMask(
@@ -102,7 +102,7 @@ def qualityMask(
         .And(data.select("sensitivity").gte(0.98))
     )
     if strict:
-        data = data.updateMas(
+        data = data.updateMask(
             data.select("modis_treecover")
             .gte(0.01)
             .And(
@@ -267,7 +267,9 @@ class GEDIraster(SatelliteABC):
             case _:
                 raise ValueError(f"Unsupported {dtype=}.")
 
-    def get_col(self, aoi: BoundingBox, start_date: str, end_date: str):
+    def get_col(
+        self, aoi: BoundingBox, start_date: str, end_date: str
+    ) -> ee.ImageCollection:
         """Get GEDI collection.
 
         Parameters
@@ -284,7 +286,7 @@ class GEDIraster(SatelliteABC):
         gedi_col : ee.ImageCollection
             A GEDI collection of the specified AOI and time range.
         """
-        return (
+        return (  # type: ignore[no-any-return]
             ee.ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY")
             .filterBounds(aoi.buffer(10_000).to_ee_geometry())
             .filterDate(start_date, end_date)
@@ -299,7 +301,7 @@ class GEDIraster(SatelliteABC):
         end_date: str,
         dtype: DType = DType.Float32,
         **kwargs: Any,
-    ) -> DownloadableGeedimImage:
+    ) -> DownloadableGeedimImageCollection:
         """Get GEDI collection.
 
         Parameters
@@ -320,11 +322,11 @@ class GEDIraster(SatelliteABC):
 
         images = {}
         info = gedi_col.getInfo()
-        n_images = len(info["features"])
+        n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
             log.error(f"Found 0 GEDI image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 GEDI image.")
-        for feature in info["features"]:
+        for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
             if Polygon(
                 PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
