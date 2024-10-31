@@ -7,7 +7,7 @@
 </div>
 
 <p align="center">
-    <img src="assets/logo.png" alt="Alt Text" style="width:20%; height:auto">
+    <img src="assets/logo-horizontal.png" alt="Alt Text" style="width:70%; height:auto">
 </p>
 
 A python library/CLI to download large scale satellite data from Google Earth Engine.
