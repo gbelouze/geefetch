@@ -3,9 +3,9 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)](https://geefetch.readthedocs.io/en/latest/?badge=latest)
 
-A python library/CLI to download large scale satellite data from Google Earth Engine.
 <img src="assets/logo.png" alt="Alt Text" style="width:40%; height:auto;" align="right">
-
+A python library/CLI to download large scale satellite data from Google Earth Engine.
+<br clear="left"/>
 [![CLI demo](https://asciinema.org)](https://asciinema.org/a/1xT8v4UGXCNOPbKjluYun9Vu4)
 
 ⚠️ This library is still in its early days and in active development. ⚠️
