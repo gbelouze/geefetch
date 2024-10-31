@@ -11,36 +11,10 @@ The `geefetch` program is developed using the `Click
 <http://click.palletsprojects.com/>`__ framework. Its plugin system allows external
 modules to share a common namespace and handling of context variables.
 
-.. code-block:: console
-
-    Usage: geefetch [OPTIONS] COMMAND [ARGS]...
-
-      Download satellites from Google Earth Engine.
-
-    Options:
-      -v, --verbose
-      --quiet / --no-quiet
-      --logfile PATH        File to output the log messages in addition to
-                            stdout/stderr.
-      --debug
-      --help                Show this message and exit.
-
-    Commands:
-      all       Download all satellites given in the config.
-      dynworld  Download Dynamic World images.
-      gedi      Download GEDI images.
-      s1        Download Sentinel-1 images.
-      s2        Download Sentinel-2 images.
-
-Commands are shown below. See ``--help`` of individual commands for more details.
-
-download
---------
-
 .. _config format:
 
-Configuration of `geefetch`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configuration
+-------------
 
 Here is an example config given to the command `geefetch [satellite] --config config.yaml`
 
@@ -71,14 +45,14 @@ Here is an example config given to the command `geefetch [satellite] --config co
     s2: {} # use satellite_default
     dynworld:
       composite_method: ${s1.composite_method}
+    palsar2: {}
 
 The config has
 
 - A `satellite_default` section which configures the default download option for any
   satellites
 - A section by satellite that you wish to download, amending the default options when
-  necessary, or adding some satellite-specific configuration. See :ref:`cli download
-  options` for the list of supported satellites.
+  necessary, or adding some satellite-specific configuration. See :ref:`cli options` for the list of supported satellites.
 
   - You can use config interpolation as is done for `dynworld.composite_method`.
   - You can use an empty section `{}` to use the defaults, as is done for `s2`
@@ -89,8 +63,11 @@ The config has
     connect to the GEE API. This is the string that you give to `ee.Initialize
     <https://developers.google.com/earth-engine/apidocs/ee-initialize>`__.
 
-.. _cli download options:
+Usage
+-----
 
-.. click:: geefetch.cli.main
+.. _cli options:
+
+.. click:: geefetch.cli:main
     :prog: geefetch
     :nested: short
