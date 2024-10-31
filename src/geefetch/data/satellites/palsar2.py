@@ -12,7 +12,7 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
-__all__ = []
+__all__ = ["Palsar2"]
 
 
 class Palsar2(SatelliteABC):
@@ -83,7 +83,7 @@ class Palsar2(SatelliteABC):
             .filterBounds(bounds)
         )
 
-        return palsar2_col
+        return palsar2_col  # type: ignore[no-any-return]
 
     def get_time_series(
         self,
@@ -92,7 +92,7 @@ class Palsar2(SatelliteABC):
         end_date: str,
         dtype: DType = DType.Float32,
         **kwargs: Any,
-    ) -> DownloadableGeedimImage:
+    ) -> DownloadableGeedimImageCollection:
         """Get Palsar-2 collection.
 
         Parameters
@@ -113,13 +113,13 @@ class Palsar2(SatelliteABC):
 
         images = {}
         info = p2_col.getInfo()
-        n_images = len(info["features"])
+        n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
             log.error(
                 f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}."
             )
             raise RuntimeError("Collection of 0 Palsar-2 image.")
-        for feature in info["features"]:
+        for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
             if Polygon(
                 PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
@@ -165,7 +165,7 @@ class Palsar2(SatelliteABC):
         p2_col = self.get_col(aoi, start_date, end_date)
 
         info = p2_col.getInfo()
-        n_images = len(info["features"])
+        n_images = len(info["features"])  # type: ignore
         if n_images > 500:
             log.warn(
                 f"Palsar-2 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
