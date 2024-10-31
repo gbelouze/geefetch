@@ -1,11 +1,8 @@
 <p align="center">
+    [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+    [![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)](https://geefetch.readthedocs.io/en/latest/?badge=latest)
     <img src="assets/logo.png" alt="Alt Text" style="width:20%; height:auto">
 </p>
-
-# `geefetch`
-
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)](https://geefetch.readthedocs.io/en/latest/?badge=latest)
 
 A python library/CLI to download large scale satellite data from Google Earth Engine.
 
