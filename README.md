@@ -1,15 +1,16 @@
 <div align="center">
 
-    <a href="https://github.com/psf/black">![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)</a>
-    <a href="https://geefetch.readthedocs.io/en/latest/?badge=latest">![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)</a>
+<a href="https://github.com/psf/black">![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)</a>
+<a href="">![example1](https://img.shields.io/badge/example-one-red)</a>
+<a href="https://geefetch.readthedocs.io/en/latest/?badge=latest">![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)</a>
 
 </div>
 
 <div align="center">
 
-  <a href="">![example1](https://img.shields.io/badge/example-one-red)</a>
-  <a href="">![example2](https://img.shields.io/badge/example-two-green)</a>
-  <a href="">![example3](https://img.shields.io/badge/example-three-blue)</a>
+<a href="">![example1](https://img.shields.io/badge/example-one-red)</a>
+<a href="">![example2](https://img.shields.io/badge/example-two-green)</a>
+<a href="">![example3](https://img.shields.io/badge/example-three-blue)</a>
 
 </div>
 
