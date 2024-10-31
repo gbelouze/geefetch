@@ -6,6 +6,9 @@
 
 Welcome to GeeFetch's documentation!
 ====================================
+.. raw:: html
+
+   <img src="_static/logo.png" width="200px" style="float: left"/>
 
 **GeeFetch** is a Python's library/CLI wrapper around geedim_ to download large scale
 data from Google Earth Engine directly to your computer. It implements sane default for
