@@ -1,4 +1,6 @@
-<img src="assets/logo.png" alt="Alt Text" style="width:20%; height:auto" align="center">
+<p align="center">
+    <img src="assets/logo.png" alt="Alt Text" style="width:20%; height:auto">
+</p>
 
 # `geefetch`
 
