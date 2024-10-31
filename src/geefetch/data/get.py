@@ -19,7 +19,16 @@ from .process import (
     tif_is_clean,
     vector_is_clean,
 )
-from .satellites import S1, S2, DynWorld, GEDIraster, GEDIvector, Landsat8, SatelliteABC
+from .satellites import (
+    S1,
+    S2,
+    DynWorld,
+    GEDIraster,
+    GEDIvector,
+    Landsat8,
+    Palsar2,
+    SatelliteABC,
+)
 from .tiler import Tiler, TileTracker
 
 log = logging.getLogger(__name__)
@@ -787,6 +796,75 @@ def download_landsat8(
         data_dir=data_dir,
         bbox=bbox,
         satellite=Landsat8(),
+        start_date=start_date,
+        end_date=end_date,
+        crs=crs,
+        resolution=resolution,
+        tile_shape=tile_shape,
+        max_tile_size=max_tile_size,
+        filter_polygon=filter_polygon,
+        satellite_get_kwargs={
+            "composite_method": composite_method,
+            "dtype": dtype,
+        },
+        satellite_download_kwargs={"dtype": dtype.to_str()},
+    )
+
+
+def download_palsar2(
+    data_dir: Path,
+    bbox: BoundingBox,
+    start_date: str,
+    end_date: str,
+    crs: Optional[CRS] = None,
+    resolution: int = 30,
+    tile_shape: int = 500,
+    max_tile_size: int = 10,
+    composite_method: CompositeMethod = CompositeMethod.MEDIAN,
+    dtype: DType = DType.Float32,
+    filter_polygon: Optional[shapely.Polygon] = None,
+) -> None:
+    """Download Palsar 2 images. Images are written in several .tif chips
+    to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
+
+    Parameters
+    ----------
+    data_dir : Path
+        Directory to write the downloaded files to.
+    bbox : BoundingBox
+        The box defining the region of interest.
+    start_date : str
+        The start date of the time period of interest.
+    end_date : str
+        The end date of the time period of interest.
+    crs : Optional[CRS], optional
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
+    resolution : int, optional
+        Resolution of the downloaded data, in meters. Defaults to 30.
+    tile_shape : int, optional
+        Side length of a downloaded chip, in pixels. Defaults to 500.
+    max_tile_size : int, optional
+        Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
+        Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
+    composite_method : CompositeMethod, optional
+        The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
+        download data as a time series instead of turning it into a mosaic.
+        Defaults to CompositeMethod.MEDIAN.
+    dtype : DType, optional
+        The data type of the downloaded images. Defaults to DType.Float32.
+    filter_polygon : Optional[shapely.Polygon], optional
+        More fine-grained AOI than `bbox`. Defaults to None.
+    """
+    download_func = (
+        download_time_series
+        if composite_method == CompositeMethod.TIMESERIES
+        else download
+    )
+    download_func(
+        data_dir=data_dir,
+        bbox=bbox,
+        satellite=Palsar2(),
         start_date=start_date,
         end_date=end_date,
         crs=crs,

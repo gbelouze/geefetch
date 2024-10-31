@@ -194,6 +194,13 @@ class Landsat8Config(SatelliteDefaultConfig):
 
 
 @dataclass
+class Palsar2Config(SatelliteDefaultConfig):
+    """The structured type for configuring Landsat 8."""
+
+    pass
+
+
+@dataclass
 class Config:
     """The structured type for a GeeFetch configuration.
 
@@ -213,6 +220,8 @@ class Config:
         Dynamic world specific configuration / variation to the default.
     landsat8 : Landsat8Config
         Landsat 8 specific configuration / variation to the default.
+    palsar2 : Palsar2Config
+        Palsar 2 specific configuration / variation to the default.
     """
 
     data_dir: Path
@@ -222,6 +231,7 @@ class Config:
     s2: Optional[S2Config]
     dynworld: Optional[DynWorldConfig]
     landsat8: Optional[Landsat8Config]
+    palsar2: Optional[Palsar2Config]
 
     def __post_init__(self):
         self.data_dir = self.data_dir.expanduser().absolute()
@@ -273,6 +283,15 @@ def post_omegaconf_load(config: Any) -> None:
             config.landsat8,
         )
         if "landsat8" in config
+        else None
+    )
+    config.palsar2 = (
+        OmegaConf.merge(
+            OmegaConf.structured(Palsar2Config),
+            config.satellite_default,
+            config.palsar2,
+        )
+        if "palsar2" in config
         else None
     )
 

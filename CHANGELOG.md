@@ -4,6 +4,7 @@
 
 ### Features
 
+- Add Palsar-2 yearly mosaic support
 - Add Landsat-8 support [9af1bae](https://github.com/gbelouze/geefetch/commit/9af1baee8f1b96d491ddaaed97c570a73569f86b)
 - Fuzzy search the country name [a613af4](https://github.com/gbelouze/geefetch/commit/a613af46bf87df1951bd3496638a041160f46143)
 - Improve GEDI and Sentinel-1 filters [8fd1a5e](https://github.com/gbelouze/geefetch/commit/8fd1a5ebc8d231c3a05e1d8f160936ffadd1b302)

@@ -89,3 +89,12 @@ def landsat8(config):
     from .download_implementation import download_landsat8
 
     download_landsat8(config)
+
+
+@main.command()
+@config_option
+def palsar2(config):
+    """Download Palsar-2 images."""
+    from .download_implementation import download_palsar2
+
+    download_palsar2(config)
