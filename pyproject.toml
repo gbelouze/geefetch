@@ -4,6 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "geefetch"
+description = "A Python library/CLI to download large scale satellite data from Google Earth Engine."
 readme = "README.md"
 authors = [
     {name = "Gabriel Belouze", email = "gabriel@belouze.com"}
@@ -20,7 +21,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 license = {"file" = "LICENSE"}
-dynamic = ["version", "description"]
+dynamic = ["version"]
 dependencies = [
     "click",
     "earthengine-api",

@@ -1,7 +1,14 @@
-# `geefetch`
+<!-- Do not remove the surrounding blank lines. See https://stackoverflow.com/questions/70292850/centre-align-shield-io-in-github-readme-file -->
+<div align="center">
 
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)](https://geefetch.readthedocs.io/en/latest/?badge=latest)
+  <a href="https://github.com/psf/black">![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)</a>
+  <a href="https://geefetch.readthedocs.io/en/latest/?badge=latest">![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)</a>
+
+</div>
+
+<p align="center">
+    <img src="assets/logo-horizontal.png" alt="Alt Text" style="width:70%; height:auto">
+</p>
 
 A python library/CLI to download large scale satellite data from Google Earth Engine.
 
