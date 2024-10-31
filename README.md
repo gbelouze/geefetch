@@ -2,8 +2,7 @@
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)](https://geefetch.readthedocs.io/en/latest/?badge=latest)
-
-![](assets/logo.png)
+<img src="assets/logo.png" alt="Alt Text" style="width:50%; height:auto; float: right">
 
 A python library/CLI to download large scale satellite data from Google Earth Engine.
 
