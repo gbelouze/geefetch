@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, List
 
-from ...coords import BoundingBox
+from geobbox import GeoBoundingBox
+
 from ..downloadables import DownloadableABC
 
 __all__ = ["SatelliteABC"]
@@ -14,7 +15,7 @@ class SatelliteABC(ABC):
 
     @abstractmethod
     def get(
-        self, aoi: BoundingBox, start_date: str, end_date: str, **kwargs: Any
+        self, aoi: GeoBoundingBox, start_date: str, end_date: str, **kwargs: Any
     ) -> DownloadableABC:
         """Get downloadable data. It is up to the caller to make sure the computation will stay within the compute
         resource limit, e.g. if Google Earth Engine is used as a backend.
@@ -23,7 +24,7 @@ class SatelliteABC(ABC):
 
     @abstractmethod
     def get_time_series(
-        self, aoi: BoundingBox, start_date: str, end_date: str, **kwargs: Any
+        self, aoi: GeoBoundingBox, start_date: str, end_date: str, **kwargs: Any
     ) -> DownloadableABC:
         """Get downloadable data to fetch time series. It is up to the caller to make sure the computation will stay
         within the compute resource limit, e.g. if Google Earth Engine is used as a backend.

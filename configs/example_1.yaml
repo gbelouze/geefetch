@@ -4,7 +4,7 @@ satellite_default:
   resolution: 10
   tile_size: 5_000
   dtype: Float32
-  composite_method: MEDIAN # see geefetch.enums.CompositeMethod
+  composite_method: MEDIAN # see geefetch.utils.enums.CompositeMethod
   aoi:
     spatial:
       left: 0

@@ -12,11 +12,11 @@ import rasterio as rio
 from geedim.download import BaseImage
 from geedim.enums import ExportType
 from geedim.tile import Tile
+from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 from rich.progress import Progress
 from shapely import Polygon
 
-from ...coords import BoundingBox
 from ...utils.geedim import bounds_to_polygon, transform_polygon
 from .abc import DownloadableABC
 
@@ -209,7 +209,7 @@ class DownloadableGeedimImage(DownloadableABC):
     def download(
         self,
         out: Path,
-        region: BoundingBox,
+        region: GeoBoundingBox,
         crs: CRS,
         bands: List[str],
         max_tile_size: Optional[int] = None,
@@ -243,7 +243,7 @@ class DownloadableGeedimImageCollection(DownloadableABC):
     def download(
         self,
         out: Path,
-        region: BoundingBox,
+        region: GeoBoundingBox,
         crs: CRS,
         bands: List[str],
         max_tile_size: Optional[int] = None,

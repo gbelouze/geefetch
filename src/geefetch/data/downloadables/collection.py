@@ -10,11 +10,12 @@ from typing import Any, List
 import ee
 import geopandas as gpd
 import requests
+from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 
-from ...coords import WGS84, BoundingBox
-from ...enums import Format
+from ...utils.enums import Format
 from ...utils.geopandas import merge_geojson
+from ...utils.rasterio import WGS84
 from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class DownloadableGEECollection(DownloadableABC):
     def download(
         self,
         out: Path,
-        region: BoundingBox,
+        region: GeoBoundingBox,
         crs: CRS,
         bands: List[str],
         format: Format = Format.GEOJSON,
@@ -57,7 +58,7 @@ class DownloadableGEECollection(DownloadableABC):
             Path to the geojson file to download the collection to.
         bands : list[str]
             Properties of the collection to select for download.
-        region : BoundingBox
+        region : GeoBoundingBox
             The ROI.
         crs : CRS
             The CRS to use for the features' geometries.
@@ -139,7 +140,7 @@ class DownloadableGEECollection(DownloadableABC):
     def split_then_download(
         self,
         out: Path,
-        region: BoundingBox,
+        region: GeoBoundingBox,
         crs: CRS,
         bands: List[str],
         format: Format = Format.GEOJSON,
@@ -156,7 +157,7 @@ class DownloadableGEECollection(DownloadableABC):
             Path to the geojson file to download the collection to.
         bands : list[str]
             Properties of the collection to select for download.
-        region : BoundingBox
+        region : GeoBoundingBox
             The ROI.
         crs : CRS
             The CRS to use for the features' geometries.
@@ -174,7 +175,7 @@ class DownloadableGEECollection(DownloadableABC):
         northings = [region.bottom, center_northing, region.top]
         eastings = [region.left, center_easting, region.right]
         regions = [
-            BoundingBox(left, bottom, right, top, crs=region.crs)
+            GeoBoundingBox(left, bottom, right, top, crs=region.crs)
             for left, right in zip(eastings[:-1], eastings[1:])
             for bottom, top in zip(northings[:-1], northings[1:])
         ]

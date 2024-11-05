@@ -3,10 +3,13 @@ from pathlib import Path
 from typing import Iterable
 
 from osgeo import gdal
+from rasterio.crs import CRS
 
 log = logging.getLogger(__name__)
 
-__all__ = ["create_vrt"]
+__all__ = ["create_vrt", "WGS84"]
+
+WGS84 = CRS.from_epsg(4326)
 
 
 def create_vrt(out: Path, tifs: Iterable[Path]) -> None:

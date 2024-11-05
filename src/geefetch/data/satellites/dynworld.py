@@ -2,10 +2,11 @@ import logging
 from typing import Any
 
 import ee
+from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...coords import WGS84, BoundingBox
-from ...enums import CompositeMethod, DType
+from ...utils.enums import CompositeMethod, DType
+from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -77,7 +78,7 @@ class DynWorld(SatelliteABC):
 
     def get_col(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
     ) -> ee.ImageCollection:
@@ -85,7 +86,7 @@ class DynWorld(SatelliteABC):
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -102,7 +103,7 @@ class DynWorld(SatelliteABC):
 
     def get_time_series(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
         dtype: DType = DType.Float32,
@@ -112,7 +113,7 @@ class DynWorld(SatelliteABC):
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -149,7 +150,7 @@ class DynWorld(SatelliteABC):
 
     def get(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
@@ -161,7 +162,7 @@ class DynWorld(SatelliteABC):
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.

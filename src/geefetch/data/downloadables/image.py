@@ -11,9 +11,9 @@ from typing import Any, List
 
 import ee
 import requests
+from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 
-from ...coords import BoundingBox
 from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class DownloadableGEEImage(DownloadableABC):
         self,
         image: ee.Image,
         bands: List[str],
-        region: BoundingBox,
+        region: GeoBoundingBox,
         crs: str,
     ) -> tuple[requests.Response, str]:
         """Get tile download url and response."""
@@ -49,7 +49,7 @@ class DownloadableGEEImage(DownloadableABC):
     def download(
         self,
         out: Path,
-        region: BoundingBox,
+        region: GeoBoundingBox,
         crs: CRS,
         bands: List[str],
         **kwargs: Any,
@@ -65,7 +65,7 @@ class DownloadableGEEImage(DownloadableABC):
             Path to the geojson file to download the collection to.
         bands : list[str]
             Properties of the collection to select for download.
-        region : BoundingBox
+        region : GeoBoundingBox
             The ROI.
         crs : CRS
             The CRS to use for the features' geometries.

@@ -4,12 +4,12 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import shapely
+from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 from retry import retry
 from rich.progress import Progress
 
-from ..coords import BoundingBox
-from ..enums import CompositeMethod, DType, Format
+from ..utils.enums import CompositeMethod, DType, Format
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
@@ -69,7 +69,7 @@ class BadDataError(Exception):
 def download_chip_ts(
     data_get_lazy: Callable[..., DownloadableABC],
     data_get_kwargs: dict[Any, Any],
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     satellite: SatelliteABC,
     scale: int,
     out: Path,
@@ -101,7 +101,7 @@ def download_chip_ts(
 def download_chip(
     data_get_lazy: Callable[..., DownloadableABC],
     data_get_kwargs: dict[Any, Any],
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     satellite: SatelliteABC,
     scale: int,
     out: Path,
@@ -139,7 +139,7 @@ def download_chip(
 
 def download_time_series(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
@@ -161,7 +161,7 @@ def download_time_series(
     data_dir : Path
         Directory or file name to write the downloaded files to. If a directory,
         the default `satellite` name is used as a base name.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     satellite : SatelliteABC
         The satellite which the images should originate from.
@@ -242,7 +242,7 @@ def download_time_series(
 
 def download(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
@@ -265,7 +265,7 @@ def download(
     data_dir : Path
         Directory or file name to write the downloaded files to. If a directory,
         the default `satellite` name is used as a base name.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     satellite : SatelliteABC
         The satellite which the images should originate from.
@@ -399,7 +399,7 @@ def download(
 
 def download_gedi(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
     crs: Optional[CRS] = None,
@@ -417,7 +417,7 @@ def download_gedi(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str
         The start date of the time period of interest.
@@ -471,7 +471,7 @@ def download_gedi(
 
 def download_gedi_vector(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
     crs: Optional[CRS] = None,
@@ -487,7 +487,7 @@ def download_gedi_vector(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str
         The start date of the time period of interest.
@@ -522,7 +522,7 @@ def download_gedi_vector(
 
 def download_s1(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
     crs: Optional[CRS] = None,
@@ -540,7 +540,7 @@ def download_s1(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str
         The start date of the time period of interest.
@@ -593,7 +593,7 @@ def download_s1(
 
 def download_s2(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
     crs: Optional[CRS] = None,
@@ -613,7 +613,7 @@ def download_s2(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str
         The start date of the time period of interest.
@@ -673,7 +673,7 @@ def download_s2(
 
 def download_dynworld(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
     crs: Optional[CRS] = None,
@@ -691,7 +691,7 @@ def download_dynworld(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str
         The start date of the time period of interest.
@@ -744,7 +744,7 @@ def download_dynworld(
 
 def download_landsat8(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
     crs: Optional[CRS] = None,
@@ -762,7 +762,7 @@ def download_landsat8(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str
         The start date of the time period of interest.
@@ -813,7 +813,7 @@ def download_landsat8(
 
 def download_palsar2(
     data_dir: Path,
-    bbox: BoundingBox,
+    bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
     crs: Optional[CRS] = None,
@@ -831,7 +831,7 @@ def download_palsar2(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
-    bbox : BoundingBox
+    bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str
         The start date of the time period of interest.
