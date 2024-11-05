@@ -10,6 +10,7 @@ from geobbox import UTM, GeoBoundingBox
 from rasterio.crs import CRS
 
 from ..utils.enums import Format
+from ..utils.rasterio import WGS84
 from .satellites import SatelliteABC
 
 log = logging.getLogger(__name__)
@@ -22,7 +23,6 @@ class MaximumIterationError(Exception):
 
 
 MAX_TILE_LIMIT = 100_000_000
-WGS84 = CRS.from_epsg(4326)
 
 
 class Tiler:

@@ -2,10 +2,11 @@ import logging
 from typing import Any
 
 import ee
-from geobbox import WGS84, GeoBoundingBox
+from geobbox import GeoBoundingBox
 from shapely import Polygon
 
 from ...utils.enums import CompositeMethod, DType
+from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
