@@ -8,16 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fixed" and "Security".
 
-## [0.3.2](https://github.com/gbelouze/geefetch/compare/v0.3.2...v0.3.1) (2024-10-31)
+## [0.3.3](https://github.com/gbelouze/geefetch/compare/v0.3.3...v0.3.2) (2024-11-05)
+
+### Added
+
+- Improve docs and homepage with logo [cf2861b](https://github.com/gbelouze/geefetch/commit/cf2861b6b5b71d0b33db2588045d147377a8dfa0)
 
 ### Changed
 
-- Use `geobbox.GeoBoundingBox` instead of `geefetch.coords.BoundingBox`
+- Use `geobbox.GeoBoundingBox` instead of `geefetch.coords.BoundingBox` [e3c63ee](https://github.com/gbelouze/geefetch/commit/e3c63eef981bf3e79a7786f8bbf31dd53f5626b7)
+
+## [0.3.2](https://github.com/gbelouze/geefetch/compare/v0.3.2...v0.3.1) (2024-10-31)
 
 ### Added
 
 - Add Palsar-2 yearly mosaic support [d867821](https://github.com/gbelouze/geefetch/commit/d867821e0b6379044e59d08538289ff0cd922974)
-- Add Landsat-8 support [9af1bae](https://github.com/gbelouze/geefetch/commit/9af1baee8f1b96d491ddaaed97c570a73569f86b)
+- Add Landsat-8 support [cb198e0](https://github.com/gbelouze/geefetch/commit/cb198e09e729cf367933c3bedad6653e5693712f)
 - Fuzzy search the country name [a613af4](https://github.com/gbelouze/geefetch/commit/a613af46bf87df1951bd3496638a041160f46143)
 - Improve GEDI and Sentinel-1 filters [8fd1a5e](https://github.com/gbelouze/geefetch/commit/8fd1a5ebc8d231c3a05e1d8f160936ffadd1b302)
 
