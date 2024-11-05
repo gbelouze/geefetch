@@ -6,10 +6,11 @@ from typing import Callable, Iterator, Optional
 
 import rasterio as rio
 import shapely
+from geobbox import UTM, GeoBoundingBox
 from rasterio.crs import CRS
 
-from ..coords import UTM, WGS84, BoundingBox
-from ..enums import Format
+from ..utils.enums import Format
+from ..utils.rasterio import WGS84
 from .satellites import SatelliteABC
 
 log = logging.getLogger(__name__)
@@ -37,12 +38,12 @@ class Tiler:
     def _multiple_above(self, x: float | int, m: int) -> int:
         return m * int(ceil(x / m))
 
-    def is_on_distortion_overlap(self, bbox: BoundingBox) -> bool:
+    def is_on_distortion_overlap(self, bbox: GeoBoundingBox) -> bool:
         """Determines if `bbox` is on a tile overlap, because of the way the Tiler splits large areas.
 
         Parameters
         ----------
-        bbox: BoundingBox
+        bbox: GeoBoundingBox
             The bbox to check for overlap.
 
         Returns
@@ -61,7 +62,9 @@ class Tiler:
                 return True
         return False
 
-    def _split_in_grid(self, bbox: BoundingBox, shape: int) -> Iterator[BoundingBox]:
+    def _split_in_grid(
+        self, bbox: GeoBoundingBox, shape: int
+    ) -> Iterator[GeoBoundingBox]:
         count = 0
         for left in range(
             self._multiple_below(bbox.left, shape),
@@ -73,7 +76,7 @@ class Tiler:
                 self._multiple_above(bbox.top, shape),
                 shape,
             ):
-                yield BoundingBox(
+                yield GeoBoundingBox(
                     left=left,
                     bottom=bottom,
                     right=left + shape,
@@ -88,16 +91,16 @@ class Tiler:
 
     def split(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         shape: int,
         crs: Optional[CRS] = None,
         filter_polygon: Optional[shapely.Polygon] = None,
-    ) -> Iterator[BoundingBox]:
+    ) -> Iterator[GeoBoundingBox]:
         """Split a region into non-overlapping tiles having shape `shape`x`shape`.
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             The area of interest.
         shape : int
             The desired side length for tiles (in meters).
@@ -109,7 +112,7 @@ class Tiler:
 
         Returns
         -------
-        List[BoundingBox]
+        List[GeoBoundingBox]
         """
         if crs is not None and crs.units_factor[0] != "metre":
             log.warn("Using a tiler with non-metric CRS.")
@@ -129,7 +132,7 @@ class Tiler:
         else:
             for utm in aoi.to_utms():
                 log.debug(f"AOI intersects UTM zone {utm}.")
-                utm_bbox = BoundingBox.from_utm(utm) & aoi.transform(WGS84)
+                utm_bbox = GeoBoundingBox.from_utm(utm) & aoi.transform(WGS84)
                 for bbox in self._split_in_grid(utm_bbox.transform(utm.crs), shape):
                     bbox84 = bbox.transform(WGS84)
                     if bbox84.intersects(utm_bbox):
@@ -180,10 +183,11 @@ class TileTracker:
 
     def name_crs(self, crs: CRS) -> str:
         if UTM.is_utm_crs(crs):
-            return UTM.utm_strip_name_from_crs(crs)
+            ret: str = UTM.utm_strip_name_from_crs(crs)
+            return ret
         return f"EPSG{crs.to_epsg()}"
 
-    def get_path(self, bbox: BoundingBox, format: Optional[Format] = None) -> Path:
+    def get_path(self, bbox: GeoBoundingBox, format: Optional[Format] = None) -> Path:
         tile_suffix = (
             ".tif"
             if self.satellite.is_raster

@@ -2,11 +2,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
+from geobbox import GeoBoundingBox
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 
-from geefetch.coords import BoundingBox
-from geefetch.enums import CompositeMethod, DType, Format
+from geefetch.utils.enums import CompositeMethod, DType, Format
 
 __all__ = [
     "Config",
@@ -65,8 +65,8 @@ class SpatialAOIConfig:
     bottom: float
     epsg: int = 4326
 
-    def as_bbox(self) -> BoundingBox:
-        return BoundingBox(
+    def as_bbox(self) -> GeoBoundingBox:
+        return GeoBoundingBox(
             left=self.left,
             right=self.right,
             top=self.top,

@@ -2,10 +2,11 @@ import logging
 from typing import Any
 
 import ee
+from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...coords import WGS84, BoundingBox
-from ...enums import CompositeMethod, DType
+from ...utils.enums import CompositeMethod, DType
+from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -53,13 +54,13 @@ class S1(SatelliteABC):
                 raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
-        self, aoi: BoundingBox, start_date: str, end_date: str
+        self, aoi: GeoBoundingBox, start_date: str, end_date: str
     ) -> ee.ImageCollection:
         """Get Sentinel-1 collection.
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -85,7 +86,7 @@ class S1(SatelliteABC):
 
     def get_time_series(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
         dtype: DType = DType.Float32,
@@ -95,7 +96,7 @@ class S1(SatelliteABC):
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -130,7 +131,7 @@ class S1(SatelliteABC):
 
     def get(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
@@ -141,7 +142,7 @@ class S1(SatelliteABC):
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.

@@ -6,10 +6,11 @@ from enum import Enum
 from typing import Any, List, Optional
 
 import ee
+from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...coords import WGS84, BoundingBox
-from ...enums import DType
+from ...utils.enums import DType
+from ...utils.rasterio import WGS84
 from ..downloadables import (
     DownloadableGEECollection,
     DownloadableGeedimImage,
@@ -166,7 +167,7 @@ class GEDIvector(SatelliteABC):
 
     def get_time_series(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
         dtype: DType = DType.Float32,
@@ -175,7 +176,7 @@ class GEDIvector(SatelliteABC):
         raise NotImplementedError
 
     def get(
-        self, aoi: BoundingBox, start_date: str, end_date: str, **kwargs: Any
+        self, aoi: GeoBoundingBox, start_date: str, end_date: str, **kwargs: Any
     ) -> DownloadableGEECollection:
         """Get GEDI collection.
 
@@ -268,13 +269,13 @@ class GEDIraster(SatelliteABC):
                 raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
-        self, aoi: BoundingBox, start_date: str, end_date: str
+        self, aoi: GeoBoundingBox, start_date: str, end_date: str
     ) -> ee.ImageCollection:
         """Get GEDI collection.
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -296,7 +297,7 @@ class GEDIraster(SatelliteABC):
 
     def get_time_series(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
         dtype: DType = DType.Float32,
@@ -306,7 +307,7 @@ class GEDIraster(SatelliteABC):
 
         Parameters
         ----------
-        aoi : BoundingBox
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -341,7 +342,7 @@ class GEDIraster(SatelliteABC):
 
     def get(
         self,
-        aoi: BoundingBox,
+        aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
         dtype: DType = DType.Float32,

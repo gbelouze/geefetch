@@ -25,7 +25,7 @@ Here is an example config given to the command `geefetch [satellite] --config co
       resolution: 10
       tile_size: 5_000  # the side length, in pixel, of downloaded rasters
       dtype: Float32
-      composite_method: MEDIAN  # see geefetch.enums.CompositeMethod
+      composite_method: MEDIAN  # see geefetch.utils.enums.CompositeMethod
       aoi:
         spatial:
           left: 0

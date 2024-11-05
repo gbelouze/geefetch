@@ -5,7 +5,7 @@ from typing import List
 import geopandas as gpd
 import pandas as pd
 
-from ..coords import WGS84
+from ..utils.rasterio import WGS84
 
 log = logging.getLogger(__file__)
 
