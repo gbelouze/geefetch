@@ -9,7 +9,7 @@ from rasterio.crs import CRS
 from retry import retry
 from rich.progress import Progress
 
-from ..utils.enums import CompositeMethod, DType, Format
+from ..utils.enums import CompositeMethod, DType, Format, S1Orbit
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
@@ -532,7 +532,7 @@ def download_s1(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: Optional[shapely.Polygon] = None,
-    orbit: str = "ASCENDING",
+    orbit: S1Orbit = S1Orbit.ASCENDING,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.

@@ -80,3 +80,10 @@ class Format(Enum):
                 return "kmz"
             case Format.PARQUET:
                 return "parquet"
+
+
+class S1Orbit(Enum):
+    """The type of Sentinel-1 orbit."""
+
+    ASCENDING = "ASCENDING"
+    DESCENDING = "DESCENDING"
