@@ -37,7 +37,6 @@ dependencies = [
     "rich",
     "shapely>=2.0.6",
     "thefuzz",
-    "utm"
 ]
 
 [tool.flit.module]
