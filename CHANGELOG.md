@@ -10,6 +10,10 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ## [0.3.2](https://github.com/gbelouze/geefetch/compare/v0.3.2...v0.3.1) (2024-10-31)
 
+### Changed
+
+- Use `geobbox.GeoBoundingBox` instead of `geefetch.coords.BoundingBox`
+
 ### Added
 
 - Add Palsar-2 yearly mosaic support [d867821](https://github.com/gbelouze/geefetch/commit/d867821e0b6379044e59d08538289ff0cd922974)
