@@ -532,6 +532,7 @@ def download_s1(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: Optional[shapely.Polygon] = None,
+    orbit: str = "ASCENDING",
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.
@@ -586,6 +587,7 @@ def download_s1(
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
+            "orbit": orbit,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )

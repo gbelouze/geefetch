@@ -169,6 +169,7 @@ def download_s1(config_path: Path) -> None:
             if config.s1.aoi.country is None
             else load_country_filter_polygon(config.s1.aoi.country)
         ),
+        orbit=config.s1.orbit,
     )
 
 

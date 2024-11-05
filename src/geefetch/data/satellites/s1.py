@@ -2,11 +2,10 @@ import logging
 from typing import Any
 
 import ee
-from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...utils.enums import CompositeMethod, DType
-from ...utils.rasterio import WGS84
+from ...coords import WGS84, BoundingBox
+from ...enums import CompositeMethod, DType
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -54,13 +53,17 @@ class S1(SatelliteABC):
                 raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str
+        self,
+        aoi: BoundingBox,
+        start_date: str,
+        end_date: str,
+        orbit: str = "ASCENDING",
     ) -> ee.ImageCollection:
         """Get Sentinel-1 collection.
 
         Parameters
         ----------
-        aoi : GeoBoundingBox
+        aoi : BoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -80,23 +83,24 @@ class S1(SatelliteABC):
             .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
             .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VH"))
             .filter(ee.Filter.eq("instrumentMode", "IW"))
-            .filter(ee.Filter.eq("orbitProperties_pass", "ASCENDING"))
+            .filter(ee.Filter.eq("orbitProperties_pass", orbit))
             .select(self.selected_bands)
         )
 
     def get_time_series(
         self,
-        aoi: GeoBoundingBox,
+        aoi: BoundingBox,
         start_date: str,
         end_date: str,
         dtype: DType = DType.Float32,
+        orbit: str = "ASCENDING",
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Sentinel-1 collection.
 
         Parameters
         ----------
-        aoi : GeoBoundingBox
+        aoi : BoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -108,7 +112,7 @@ class S1(SatelliteABC):
         s1_im: DownloadableGeedimImageCollection
             A Sentinel-1 time series collection of the specified AOI and time range.
         """
-        s1_col = self.get_col(aoi, start_date, end_date)
+        s1_col = self.get_col(aoi, start_date, end_date, orbit)
 
         images = {}
         info = s1_col.getInfo()
@@ -131,18 +135,19 @@ class S1(SatelliteABC):
 
     def get(
         self,
-        aoi: GeoBoundingBox,
+        aoi: BoundingBox,
         start_date: str,
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
+        orbit: str = "ASCENDING",
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Sentinel-1 collection.
 
         Parameters
         ----------
-        aoi : GeoBoundingBox
+        aoi : BoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
@@ -159,7 +164,7 @@ class S1(SatelliteABC):
             log.warn(f"Argument {key} is ignored.")
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
-        s1_col = self.get_col(aoi, start_date, end_date)
+        s1_col = self.get_col(aoi, start_date, end_date, orbit)
 
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]

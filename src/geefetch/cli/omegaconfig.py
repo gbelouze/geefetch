@@ -141,6 +141,7 @@ class SatelliteDefaultConfig:
     resolution: int = 10
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
+    orbit: Optional[str] = "ASCENDING"
 
 
 @dataclass
