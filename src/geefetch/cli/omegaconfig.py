@@ -6,7 +6,7 @@ from geobbox import GeoBoundingBox
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 
-from geefetch.utils.enums import CompositeMethod, DType, Format, S1Orbit
+from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
 
 __all__ = [
     "Config",
@@ -160,7 +160,7 @@ class S1Config(SatelliteDefaultConfig):
     """The structured type for configuring Sentinel-1."""
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
-    orbit: S1Orbit = "ASCENDING"
+    orbit: S1Orbit = S1Orbit.ASCENDING
 
 
 @dataclass
@@ -198,6 +198,7 @@ class Landsat8Config(SatelliteDefaultConfig):
 class Palsar2Config(SatelliteDefaultConfig):
     """The structured type for configuring Landsat 8."""
 
+    orbit: P2Orbit = P2Orbit.DESCENDING
     pass
 
 

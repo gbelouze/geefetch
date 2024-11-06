@@ -191,7 +191,9 @@ class TileTracker:
         tile_suffix = (
             ".tif"
             if self.satellite.is_raster
-            else ".geojson" if format is None else format.value
+            else ".geojson"
+            if format is None
+            else format.value
         )
         tile_stem = f"{self.satellite.name}_{self.name_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
         tile_path = self.root / (tile_stem + tile_suffix)

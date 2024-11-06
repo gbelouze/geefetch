@@ -12,7 +12,12 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Added
 
+- Option to specify orbit direction for Palsar-2 data
 - Option to specify orbit direction for Sentinel-1 data [2b025b7](https://github.com/gbelouze/geefetch/commit/2b025b74474be5803895b9cb4d8497f587128923)
+
+### Changed
+
+- Use PALSAR-2 ScanSAR level 2.2 instead of yearly mosaic [c5a79b1](https://github.com/gbelouze/geefetch/commit/c5a79b10f00e6b7706bf439b5016c2b8fbee39e8)
 
 ## [0.4.0](https://github.com/gbelouze/geefetch/compare/v0.4.0...v0.3.2) (2024-11-05)
 

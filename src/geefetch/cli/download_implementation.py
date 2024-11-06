@@ -312,6 +312,7 @@ def download_palsar2(config_path: Path) -> None:
             if config.palsar2.aoi.country is None
             else load_country_filter_polygon(config.palsar2.aoi.country)
         ),
+        orbit=config.palsar2.orbit,
     )
 
 

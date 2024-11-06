@@ -1,5 +1,4 @@
-"""Utilites to retrieve an image collection of GEDI images, with bad data points filtered out.
-"""
+"""Utilites to retrieve an image collection of GEDI images, with bad data points filtered out."""
 
 import logging
 from enum import Enum

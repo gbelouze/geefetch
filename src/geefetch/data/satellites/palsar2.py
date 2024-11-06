@@ -5,7 +5,7 @@ import ee
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...utils.enums import CompositeMethod, DType
+from ...utils.enums import CompositeMethod, DType, P2Orbit
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
@@ -62,7 +62,11 @@ class Palsar2(SatelliteABC):
                 raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str,
+        end_date: str,
+        orbit: P2Orbit,
     ) -> ee.ImageCollection:
         """Get Palsar 2 collection.
 
@@ -78,10 +82,10 @@ class Palsar2(SatelliteABC):
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
         palsar2_col = (
-            # ee.ImageCollection("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")  # very poor coverage
-            ee.ImageCollection("JAXA/ALOS/PALSAR/YEARLY/SAR_EPOCH")  # yearly mosaics
+            ee.ImageCollection("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
+            .filter(ee.Filter.eq("PassDirection", orbit.value))
         )
 
         return palsar2_col  # type: ignore[no-any-return]
@@ -92,6 +96,7 @@ class Palsar2(SatelliteABC):
         start_date: str,
         end_date: str,
         dtype: DType = DType.Float32,
+        orbit: P2Orbit = P2Orbit.DESCENDING,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Palsar-2 collection.
@@ -110,7 +115,7 @@ class Palsar2(SatelliteABC):
         p2_im: DownloadableGeedimImageCollection
             A Palsar-2 time series collection of the specified AOI and time range.
         """
-        p2_col = self.get_col(aoi, start_date, end_date)
+        p2_col = self.get_col(aoi, start_date, end_date, orbit)
 
         images = {}
         info = p2_col.getInfo()
@@ -140,6 +145,7 @@ class Palsar2(SatelliteABC):
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
+        orbit: P2Orbit = P2Orbit.DESCENDING,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Palsar-2 collection.
@@ -163,7 +169,7 @@ class Palsar2(SatelliteABC):
             log.warn(f"Argument {key} is ignored.")
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
-        p2_col = self.get_col(aoi, start_date, end_date)
+        p2_col = self.get_col(aoi, start_date, end_date, orbit)
 
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore

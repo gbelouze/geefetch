@@ -87,3 +87,10 @@ class S1Orbit(Enum):
 
     ASCENDING = "ASCENDING"
     DESCENDING = "DESCENDING"
+
+
+class P2Orbit(Enum):
+    """The type of Sentinel-1 orbit."""
+
+    ASCENDING = "Ascending"
+    DESCENDING = "Descending"
