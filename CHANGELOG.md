@@ -17,11 +17,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Changed
 
-- PALSAR-2 ScanSAR level 2.2 instead of yearly mosaic
-
-### Removed
-
-- PALSAR-2 yearly mosaic
+- Use PALSAR-2 ScanSAR level 2.2 instead of yearly mosaic [c5a79b1](https://github.com/gbelouze/geefetch/commit/c5a79b10f00e6b7706bf439b5016c2b8fbee39e8)
 
 ## [0.4.0](https://github.com/gbelouze/geefetch/compare/v0.4.0...v0.3.2) (2024-11-05)
 
