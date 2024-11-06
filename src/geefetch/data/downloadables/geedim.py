@@ -38,7 +38,6 @@ class PatchedBaseImage(BaseImage):
         progress: Optional[Progress] = None,
         **kwargs,
     ):
-
         max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
         geedim_log.debug(f"Using {max_threads} threads for download.")
         out_lock = threading.Lock()
