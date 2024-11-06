@@ -9,7 +9,7 @@ from rasterio.crs import CRS
 from retry import retry
 from rich.progress import Progress
 
-from ..utils.enums import CompositeMethod, DType, Format, S1Orbit
+from ..utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
@@ -825,6 +825,7 @@ def download_palsar2(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: Optional[shapely.Polygon] = None,
+    orbit: P2Orbit = P2Orbit.DESCENDING,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
@@ -877,6 +878,7 @@ def download_palsar2(
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
+            "orbit": orbit,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )

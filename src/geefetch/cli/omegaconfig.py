@@ -6,7 +6,7 @@ from geobbox import GeoBoundingBox
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 
-from geefetch.utils.enums import CompositeMethod, DType, Format, S1Orbit
+from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
 
 __all__ = [
     "Config",
@@ -198,6 +198,7 @@ class Landsat8Config(SatelliteDefaultConfig):
 class Palsar2Config(SatelliteDefaultConfig):
     """The structured type for configuring Landsat 8."""
 
+    orbit: P2Orbit = "DESCENDING"
     pass
 
 
