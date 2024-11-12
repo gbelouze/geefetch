@@ -14,10 +14,16 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 - Option to specify orbit direction for Palsar-2 data
 - Option to specify orbit direction for Sentinel-1 data [2b025b7](https://github.com/gbelouze/geefetch/commit/2b025b74474be5803895b9cb4d8497f587128923)
+- A `__main__.py` file to call the CLI with `python -m geefetch` [3c9b0c7](https://github.com/gbelouze/geefetch/commit/3c9b0c74833353dd8e048b59dd244f57ef89034b)
 
 ### Changed
 
 - Use PALSAR-2 ScanSAR level 2.2 instead of yearly mosaic [c5a79b1](https://github.com/gbelouze/geefetch/commit/c5a79b10f00e6b7706bf439b5016c2b8fbee39e8)
+- Remove the use of `known_hash` for the country borders data [6ce3b6e](https://github.com/gbelouze/geefetch/commit/6ce3b6ee0049e6d5d3cf75f3f6164f82ff886d28)
+
+### Fixed
+
+- Fix `geefetch` attempting to download collection after it was already split-downloaded [b9f5bb1](https://github.com/gbelouze/geefetch/commit/b9f5bb12d4caaf073bd69e50e36e48809966f3ad)
 
 ## [0.4.0](https://github.com/gbelouze/geefetch/compare/v0.4.0...v0.3.2) (2024-11-05)
 
