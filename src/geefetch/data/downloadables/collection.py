@@ -67,10 +67,10 @@ class DownloadableGEECollection(DownloadableABC):
         """
         for key in kwargs.keys():
             if key not in ["scale", "progress", "max_tile_size"]:
-                log.warn(f"Argument {key} is ignored.")
+                log.warning(f"Argument {key} is ignored.")
 
         if format == Format.GEOJSON and crs != WGS84:
-            log.warn(f".geojson files must be in WGS84. Ignoring argument {crs=}.")
+            log.warning(f".geojson files must be in WGS84. Ignoring argument {crs=}.")
             crs = WGS84
         if format == Format.PARQUET:
             old_crs = crs

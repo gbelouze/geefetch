@@ -71,7 +71,7 @@ class DownloadableGEEImage(DownloadableABC):
             The CRS to use for the features' geometries.
         """
         for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
 
         gee_crs = f"EPSG:{crs.to_epsg()}"
 

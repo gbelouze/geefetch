@@ -176,7 +176,7 @@ class S2(SatelliteABC):
             A Sentinel-2 time series collection of the specified AOI and time range.
         """
         for kwarg in kwargs:
-            log.warn(f"Argument {kwarg} is ignored.")
+            log.warning(f"Argument {kwarg} is ignored.")
         s2_cloudless = self.get_col(
             aoi,
             start_date,
@@ -246,7 +246,7 @@ class S2(SatelliteABC):
             with clouds filtered out.
         """
         for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         s2_cloudless = self.get_col(
             aoi,
@@ -261,7 +261,7 @@ class S2(SatelliteABC):
         s2_im = PatchedBaseImage(s2_im)
         n_images = len(s2_cloudless.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
-            log.warn(
+            log.warning(
                 f"Sentinel-2 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
             )
             log.info("Change cloud masking parameters to lower the amount of images.")
@@ -273,7 +273,7 @@ class S2(SatelliteABC):
                 )
                 raise RuntimeError("Collection of 0 Sentinel-2 image.")
             new_cloudless_portion = max(0, cloudless_portion - 10)
-            log.warn(
+            log.warning(
                 f"Found 0 Sentinel-2 image for {cloudless_portion=}."
                 f"Trying new parameter cloudless_portion={new_cloudless_portion}"
             )

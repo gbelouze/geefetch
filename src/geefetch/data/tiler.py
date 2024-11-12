@@ -115,7 +115,7 @@ class Tiler:
         List[GeoBoundingBox]
         """
         if crs is not None and crs.units_factor[0] != "metre":
-            log.warn("Using a tiler with non-metric CRS.")
+            log.warning("Using a tiler with non-metric CRS.")
 
         skip_count = 0
 

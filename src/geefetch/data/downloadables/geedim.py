@@ -2,10 +2,10 @@ import logging
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
-import ee
 import geedim.utils
 import numpy as np
 import rasterio as rio
@@ -18,6 +18,7 @@ from rich.progress import Progress
 from shapely import Polygon
 
 from ...utils.geedim import bounds_to_polygon, transform_polygon
+from ...utils.progress import default_bar
 from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ geedim_log = logging.getLogger("patched_geedim")
 __all__: list[str] = []
 
 
-class PatchedBaseImage(BaseImage):
+class PatchedBaseImage(BaseImage):  # type: ignore[misc]
     def download(
         self,
         filename: Union[Path, str],
@@ -36,8 +37,8 @@ class PatchedBaseImage(BaseImage):
         max_tile_size: Optional[float] = None,
         max_tile_dim: Optional[int] = None,
         progress: Optional[Progress] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
         geedim_log.debug(f"Using {max_threads} threads for download.")
         out_lock = threading.Lock()
@@ -93,7 +94,7 @@ class PatchedBaseImage(BaseImage):
             rio.open(filename, "w", **profile) as out_ds,
         ):
 
-            def download_tile(tile: Tile):
+            def download_tile(tile: Tile) -> None:
                 """Download a tile and write into the destination GeoTIFF."""
                 tile_array = tile.download(session=session)
                 with out_lock:
@@ -132,7 +133,7 @@ class PatchedBaseImage(BaseImage):
                         skip_count += 1
                 geedim_log.debug(f"Skipped {skip_count} windows, kept {keep_count}.")
                 try:
-                    if progress is not None:
+                    if progress is not None and task is not None:
                         for completed_future in as_completed(futures):
                             n_finished = sum([future.done() for future in futures])
                             progress.update(
@@ -178,7 +179,7 @@ class ExportableGeedimImage(DownloadableABC):
     def download(
         self,
         out: Path,
-        region: ee.Geometry,
+        region: GeoBoundingBox,
         crs: CRS,
         bands: List[str],
         scale: Optional[int] = None,
@@ -192,7 +193,7 @@ class ExportableGeedimImage(DownloadableABC):
             ExportType.drive,
             wait=True,
             dtype=dtype,
-            region=region,
+            region=region.to_ee_geometry(),
             scale=scale,
             bands=bands,
             crs=f"EPSG:{crs.to_epsg()}",
@@ -260,25 +261,29 @@ class DownloadableGeedimImageCollection(DownloadableABC):
             out.mkdir()
         if not out.is_dir():
             raise ValueError(f"Path {out} was expected to be a directory.")
-        task = progress.add_task(
-            f"[magenta]Downloading time series to [cyan]{out}[/]",
-            total=len(self.id_to_images),
-        )
-        for id_, image in self.id_to_images.items():
-            dst_path = out / f"{id_}.tif"
-            if dst_path.exists():
-                log.debug(f"Found existing {dst_path}. Skipping download.")
-                continue
-            image.download(
-                dst_path,
-                region=region.to_ee_geometry(),
-                crs=f"EPSG:{crs.to_epsg()}",
-                bands=bands,
-                max_tile_size=max_tile_size,
-                num_threads=num_threads,
-                scale=scale,
-                dtype=dtype,
-                progress=progress,
+
+        with ExitStack() as stack:
+            if progress is None:
+                progress = stack.enter_context(default_bar())
+            task = progress.add_task(
+                f"[magenta]Downloading time series to [cyan]{out}[/]",
+                total=len(self.id_to_images),
             )
-            log.debug(f"Downloaded image to {dst_path}.")
-            progress.advance(task)
+            for id_, image in self.id_to_images.items():
+                dst_path = out / f"{id_}.tif"
+                if dst_path.exists():
+                    log.debug(f"Found existing {dst_path}. Skipping download.")
+                    continue
+                image.download(
+                    dst_path,
+                    region=region.to_ee_geometry(),
+                    crs=f"EPSG:{crs.to_epsg()}",
+                    bands=bands,
+                    max_tile_size=max_tile_size,
+                    num_threads=num_threads,
+                    scale=scale,
+                    dtype=dtype,
+                    progress=progress,
+                )
+                log.debug(f"Downloaded image to {dst_path}.")
+                progress.advance(task)

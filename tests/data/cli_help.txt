@@ -1,0 +1,20 @@
+Usage: main [OPTIONS] COMMAND [ARGS]...
+
+  Download satellites from Google Earth Engine.
+
+Options:
+  -v, --verbose
+  --quiet / --no-quiet
+  --logfile PATH        File to output the log messages in addition to
+                        stdout/stderr.
+  --debug
+  --help                Show this message and exit.
+
+Commands:
+  all       Download all satellites given in the config.
+  dynworld  Download Dynamic World images.
+  gedi      Download GEDI images.
+  landsat8  Download Landsat 8 images.
+  palsar2   Download Palsar-2 images.
+  s1        Download Sentinel-1 images.
+  s2        Download Sentinel-2 images.

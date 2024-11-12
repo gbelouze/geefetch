@@ -190,7 +190,7 @@ def download_time_series(
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     for kwarg in kwargs:
-        log.warn(f"Argument {kwarg} is ignored.")
+        log.warning(f"Argument {kwarg} is ignored.")
     if not data_dir.is_dir():
         raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
     satellite_get_kwargs = (

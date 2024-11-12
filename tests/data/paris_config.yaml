@@ -1,0 +1,34 @@
+data_dir: null
+satellite_default:
+  resolution: 10
+  tile_size: 1000
+  dtype: UInt8
+  composite_method: MEAN
+  aoi:
+    spatial:
+      left: 650000
+      right: 650001
+      bottom: 6860000
+      top: 6860001
+      epsg: 2154 # Lambert93
+    temporal:
+      start_date: 2020-01-01
+      end_date: 2020-01-31
+  gee:
+    ee_project_id: ffb-pipeline
+    max_tile_size: 5
+dynworld: {}
+gedi:
+  aoi:
+    temporal:
+      start_date: 2020-07-01
+      end_date: 2020-07-31
+landsat8: {}
+palsar2:
+  aoi:
+    temporal:
+      start_date: 2024-08-01
+      end_date: 2024-08-31
+  orbit: DESCENDING
+s1: {}
+s2: {}

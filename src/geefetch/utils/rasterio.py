@@ -18,7 +18,7 @@ def create_vrt(out: Path, tifs: Iterable[Path]) -> None:
     if out.suffix != ".vrt":
         raise ValueError(f"Expected a '.vrt' file but got {out}.")
     if out.exists():
-        log.warn(f"Overwriting file {out}.")
+        log.warning(f"Overwriting file {out}.")
         out.unlink()
     vrt = gdal.BuildVRT(str(out), [str(tif) for tif in tifs])
     vrt.FlushCache()

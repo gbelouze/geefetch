@@ -9,7 +9,7 @@ from rasterio.crs import CRS
 from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
 
 __all__ = [
-    "Config",
+    "GeefetchConfig",
     "SatelliteDefaultConfig",
     "AOIConfig",
     "TemporalAOIConfig",
@@ -203,7 +203,7 @@ class Palsar2Config(SatelliteDefaultConfig):
 
 
 @dataclass
-class Config:
+class GeefetchConfig:
     """The structured type for a GeeFetch configuration.
 
     Attributes
@@ -244,7 +244,7 @@ def post_omegaconf_load(config: Any) -> None:
 
     Parameters
     ----------
-    config : Config
+    config : GeefetchConfig
         The config loaded by OmegaConf.
     """
     OmegaConf.resolve(config)
@@ -298,7 +298,7 @@ def post_omegaconf_load(config: Any) -> None:
     )
 
 
-def load(path: Path) -> Config:
+def load(path: Path) -> GeefetchConfig:
     """Load a config file."""
     if path.is_dir():
         from_yaml = OmegaConf.merge(
@@ -307,6 +307,6 @@ def load(path: Path) -> Config:
     else:
         from_yaml = OmegaConf.load(path)
     post_omegaconf_load(from_yaml)
-    from_structured = OmegaConf.structured(Config)
+    from_structured = OmegaConf.structured(GeefetchConfig)
     merged = OmegaConf.merge(from_structured, from_yaml)
     return OmegaConf.to_object(merged)  # type: ignore
