@@ -112,9 +112,4 @@ warn_unused_ignores = true
 warn_return_any = true
 no_implicit_reexport = false
 ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = [
-    "geefetch.data.downloadables.geedim.*",
-]
-ignore_errors = true
+exclude = ['tests/test_download.py', 'tests/conftest.py']
