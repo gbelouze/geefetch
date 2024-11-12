@@ -15,6 +15,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Option to specify orbit direction for Palsar-2 data
 - Option to specify orbit direction for Sentinel-1 data [2b025b7](https://github.com/gbelouze/geefetch/commit/2b025b74474be5803895b9cb4d8497f587128923)
 - A `__main__.py` file to call the CLI with `python -m geefetch` [3c9b0c7](https://github.com/gbelouze/geefetch/commit/3c9b0c74833353dd8e048b59dd244f57ef89034b)
+- Added tests in `tests/` using pytest [2c12ebc](https://github.com/gbelouze/geefetch/commit/2c12ebc261617f864e7f8a996fd0725d2d46c731)
 
 ### Changed
 
