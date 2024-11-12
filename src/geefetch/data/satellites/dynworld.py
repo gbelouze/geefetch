@@ -179,7 +179,7 @@ class DynWorld(SatelliteABC):
             with clouds filtered out.
         """
         for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         dynworld_col = self.get_col(
             aoi,
@@ -191,7 +191,7 @@ class DynWorld(SatelliteABC):
         dynworld_im = PatchedBaseImage(dynworld_im)
         n_images = len(dynworld_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
-            log.warn(
+            log.warning(
                 f"Dynamic World mosaicking with a large amount of images (n={n_images}). Expect slower download time."
             )
         log.debug(f"Dynamic World mosaicking with {n_images} images.")

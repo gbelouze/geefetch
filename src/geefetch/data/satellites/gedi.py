@@ -194,15 +194,15 @@ class GEDIvector(SatelliteABC):
             A collection of GEDI points over the specified AOI and time period.
         """
         for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
         aoi_wgs84 = aoi.transform(WGS84)
         if aoi_wgs84.top > 51.6:
-            log.warn(
+            log.warning(
                 f"No GEDI data is collected above latitude 51.6°N."
                 f"Your AOI up to latitude {aoi_wgs84.top:.1f}° will not be fully represented."
             )
         if aoi_wgs84.bottom < -51.6:
-            log.warn(
+            log.warning(
                 f"No GEDI data is collected bellow latitude 51.6°S."
                 f"Your AOI down to latitude {aoi_wgs84.bottom:.1f}° will not be fully represented."
             )
@@ -365,15 +365,15 @@ class GEDIraster(SatelliteABC):
             The GEDI collection of the specified AOI and time range.
         """
         for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
         aoi_wgs84 = aoi.transform(WGS84)
         if aoi_wgs84.top > 51.6:
-            log.warn(
+            log.warning(
                 f"No GEDI data is collected above latitude 51.6°N."
                 f"Your AOI up to latitude {aoi_wgs84.top:.1f}° will not be fully represented."
             )
         if aoi_wgs84.bottom < -51.6:
-            log.warn(
+            log.warning(
                 f"No GEDI data is collected bellow latitude 51.6°S."
                 f"Your AOI down to latitude {aoi_wgs84.bottom:.1f}° will not be fully represented."
             )

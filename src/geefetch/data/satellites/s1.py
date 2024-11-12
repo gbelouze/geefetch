@@ -162,7 +162,7 @@ class S1(SatelliteABC):
             A Sentinel-1 composite image of the specified AOI and time range.
         """
         for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
         s1_col = self.get_col(aoi, start_date, end_date, orbit)
@@ -170,7 +170,7 @@ class S1(SatelliteABC):
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images > 500:
-            log.warn(
+            log.warning(
                 f"Sentinel-1 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
             )
         if n_images == 0:

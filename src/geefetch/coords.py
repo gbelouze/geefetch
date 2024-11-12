@@ -35,7 +35,7 @@ class UTM(geobbox.UTM):
     """
 
     def __init__(self, *args, **kwargs):
-        log.warn(
+        log.warning(
             "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. Use `geobbox.UTM` instead."
         )
         super().__init__(*args, **kwargs)
@@ -50,7 +50,7 @@ class BoundingBox(GeoBoundingBox):
     """
 
     def __init__(self, *args, **kwargs):
-        log.warn(
+        log.warning(
             "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. Use `geobbox.UTM` instead."
         )
         super().__init__(*args, **kwargs)
@@ -62,7 +62,7 @@ def close_to_utm_border(lat: float, lon: float, delta: float = 1.0) -> bool:
     .. deprecated:: 0.4.0
           `close_to_utm_border` will be removed in GeeFetch 0.5.0.
     """
-    log.warn(
+    log.warning(
         "`geefetch.coords.close_to_utm_border` is decrecated and will be removed in GeeFetch 0.5.0."
     )
     return not (delta < lon % 6 < 6 - delta)
@@ -90,7 +90,7 @@ def get_center_tif(ds: rio._base.DatasetBase) -> Coordinate:
           `get_center_tif` will be removed in GeeFetch 0.5.0.
 
     """
-    log.warn(
+    log.warning(
         "`geefetch.coords.get_center_tif` is decrecated and will be removed in GeeFetch 0.5.0."
     )
     x, y = ds.xy(ds.height // 2, ds.width // 2)
@@ -113,7 +113,7 @@ def get_shape_image(image: ee.Image) -> tuple[int, int]:
           `get_shape_image` will be removed in GeeFetch 0.5.0.
 
     """
-    log.warn(
+    log.warning(
         "`geefetch.coords.get_shape_image` is decrecated and will be removed in GeeFetch 0.5.0."
     )
     shape: tuple[int, int] = image.getInfo()["bands"][0]["dimensions"]  # type: ignore[index]
@@ -137,7 +137,7 @@ def get_bounding_box_tif(ds: rio._base.DatasetBase) -> tuple[Coordinate, Coordin
           `get_bounding_box_tif` will be removed in GeeFetch 0.5.0.
 
     """
-    log.warn(
+    log.warning(
         "`geefetch.coords.get_bounding_box_tif` is decrecated and will be removed in GeeFetch 0.5.0."
     )
     return BoundingBox.from_rio(ds.bounds, crs=ds.crs).transform(WGS84).to_latlon()

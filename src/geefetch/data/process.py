@@ -63,7 +63,7 @@ def vector_is_clean(path: Path) -> bool:
             case ".parquet":
                 return len(gpd.read_parquet(path)) > 0
             case _ as suffix:
-                log.warn(f"Don't know how to check {suffix} file {path}")
+                log.warning(f"Don't know how to check {suffix} file {path}")
                 return True
     except pd.errors.EmptyDataError:
         return False

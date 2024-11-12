@@ -377,7 +377,7 @@ class Landsat8(SatelliteABC):
             A Landsat 8 time series collection of the specified AOI and time range.
         """
         for kwarg in kwargs:
-            log.warn(f"Argument {kwarg} is ignored.")
+            log.warning(f"Argument {kwarg} is ignored.")
         landsat_col = self.get_col(aoi, start_date, end_date)
 
         images = {}
@@ -430,7 +430,7 @@ class Landsat8(SatelliteABC):
             A Landsat 8 composite image of the specified AOI and time range.
         """
         for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         landsat_col = self.get_col(aoi, start_date, end_date)
         min_p, max_p = self.pixel_range
@@ -439,7 +439,7 @@ class Landsat8(SatelliteABC):
         landsat_im = PatchedBaseImage(landsat_im)
         n_images = len(landsat_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
-            log.warn(
+            log.warning(
                 f"Landsat 8 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
             )
             log.info("Change cloud masking parameters to lower the amount of images.")

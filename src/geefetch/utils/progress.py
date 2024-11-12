@@ -28,7 +28,7 @@ def disable_progress() -> bool:
 def default_bar() -> Progress:
     disabled = disable_progress()
     if disabled:
-        log.warn("progress bar is disabled.")
+        log.warning("progress bar is disabled.")
     return Progress(
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),

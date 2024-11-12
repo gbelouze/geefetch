@@ -166,7 +166,7 @@ class Palsar2(SatelliteABC):
             A Palsar-2 composite image of the specified AOI and time range.
         """
         for key in kwargs.keys():
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
         p2_col = self.get_col(aoi, start_date, end_date, orbit)
@@ -174,7 +174,7 @@ class Palsar2(SatelliteABC):
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
         if n_images > 500:
-            log.warn(
+            log.warning(
                 f"Palsar-2 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
             )
         if n_images == 0:
