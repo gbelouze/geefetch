@@ -26,6 +26,9 @@ __all__: list[str] = []
 class DownloadableGEECollection(DownloadableABC):
     lock = threading.Lock()
 
+    def __init__(self, collection: ee.FeatureCollection):
+        self.collection = collection
+
     def _get_download_url(
         self, collection: ee.FeatureCollection, format: Format
     ) -> tuple[requests.Response, str]:
@@ -33,9 +36,6 @@ class DownloadableGEECollection(DownloadableABC):
         with self.lock:
             url = collection.getDownloadURL(filetype=format.to_str())
             return requests.get(url, stream=True), url
-
-    def __init__(self, collection: ee.FeatureCollection):
-        self.collection = collection
 
     def download(
         self,
@@ -101,7 +101,7 @@ class DownloadableGEECollection(DownloadableABC):
                         raise IOError(msg)
                     log.debug(
                         f"Caught GEE exception '[black]{msg}[/]' for tile {out}. "
-                        "Attempting to split into smaller regions ({split_recursion_depth=})."
+                        f"Attempting to split into smaller regions ({split_recursion_depth=})."
                     )
                     self.split_then_download(
                         out,
@@ -120,6 +120,7 @@ class DownloadableGEECollection(DownloadableABC):
 
         if not response.ok:
             handle_error_response(response)
+            return
 
         if format == Format.PARQUET:
             with tempfile.NamedTemporaryFile(
@@ -129,10 +130,10 @@ class DownloadableGEECollection(DownloadableABC):
                     tmp_file.write(data)
                 tmp_file.flush()
                 gdf = gpd.read_file(tmp_file.name).to_crs(old_crs)
-                gdf.reset_index(inplace=True, drop=True)
-                gdf.to_parquet(out)
                 Path(tmp_file.name).unlink()
-                return
+            gdf.reset_index(inplace=True, drop=True)
+            gdf.to_parquet(out)
+            return
         with open(out, "wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):
                 geojsonfile.write(data)

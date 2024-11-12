@@ -515,7 +515,7 @@ def download_gedi_vector(
         tile_shape=tile_shape,
         resolution=resolution,
         filter_polygon=filter_polygon,
-        in_parallel=True,
+        in_parallel=False,
         satellite_download_kwargs={"format": format},
     )
 
