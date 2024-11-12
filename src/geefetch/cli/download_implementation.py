@@ -22,10 +22,6 @@ COUNTRY_BORDERS_URL = (
     "world-administrative-boundaries/exports/geojson"
 )
 
-COUNTRY_BORDERS_SHA256 = (
-    "074c1a32a0fbf7c60678b5a581b6d4dbad3710f99213f8f7411f199a88f1fef4"
-)
-
 
 def get_mainland_geometry(shape: shapely.Geometry) -> shapely.Polygon:
     """Get the largest geometry from a multipolygon-like shapely geometry."""
@@ -48,9 +44,7 @@ def get_mainland_geometry(shape: shapely.Geometry) -> shapely.Polygon:
 
 def load_country_filter_polygon(country: str) -> shapely.Polygon:
     """Load the mailand shape of a country."""
-    country_borders_path = pooch.retrieve(
-        url=COUNTRY_BORDERS_URL, known_hash=COUNTRY_BORDERS_SHA256
-    )
+    country_borders_path = pooch.retrieve(url=COUNTRY_BORDERS_URL, known_hash=None)
     log.debug(f"Country borders is downloaded to {country_borders_path}")
     country_borders = geopandas.read_file(country_borders_path)
     if country not in country_borders.name.values:
