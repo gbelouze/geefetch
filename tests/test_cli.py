@@ -13,9 +13,15 @@ TESTS_DIR = Path(__file__).parent
 
 def test_api_consistency():
     runner = CliRunner()
+
     res = runner.invoke(main, ["--help"])
     assert res.exit_code == 0
     with open(TESTS_DIR / "data" / "cli_help.txt", "r") as help_msg:
+        assert res.output == help_msg.read()
+
+    res = runner.invoke(main, ["all", "--help"])
+    assert res.exit_code == 0
+    with open(TESTS_DIR / "data" / "cli_all_help.txt", "r") as help_msg:
         assert res.output == help_msg.read()
 
 
