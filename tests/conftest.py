@@ -42,6 +42,20 @@ def paris_config_path(
 
 
 @pytest.fixture
+def paris_timeseriesconfig_path(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+) -> Path:
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
+
+    conf_path = tmp_path / "config.yaml"
+    with open(conf_path, "w+") as conf_file:
+        conf_file.write(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
 def paris_config(paris_config_path: Path) -> GeefetchConfig:
     return load(paris_config_path)
 
