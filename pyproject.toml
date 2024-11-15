@@ -75,6 +75,12 @@ line_length=88
 testpaths = [
     "tests",
 ]
+markers = [
+    "slow",
+]
+log_cli = true
+log_cli_level = "DEBUG"
+log_level = "DEBUG"
 
 [tool.black]
 line-length = 88
