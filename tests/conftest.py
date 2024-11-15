@@ -50,3 +50,22 @@ def paris_config(paris_config_path: Path) -> GeefetchConfig:
 def paris_timeseries_config(paris_config_path: Path) -> GeefetchConfig:
     config = load(paris_config_path)
     config.satellite_default.composite_method = CompositeMethod.TIMESERIES
+
+
+# ----
+# Add pytest.mark.slow marker
+# See also https://stackoverflow.com/a/47567535/24033350
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-slow", action="store_true", help="Don't skip tests marked with @slow"
+    )
+
+
+def pytest_runtest_setup(item):
+    if "slow" in item.keywords and not item.config.getoption("--run-slow"):
+        pytest.skip("Need flag '--run-slow' to run this test.")
+
+
+# ---

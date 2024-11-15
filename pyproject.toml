@@ -75,6 +75,9 @@ line_length=88
 testpaths = [
     "tests",
 ]
+markers = [
+    "slow",
+]
 
 [tool.black]
 line-length = 88
