@@ -1,0 +1,8 @@
+Usage: main all [OPTIONS]
+
+  Download all satellites given in the config.
+
+Options:
+  -c, --config PATH  Path to config file. See default.yaml for an overview of
+                     possible content.  [required]
+  --help             Show this message and exit.

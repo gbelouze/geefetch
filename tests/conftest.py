@@ -5,6 +5,7 @@ import pytest
 from omegaconf import DictConfig, OmegaConf
 
 from geefetch.cli.omegaconfig import GeefetchConfig, load
+from geefetch.utils.enums import CompositeMethod
 
 TESTS_DIR = Path(__file__).parent
 GEE_PROJECT_ID_ENV_NAME = "GEEFETCH_GEE_PROJECT_ID"
@@ -43,3 +44,9 @@ def paris_config_path(
 @pytest.fixture
 def paris_config(paris_config_path: Path) -> GeefetchConfig:
     return load(paris_config_path)
+
+
+@pytest.fixture
+def paris_timeseries_config(paris_config_path: Path) -> GeefetchConfig:
+    config = load(paris_config_path)
+    config.satellite_default.composite_method = CompositeMethod.TIMESERIES
