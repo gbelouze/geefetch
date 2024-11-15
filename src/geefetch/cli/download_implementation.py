@@ -93,6 +93,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
             bounds,
             config.gedi.aoi.temporal.start_date,
             config.gedi.aoi.temporal.end_date,
+            config.gedi.selected_bands,
             crs=(
                 CRS.from_epsg(config.gedi.aoi.spatial.epsg)
                 if config.gedi.aoi.spatial.epsg != 4326
@@ -114,6 +115,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
             bounds,
             config.gedi.aoi.temporal.start_date,
             config.gedi.aoi.temporal.end_date,
+            config.gedi.selected_bands,
             crs=(
                 CRS.from_epsg(config.gedi.aoi.spatial.epsg)
                 if config.gedi.aoi.spatial.epsg != 4326
@@ -148,6 +150,7 @@ def download_s1(config_path: Path) -> None:
         bounds,
         config.s1.aoi.temporal.start_date,
         config.s1.aoi.temporal.end_date,
+        config.s1.selected_bands,
         crs=(
             CRS.from_epsg(config.s1.aoi.spatial.epsg)
             if config.s1.aoi.spatial.epsg != 4326
@@ -184,6 +187,7 @@ def download_s2(config_path: Path) -> None:
         bounds,
         config.s2.aoi.temporal.start_date,
         config.s2.aoi.temporal.end_date,
+        config.s2.selected_bands,
         crs=(
             CRS.from_epsg(config.s2.aoi.spatial.epsg)
             if config.s2.aoi.spatial.epsg != 4326
@@ -221,6 +225,7 @@ def download_dynworld(config_path: Path) -> None:
         bounds,
         config.dynworld.aoi.temporal.start_date,
         config.dynworld.aoi.temporal.end_date,
+        config.dynworld.selected_bands,
         crs=(
             CRS.from_epsg(config.dynworld.aoi.spatial.epsg)
             if config.dynworld.aoi.spatial.epsg != 4326
@@ -255,6 +260,7 @@ def download_landsat8(config_path: Path) -> None:
         bounds,
         config.landsat8.aoi.temporal.start_date,
         config.landsat8.aoi.temporal.end_date,
+        config.landsat8.selected_bands,
         crs=(
             CRS.from_epsg(config.landsat8.aoi.spatial.epsg)
             if config.landsat8.aoi.spatial.epsg
@@ -290,6 +296,7 @@ def download_palsar2(config_path: Path) -> None:
         bounds,
         config.palsar2.aoi.temporal.start_date,
         config.palsar2.aoi.temporal.end_date,
+        config.palsar2.selected_bands,
         crs=(
             CRS.from_epsg(config.palsar2.aoi.spatial.epsg)
             if config.palsar2.aoi.spatial.epsg

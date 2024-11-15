@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, List
 
 import ee
 from geobbox import GeoBoundingBox
@@ -38,7 +38,7 @@ class S2(SatelliteABC):
         "TCI_B",
         "MSK_CLDPRB",
     ]
-    _selected_bands = [
+    _default_selected_bands = [
         "B2",
         "B3",
         "B4",
@@ -52,12 +52,12 @@ class S2(SatelliteABC):
     ]
 
     @property
-    def bands(self):
+    def bands(self) -> List[str]:
         return self._bands
 
     @property
-    def selected_bands(self):
-        return self._selected_bands
+    def default_selected_bands(self) -> List[str]:
+        return self._default_selected_bands
 
     @property
     def pixel_range(self):

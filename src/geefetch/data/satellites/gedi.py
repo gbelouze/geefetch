@@ -147,7 +147,7 @@ class GEDIvector(SatelliteABC):
         raise NotImplementedError
 
     @property
-    def selected_bands(self):
+    def default_selected_bands(self) -> List[str]:
         return [
             "beam",
             "degrade_flag",
@@ -247,7 +247,7 @@ class GEDIraster(SatelliteABC):
         raise NotImplementedError
 
     @property
-    def selected_bands(self):
+    def default_selected_bands(self) -> List[str]:
         return ["rh98"]
 
     @property
@@ -291,7 +291,7 @@ class GEDIraster(SatelliteABC):
             .filterBounds(aoi.buffer(10_000).to_ee_geometry())
             .filterDate(start_date, end_date)
             .map(qualityMask)
-            .select(self.selected_bands)
+            .select(self.default_selected_bands)
         )
 
     def get_time_series(
