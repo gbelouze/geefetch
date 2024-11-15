@@ -40,7 +40,6 @@ def test_download_timeseries_dynworld(paris_timeseriesconfig_path: Path):
     download_dynworld(paris_timeseriesconfig_path)
 
 
-@pytest.mark.slow
 def test_download_gedi_vector(paris_config_path: Path):
     download_gedi(paris_config_path, vector=True)
 
