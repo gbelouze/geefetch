@@ -12,7 +12,6 @@
 
 A python library/CLI to download large scale satellite data from Google Earth Engine.
 
-[![CLI demo](https://asciinema.org)](https://asciinema.org/a/1xT8v4UGXCNOPbKjluYun9Vu4)
 
 ⚠️ This library is still in its early days and in active development. ⚠️
 

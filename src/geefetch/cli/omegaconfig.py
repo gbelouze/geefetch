@@ -249,6 +249,8 @@ def post_omegaconf_load(config: Any) -> None:
         The config loaded by OmegaConf.
     """
     OmegaConf.resolve(config)
+    if config.satellite_default.selected_bands is not None:
+        raise ValueError("Selected bands should be specified for default satellite.")
     config.gedi = (
         OmegaConf.merge(
             OmegaConf.structured(GediConfig), config.satellite_default, config.gedi
