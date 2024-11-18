@@ -40,19 +40,6 @@ class S1(SatelliteABC):
     def resolution(self):
         return 10
 
-    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
-        min_p, max_p = self.pixel_range
-        im = im.clamp(min_p, max_p)
-        match dtype:
-            case DType.Float32:
-                return im
-            case DType.UInt16:
-                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-            case DType.UInt8:
-                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
-
     def get_col(
         self,
         aoi: GeoBoundingBox,
@@ -163,7 +150,6 @@ class S1(SatelliteABC):
         for key in kwargs.keys():
             log.warning(f"Argument {key} is ignored.")
 
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         s1_col = self.get_col(aoi, start_date, end_date, orbit)
 
         info = s1_col.getInfo()
@@ -179,6 +165,7 @@ class S1(SatelliteABC):
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
 
         log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
+        bounds = aoi.transform(WGS84).to_ee_geometry()
         s1_im = composite_method.transform(s1_col).clip(bounds)
         s1_im = self.convert_image(s1_im, dtype)
         s1_im = PatchedBaseImage(s1_im)

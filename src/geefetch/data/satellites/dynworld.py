@@ -61,21 +61,6 @@ class DynWorld(SatelliteABC):
     def is_raster(self) -> bool:
         return True
 
-    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
-        min_p, max_p = self.pixel_range
-        im = im.clamp(min_p, max_p)
-        match dtype:
-            case DType.Float64:
-                raise TypeError("Google Earth Engine does not allow float64 data type.")
-            case DType.Float32:
-                return im
-            case DType.UInt16:
-                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-            case DType.UInt8:
-                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
-
     def get_col(
         self,
         aoi: GeoBoundingBox,

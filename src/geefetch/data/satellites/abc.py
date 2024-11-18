@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any, List
 
+import ee
 from geobbox import GeoBoundingBox
 
+from ...utils.enums import DType
 from ..downloadables import DownloadableABC
 
 __all__ = ["SatelliteABC"]
@@ -40,10 +42,9 @@ class SatelliteABC(ABC):
         ...
 
     @property
-    @abstractmethod
     def bands(self) -> List[str]:
         """List of all satellite bands."""
-        ...
+        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -71,6 +72,14 @@ class SatelliteABC(ABC):
     def is_vector(self) -> bool:
         return not self.is_raster
 
+    @property
+    def pixel_range(self) -> tuple[float, float]:
+        """The minimum and maximum values that pixels can take.
+
+        When converting the image to another type, pixels outside of that value range will saturate.
+        """
+        raise NotImplementedError
+
     def __eq__(self, other):
         if not isinstance(other, SatelliteABC):
             raise ValueError(
@@ -80,3 +89,16 @@ class SatelliteABC(ABC):
 
     def __str__(self) -> str:
         return self.name
+
+    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
+        min_p, max_p = self.pixel_range
+        im = im.clamp(min_p, max_p)
+        match dtype:
+            case DType.Float32:
+                return im
+            case DType.UInt16:
+                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
+            case DType.UInt8:
+                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+            case _:
+                raise ValueError(f"Unsupported {dtype=}.")
