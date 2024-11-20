@@ -10,10 +10,7 @@ log = logging.getLogger(__name__)
 
 def logging_setup(verbose: bool, quiet: bool, logfile: Path, debug: bool) -> None:
     level = logging.NOTSET
-    if verbose:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
+    level = logging.DEBUG if verbose else logging.INFO
     if quiet:
         level = logging.ERROR
     if debug:

@@ -16,13 +16,11 @@ def test_api_consistency():
 
     res = runner.invoke(main, ["--help"])
     assert res.exit_code == 0
-    with open(TESTS_DIR / "data" / "cli_help.txt", "r") as help_msg:
-        assert res.output == help_msg.read()
+    assert res.output == (TESTS_DIR / "data" / "cli_help.txt").read_text()
 
     res = runner.invoke(main, ["all", "--help"])
     assert res.exit_code == 0
-    with open(TESTS_DIR / "data" / "cli_all_help.txt", "r") as help_msg:
-        assert res.output == help_msg.read()
+    assert res.output == (TESTS_DIR / "data" / "cli_all_help.txt").read_text()
 
 
 def test_fail_on_missing_config():

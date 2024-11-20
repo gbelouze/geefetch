@@ -17,4 +17,4 @@ def bounds_to_polygon(left: float, bottom: float, right: float, top: float) -> P
 
 def transform_polygon(polygon: Polygon, src_crs: CRS, dst_crs: CRS) -> Polygon:
     xs, ys = rio.warp.transform(src_crs, dst_crs, *polygon.exterior.xy)
-    return Polygon(zip(xs, ys))
+    return Polygon(zip(xs, ys, strict=True))

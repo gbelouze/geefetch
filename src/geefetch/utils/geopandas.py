@@ -1,16 +1,15 @@
 import logging
 from pathlib import Path
-from typing import List
 
 import geopandas as gpd
 import pandas as pd
 
 from ..utils.rasterio import WGS84
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
-def merge_parquet(paths: List[Path]) -> gpd.GeoDataFrame:
+def merge_parquet(paths: list[Path]) -> gpd.GeoDataFrame:
     log.debug("Merging .parquet files")
     gdfs = []
     for path in paths:
@@ -28,7 +27,7 @@ def merge_parquet(paths: List[Path]) -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame(pd.concat(gdfs))
 
 
-def merge_geojson(paths: List[Path]) -> gpd.GeoDataFrame:
+def merge_geojson(paths: list[Path]) -> gpd.GeoDataFrame:
     log.debug("Merging .geojson files")
     gdfs = []
     for path in paths:

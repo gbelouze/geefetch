@@ -29,7 +29,7 @@ class DynWorld(SatelliteABC):
         "snow_and_ice",
         "label",
     ]
-    _selected_bands = [
+    _default_selected_bands = [
         "water",
         "trees",
         "grass",
@@ -42,12 +42,12 @@ class DynWorld(SatelliteABC):
     ]
 
     @property
-    def bands(self):
+    def bands(self) -> list[str]:
         return self._bands
 
     @property
-    def selected_bands(self):
-        return self._selected_bands
+    def default_selected_bands(self) -> list[str]:
+        return self._default_selected_bands
 
     @property
     def pixel_range(self):
@@ -60,21 +60,6 @@ class DynWorld(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
-
-    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
-        min_p, max_p = self.pixel_range
-        im = im.clamp(min_p, max_p)
-        match dtype:
-            case DType.Float64:
-                raise TypeError("Google Earth Engine does not allow float64 data type.")
-            case DType.Float32:
-                return im
-            case DType.UInt16:
-                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-            case DType.UInt8:
-                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
         self,
@@ -92,6 +77,10 @@ class DynWorld(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+
+        Returns
+        -------
+        dynworld_col : ee.ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
@@ -119,6 +108,10 @@ class DynWorld(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype : DType
+            The data type for the image
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -131,21 +124,17 @@ class DynWorld(SatelliteABC):
         info = dynworld_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(
-                f"Found 0 Dynamic World image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Dynamic World image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Dynamic World image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(
-                    im
-                )
+                images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -155,7 +144,6 @@ class DynWorld(SatelliteABC):
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
-        buffer: float = 100,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Dynamic World cloud free collection.
@@ -169,8 +157,10 @@ class DynWorld(SatelliteABC):
         end_date : str
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
-        buffer : float, optional
-            Kernel size to dilate cloud/shadow patches.
+        dtype : DType
+            The data type for the image
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -178,7 +168,7 @@ class DynWorld(SatelliteABC):
             A Dynamic World composite image of the specified AOI and time range,
             with clouds filtered out.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         dynworld_col = self.get_col(
@@ -192,7 +182,8 @@ class DynWorld(SatelliteABC):
         n_images = len(dynworld_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
             log.warning(
-                f"Dynamic World mosaicking with a large amount of images (n={n_images}). Expect slower download time."
+                f"Dynamic World mosaicking with a large amount of images (n={n_images}). "
+                "Expect slower download time."
             )
         log.debug(f"Dynamic World mosaicking with {n_images} images.")
         return DownloadableGeedimImage(dynworld_im)

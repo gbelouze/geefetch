@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any
 
+import ee
 from geobbox import GeoBoundingBox
 
+from ...utils.enums import DType
 from ..downloadables import DownloadableABC
 
 __all__ = ["SatelliteABC"]
@@ -15,32 +17,40 @@ class SatelliteABC(ABC):
 
     @abstractmethod
     def get(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str, **kwargs: Any
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str,
+        end_date: str,
+        **kwargs: Any,
     ) -> DownloadableABC:
-        """Get downloadable data. It is up to the caller to make sure the computation will stay within the compute
-        resource limit, e.g. if Google Earth Engine is used as a backend.
+        """Get downloadable data. It is up to the caller to make sure the computation will stay
+        within the compute resource limit, e.g. if Google Earth Engine is used as a backend.
         """
         ...
 
     @abstractmethod
     def get_time_series(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str, **kwargs: Any
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str,
+        end_date: str,
+        **kwargs: Any,
     ) -> DownloadableABC:
-        """Get downloadable data to fetch time series. It is up to the caller to make sure the computation will stay
-        within the compute resource limit, e.g. if Google Earth Engine is used as a backend.
+        """Get downloadable data to fetch time series. It is up to the caller to make sure
+        the computation will stay within the compute resource limit,
+        e.g. if Google Earth Engine is used as a backend.
         """
         ...
 
     @property
-    @abstractmethod
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         """List of all satellite bands."""
-        ...
+        raise NotImplementedError
 
     @property
     @abstractmethod
-    def selected_bands(self) -> List[str]:
-        """List of selected satellite bands."""
+    def default_selected_bands(self) -> list[str]:
+        """List of default selected satellite bands."""
         ...
 
     @property
@@ -63,12 +73,31 @@ class SatelliteABC(ABC):
     def is_vector(self) -> bool:
         return not self.is_raster
 
+    @property
+    def pixel_range(self) -> tuple[float, float]:
+        """The minimum and maximum values that pixels can take.
+
+        When converting the image to another type, pixels outside of that value range will saturate.
+        """
+        raise NotImplementedError
+
     def __eq__(self, other):
         if not isinstance(other, SatelliteABC):
-            raise ValueError(
-                f"Cannot compare satellite with values of type {type(other)}."
-            )
+            raise ValueError(f"Cannot compare satellite with values of type {type(other)}.")
         return self.name == other.name
 
     def __str__(self) -> str:
         return self.name
+
+    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
+        min_p, max_p = self.pixel_range
+        im = im.clamp(min_p, max_p)
+        match dtype:
+            case DType.Float32:
+                return im
+            case DType.UInt16:
+                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
+            case DType.UInt8:
+                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+            case _:
+                raise ValueError(f"Unsupported {dtype=}.")

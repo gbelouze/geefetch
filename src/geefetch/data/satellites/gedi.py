@@ -2,7 +2,7 @@
 
 import logging
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -32,7 +32,7 @@ class EsaClass(Enum):
     WATER_BODY = 80
 
 
-def inList(band: ee.Image, values: List[int | float]) -> ee.Image:
+def inList(band: ee.Image, values: list[int | float]) -> ee.Image:
     if not values:
         raise ValueError("Values must contain at least one element")
     mask = band.eq(values.pop())
@@ -89,9 +89,7 @@ def relaxedQualityFilter(strict: bool = False) -> ee.Filter:
     return filter  # type: ignore[no-any-return]
 
 
-def qualityMask(
-    data: ee.Image, esa: Optional[ee.Image] = None, strict: bool = False
-) -> ee.Image:
+def qualityMask(data: ee.Image, esa: ee.Image | None = None, strict: bool = False) -> ee.Image:
     rh98 = data.select("rh98")
     data = data.updateMask(
         rangeContains(rh98, 0, 80)
@@ -124,9 +122,7 @@ def qualityMask(
                 .Or(esa.eq(EsaClass.CROP_COVER).And(rh98.lt(5)))
             ).And(
                 selected_alg.eq(2).Or(
-                    selected_alg.eq(1).And(
-                        esa.eq(EsaClass.TREE_COVER).And(rh98.gte(10))
-                    )
+                    selected_alg.eq(1).And(esa.eq(EsaClass.TREE_COVER).And(rh98.gte(10)))
                 )
             )
         )
@@ -134,7 +130,7 @@ def qualityMask(
 
 
 def relaxedQualityMask(
-    data: ee.Image, esa: Optional[ee.Image] = None, strict: bool = False
+    data: ee.Image, esa: ee.Image | None = None, strict: bool = False
 ) -> ee.Image:
     rh98 = data.select("rh98")
     data = data.updateMask(rangeContains(rh98, 0, 80))
@@ -147,7 +143,7 @@ class GEDIvector(SatelliteABC):
         raise NotImplementedError
 
     @property
-    def selected_bands(self):
+    def default_selected_bands(self) -> list[str]:
         return [
             "beam",
             "degrade_flag",
@@ -181,19 +177,21 @@ class GEDIvector(SatelliteABC):
 
         Parameters
         ----------
-        aoi : ee.Geometry
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
-        gedi_cols : ee.FeatureCollection
+        gedi_cols : DownloadableGEECollection
             A collection of GEDI points over the specified AOI and time period.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
         aoi_wgs84 = aoi.transform(WGS84)
         if aoi_wgs84.top > 51.6:
@@ -212,21 +210,14 @@ class GEDIvector(SatelliteABC):
             .filter(f'time_start > "{start_date}" && time_end < "{end_date}"')
         )
         gedi_ids = [
-            feature["properties"]["table_id"]
-            for feature in table_ids.getInfo()["features"]
+            feature["properties"]["table_id"] for feature in table_ids.getInfo()["features"]
         ]
         gedi_filter = relaxedQualityFilter()
         collections = [
-            (
-                ee.FeatureCollection(gedi_id)
-                .filterBounds(aoi.to_ee_geometry())
-                .filter(gedi_filter)
-            )
+            (ee.FeatureCollection(gedi_id).filterBounds(aoi.to_ee_geometry()).filter(gedi_filter))
             for gedi_id in gedi_ids
         ]
-        return DownloadableGEECollection(
-            ee.FeatureCollection(ee.List(collections)).flatten()
-        )
+        return DownloadableGEECollection(ee.FeatureCollection(ee.List(collections)).flatten())
 
     @property
     def name(self) -> str:
@@ -247,29 +238,14 @@ class GEDIraster(SatelliteABC):
         raise NotImplementedError
 
     @property
-    def selected_bands(self):
+    def default_selected_bands(self) -> list[str]:
         return ["rh98"]
 
     @property
     def pixel_range(self):
         return 0, 100
 
-    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
-        match dtype:
-            case DType.Float32:
-                return im
-            case DType.UInt16:
-                min_p, max_p = self.pixel_range
-                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-            case DType.UInt8:
-                min_p, max_p = self.pixel_range
-                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
-
-    def get_col(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str
-    ) -> ee.ImageCollection:
+    def get_col(self, aoi: GeoBoundingBox, start_date: str, end_date: str) -> ee.ImageCollection:
         """Get GEDI collection.
 
         Parameters
@@ -291,7 +267,7 @@ class GEDIraster(SatelliteABC):
             .filterBounds(aoi.buffer(10_000).to_ee_geometry())
             .filterDate(start_date, end_date)
             .map(qualityMask)
-            .select(self.selected_bands)
+            .select(self.default_selected_bands)
         )
 
     def get_time_series(
@@ -312,6 +288,10 @@ class GEDIraster(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype: DType
+            The data type for the image.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -328,15 +308,13 @@ class GEDIraster(SatelliteABC):
             raise RuntimeError("Collection of 0 GEDI image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("LARSE/GEDI/GEDI02_A_002_MONTHLY/")] = (
-                    PatchedBaseImage(im)
-                )
+                images[id_.removeprefix("LARSE/GEDI/GEDI02_A_002_MONTHLY/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -351,20 +329,24 @@ class GEDIraster(SatelliteABC):
 
         Parameters
         ----------
-        aoi : ee.Geometry
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
             Percentage of cloud above which the whole image is filtered out.
+        dtype: DType
+            The data type for the image.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
-        gedi_col : ee.ImageCollection
+        gedi_col : DownloadableGeedimImage
             The GEDI collection of the specified AOI and time range.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
         aoi_wgs84 = aoi.transform(WGS84)
         if aoi_wgs84.top > 51.6:

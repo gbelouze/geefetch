@@ -13,7 +13,7 @@ from rasterio.crs import CRS
 log = logging.getLogger(__name__)
 
 if (sys.version_info.major, sys.version_info.minor) < (3, 10):
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 else:
     from typing import TypeAlias
 
@@ -26,7 +26,7 @@ Coordinate: TypeAlias = tuple[float, float]
 WGS84 = CRS.from_epsg(4326)
 
 
-class UTM(geobbox.UTM):
+class UTM(geobbox.UTM):  # noqa: DOC101
     """
     .. deprecated:: 0.4.0
           `UTM` will be removed in GeeFetch 0.5.0, it is replaced by
@@ -34,9 +34,10 @@ class UTM(geobbox.UTM):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: DOC101, DOC103, DOC106
         log.warning(
-            "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. Use `geobbox.UTM` instead."
+            "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. "
+            "Use `geobbox.UTM` instead."
         )
         super().__init__(*args, **kwargs)
 
@@ -49,15 +50,29 @@ class BoundingBox(GeoBoundingBox):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):  # noqa: DOC101, DOC103, DOC106
         log.warning(
-            "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. Use `geobbox.UTM` instead."
+            "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. "
+            "Use `geobbox.UTM` instead."
         )
         super().__init__(*args, **kwargs)
 
 
 def close_to_utm_border(lat: float, lon: float, delta: float = 1.0) -> bool:
     """Check if the point at coordinate (lat, lon) is delta-close to a UTM border.
+
+    Parameters
+    ----------
+    lat : float
+        Lattitude coordinate in WGS84.
+    lon : float
+        Longitude coordinate in WGS84.
+    delta : float
+        Distante to a UTM border to check for, in degree. Defaults to 1.
+
+    Returns
+    -------
+    bool
 
     .. deprecated:: 0.4.0
           `close_to_utm_border` will be removed in GeeFetch 0.5.0.
@@ -130,7 +145,8 @@ def get_bounding_box_tif(ds: rio._base.DatasetBase) -> tuple[Coordinate, Coordin
 
     Returns
     -------
-    (lat_min, lon_min), (lat_max, lon_max) : Coordinate, Coordinate
+    (lat_min, lon_min) : Coordinate
+    (lat_max, lon_max) : Coordinate
         Coordinates of the top right and bottom left box corners.
 
     .. deprecated:: 0.4.0
@@ -138,6 +154,7 @@ def get_bounding_box_tif(ds: rio._base.DatasetBase) -> tuple[Coordinate, Coordin
 
     """
     log.warning(
-        "`geefetch.coords.get_bounding_box_tif` is decrecated and will be removed in GeeFetch 0.5.0."
+        "`geefetch.coords.get_bounding_box_tif` is decrecated "
+        "and will be removed in GeeFetch 0.5.0."
     )
     return BoundingBox.from_rio(ds.bounds, crs=ds.crs).transform(WGS84).to_latlon()
