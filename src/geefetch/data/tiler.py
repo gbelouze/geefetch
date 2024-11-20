@@ -1,8 +1,8 @@
 import logging
 import re
+from collections.abc import Callable, Iterator
 from math import ceil, floor
 from pathlib import Path
-from typing import Callable, Iterator, Optional
 
 import rasterio as rio
 import shapely
@@ -39,7 +39,8 @@ class Tiler:
         return m * int(ceil(x / m))
 
     def is_on_distortion_overlap(self, bbox: GeoBoundingBox) -> bool:
-        """Determines if `bbox` is on a tile overlap, because of the way the Tiler splits large areas.
+        """Determines if `bbox` is on a tile overlap, because of the way the Tiler splits
+        large areas.
 
         Parameters
         ----------
@@ -49,8 +50,8 @@ class Tiler:
         Returns
         -------
         bool
-            When True, the point may be included in several tiles. When False, the point is guaranteed not to lie
-            on an overlap.
+            When True, the point may be included in several tiles. When False, the point is
+            guaranteed not to lie on an overlap.
         """
         for latlon in [bbox.ul, bbox.ur, bbox.ll, bbox.lr]:
             lat, lon = latlon
@@ -62,9 +63,7 @@ class Tiler:
                 return True
         return False
 
-    def _split_in_grid(
-        self, bbox: GeoBoundingBox, shape: int
-    ) -> Iterator[GeoBoundingBox]:
+    def _split_in_grid(self, bbox: GeoBoundingBox, shape: int) -> Iterator[GeoBoundingBox]:
         count = 0
         for left in range(
             self._multiple_below(bbox.left, shape),
@@ -86,15 +85,16 @@ class Tiler:
                 count += 1
                 if count > MAX_TILE_LIMIT:
                     raise MaximumIterationError(
-                        f"AOI is split in more than {MAX_TILE_LIMIT} tiles. This may be caused by CRS distortion."
+                        f"AOI is split in more than {MAX_TILE_LIMIT} tiles. "
+                        "This may be caused by CRS distortion."
                     )
 
     def split(
         self,
         aoi: GeoBoundingBox,
         shape: int,
-        crs: Optional[CRS] = None,
-        filter_polygon: Optional[shapely.Polygon] = None,
+        crs: CRS | None = None,
+        filter_polygon: shapely.Polygon | None = None,
     ) -> Iterator[GeoBoundingBox]:
         """Split a region into non-overlapping tiles having shape `shape`x`shape`.
 
@@ -123,9 +123,7 @@ class Tiler:
             bbox = aoi.transform(crs)
             for bbox in self._split_in_grid(aoi.transform(crs), shape):
                 bbox84 = bbox.transform(WGS84)
-                if filter_polygon is None or filter_polygon.intersects(
-                    bbox84.to_shapely_polygon()
-                ):
+                if filter_polygon is None or filter_polygon.intersects(bbox84.to_shapely_polygon()):
                     yield bbox
                 else:
                     skip_count += 1
@@ -142,9 +140,7 @@ class Tiler:
                             yield bbox
                         else:
                             skip_count += 1
-        log.debug(
-            f"Skipped {skip_count} tiles that did not intersect the country polygon."
-        )
+        log.debug(f"Skipped {skip_count} tiles that did not intersect the country polygon.")
 
 
 class TileTracker:
@@ -156,8 +152,8 @@ class TileTracker:
         self,
         satellite: SatelliteABC,
         project_dir: Path,
-        sub_root: Optional[str] = None,
-        filter: Optional[Callable[[Path], bool] | str] = None,
+        sub_root: str | None = None,
+        filter: Callable[[Path], bool] | str | None = None,
     ):
         self._satellite = satellite
         self.project_dir = project_dir
@@ -187,19 +183,18 @@ class TileTracker:
             return ret
         return f"EPSG{crs.to_epsg()}"
 
-    def get_path(self, bbox: GeoBoundingBox, format: Optional[Format] = None) -> Path:
+    def get_path(self, bbox: GeoBoundingBox, format: Format | None = None) -> Path:
         tile_suffix = (
-            ".tif"
-            if self.satellite.is_raster
-            else ".geojson"
-            if format is None
-            else format.value
+            ".tif" if self.satellite.is_raster else ".geojson" if format is None else format.value
         )
-        tile_stem = f"{self.satellite.name}_{self.name_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
+        tile_stem = (
+            f"{self.satellite.name}_{self.name_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
+        )
         tile_path = self.root / (tile_stem + tile_suffix)
         if not self.filter(tile_path):
             raise RuntimeError(
-                f"{self.__class__.__name__} created path {tile_path} that is not accepted by its filter."
+                f"{self.__class__.__name__} created path {tile_path} "
+                "that is not accepted by its filter."
             )
         return tile_path
 

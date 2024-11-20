@@ -13,7 +13,7 @@ from rasterio.crs import CRS
 log = logging.getLogger(__name__)
 
 if (sys.version_info.major, sys.version_info.minor) < (3, 10):
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 else:
     from typing import TypeAlias
 
@@ -36,7 +36,8 @@ class UTM(geobbox.UTM):
 
     def __init__(self, *args, **kwargs):
         log.warning(
-            "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. Use `geobbox.UTM` instead."
+            "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. "
+            "Use `geobbox.UTM` instead."
         )
         super().__init__(*args, **kwargs)
 
@@ -51,7 +52,8 @@ class BoundingBox(GeoBoundingBox):
 
     def __init__(self, *args, **kwargs):
         log.warning(
-            "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. Use `geobbox.UTM` instead."
+            "geefetch.coords.UTM is decrecated and will be removed in GeeFetch 0.5.0. "
+            "Use `geobbox.UTM` instead."
         )
         super().__init__(*args, **kwargs)
 
@@ -138,6 +140,7 @@ def get_bounding_box_tif(ds: rio._base.DatasetBase) -> tuple[Coordinate, Coordin
 
     """
     log.warning(
-        "`geefetch.coords.get_bounding_box_tif` is decrecated and will be removed in GeeFetch 0.5.0."
+        "`geefetch.coords.get_bounding_box_tif` is decrecated "
+        "and will be removed in GeeFetch 0.5.0."
     )
     return BoundingBox.from_rio(ds.bounds, crs=ds.crs).transform(WGS84).to_latlon()

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from geobbox import GeoBoundingBox
 from omegaconf import OmegaConf
@@ -112,7 +112,7 @@ class AOIConfig:
     # The name of a line in geopandas.datasets "naturalearth_lowres"
     # ..see also: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
     # Used to filter further the AOI to a country boundaries
-    country: Optional[str] = None
+    country: str | None = None
 
 
 @dataclass
@@ -141,7 +141,7 @@ class SatelliteDefaultConfig:
     resolution: int = 10
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
-    selected_bands: Optional[list[str]] = None
+    selected_bands: list[str] | None = None
 
 
 @dataclass
@@ -229,12 +229,12 @@ class GeefetchConfig:
 
     data_dir: Path
     satellite_default: SatelliteDefaultConfig
-    gedi: Optional[GediConfig]
-    s1: Optional[S1Config]
-    s2: Optional[S2Config]
-    dynworld: Optional[DynWorldConfig]
-    landsat8: Optional[Landsat8Config]
-    palsar2: Optional[Palsar2Config]
+    gedi: GediConfig | None
+    s1: S1Config | None
+    s2: S2Config | None
+    dynworld: DynWorldConfig | None
+    landsat8: Landsat8Config | None
+    palsar2: Palsar2Config | None
 
     def __post_init__(self):
         self.data_dir = self.data_dir.expanduser().absolute()
@@ -252,23 +252,17 @@ def post_omegaconf_load(config: Any) -> None:
     if config.satellite_default.selected_bands is not None:
         raise ValueError("Selected bands should be specified for default satellite.")
     config.gedi = (
-        OmegaConf.merge(
-            OmegaConf.structured(GediConfig), config.satellite_default, config.gedi
-        )
+        OmegaConf.merge(OmegaConf.structured(GediConfig), config.satellite_default, config.gedi)
         if "gedi" in config
         else None
     )
     config.s1 = (
-        OmegaConf.merge(
-            OmegaConf.structured(S1Config), config.satellite_default, config.s1
-        )
+        OmegaConf.merge(OmegaConf.structured(S1Config), config.satellite_default, config.s1)
         if "s1" in config
         else None
     )
     config.s2 = (
-        OmegaConf.merge(
-            OmegaConf.structured(S2Config), config.satellite_default, config.s2
-        )
+        OmegaConf.merge(OmegaConf.structured(S2Config), config.satellite_default, config.s2)
         if "s2" in config
         else None
     )

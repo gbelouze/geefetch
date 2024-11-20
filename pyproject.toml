@@ -6,9 +6,7 @@ build-backend = "flit_core.buildapi"
 name = "geefetch"
 description = "A Python library/CLI to download large scale satellite data from Google Earth Engine."
 readme = "README.md"
-authors = [
-    {name = "Gabriel Belouze", email = "gabriel@belouze.com"}
-]
+authors = [{ name = "Gabriel Belouze", email = "gabriel@belouze.com" }]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
@@ -17,10 +15,10 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11"
+    "Programming Language :: Python :: 3.11",
 ]
 requires-python = ">=3.10"
-license = {"file" = "LICENSE"}
+license = { "file" = "LICENSE" }
 dynamic = ["version"]
 dependencies = [
     "click",
@@ -47,39 +45,45 @@ source = "https://github.com/gbelouze/geefetch"
 tracker = "https://github.com/gbelouze/geefetch/issues"
 
 [project.optional-dependencies]
-dev = [
-    "mypy",
-    "pytest",
-    "pre-commit",
-    "types-retry",
-    "types-requests"
-]
-doc = [
-    "sphinx",
-    "sphinx_rtd_theme",
-    "sphinxcontrib-napoleon",
-    "sphinx-click"
-]
+dev = ["mypy", "pytest", "pre-commit", "types-retry", "types-requests"]
+doc = ["sphinx", "sphinx_rtd_theme", "sphinxcontrib-napoleon", "sphinx-click"]
 
 [project.scripts]
 geefetch = "geefetch.cli:main"
 
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
 
 [tool.isort]
 profile = "black"
-multi_line_output=3
-include_trailing_comma=true
-force_grid_wrap=0
-use_parentheses=true
-line_length=88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-]
-markers = [
-    "slow",
-]
+testpaths = ["tests"]
+markers = ["slow"]
 log_cli = true
 log_cli_level = "DEBUG"
 log_level = "DEBUG"
@@ -102,7 +106,7 @@ exclude = '''
 '''
 
 [tool.mypy]
-python_version = 3.11
+python_version = "3.11"
 warn_redundant_casts = true
 warn_unused_configs = true
 pretty = true

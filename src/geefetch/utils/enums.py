@@ -46,9 +46,7 @@ class CompositeMethod(Enum):
             case CompositeMethod.MEDIAN:
                 return col.median()
             case CompositeMethod.MEDOID:
-                raise ValueError(
-                    "Google Earth Engine does not provide medoid composite."
-                )
+                raise ValueError("Google Earth Engine does not provide medoid composite.")
             case CompositeMethod.MOSAIC:
                 return col.mosaic()
             case CompositeMethod.TIMESERIES:

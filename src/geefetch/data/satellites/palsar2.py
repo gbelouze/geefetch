@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -29,11 +29,11 @@ class Palsar2(SatelliteABC):
     ]
 
     @property
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         return self._bands
 
     @property
-    def default_selected_bands(self) -> List[str]:
+    def default_selected_bands(self) -> list[str]:
         return self._default_selected_bands
 
     @property
@@ -108,20 +108,18 @@ class Palsar2(SatelliteABC):
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(
-                f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")] = (
-                    PatchedBaseImage(im)
+                images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")] = PatchedBaseImage(
+                    im
                 )
         return DownloadableGeedimImageCollection(images)
 
@@ -152,7 +150,7 @@ class Palsar2(SatelliteABC):
         p2_im: DownloadableGeedimImage
             A Palsar-2 composite image of the specified AOI and time range.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
@@ -162,12 +160,11 @@ class Palsar2(SatelliteABC):
         n_images = len(info["features"])  # type: ignore
         if n_images > 500:
             log.warning(
-                f"Palsar-2 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
+                f"Palsar-2 mosaicking with a large amount of images (n={n_images}). "
+                "Expect slower download time."
             )
         if n_images == 0:
-            log.error(
-                f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
 
         log.debug(f"Palsar-2 mosaicking with {n_images} images.")

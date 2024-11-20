@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -42,11 +42,11 @@ class DynWorld(SatelliteABC):
     ]
 
     @property
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         return self._bands
 
     @property
-    def default_selected_bands(self) -> List[str]:
+    def default_selected_bands(self) -> list[str]:
         return self._default_selected_bands
 
     @property
@@ -116,21 +116,17 @@ class DynWorld(SatelliteABC):
         info = dynworld_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(
-                f"Found 0 Dynamic World image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Dynamic World image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Dynamic World image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(
-                    im
-                )
+                images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -163,7 +159,7 @@ class DynWorld(SatelliteABC):
             A Dynamic World composite image of the specified AOI and time range,
             with clouds filtered out.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         dynworld_col = self.get_col(
@@ -177,7 +173,8 @@ class DynWorld(SatelliteABC):
         n_images = len(dynworld_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
             log.warning(
-                f"Dynamic World mosaicking with a large amount of images (n={n_images}). Expect slower download time."
+                f"Dynamic World mosaicking with a large amount of images (n={n_images}). "
+                "Expect slower download time."
             )
         log.debug(f"Dynamic World mosaicking with {n_images} images.")
         return DownloadableGeedimImage(dynworld_im)

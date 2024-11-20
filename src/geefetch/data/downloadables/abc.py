@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
@@ -15,7 +15,7 @@ class DownloadableABC(ABC):
         out: Path,
         region: GeoBoundingBox,
         crs: CRS,
-        bands: List[str],
+        bands: list[str],
         **kwargs: Any,
     ) -> None:
         """Download data.

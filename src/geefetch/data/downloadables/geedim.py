@@ -4,7 +4,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any
 
 import geedim.utils
 import numpy as np
@@ -31,12 +31,12 @@ __all__: list[str] = []
 class PatchedBaseImage(BaseImage):  # type: ignore[misc]
     def download(
         self,
-        filename: Union[Path, str],
+        filename: Path | str,
         overwrite: bool = False,
-        num_threads: Optional[int] = None,
-        max_tile_size: Optional[float] = None,
-        max_tile_dim: Optional[int] = None,
-        progress: Optional[Progress] = None,
+        num_threads: int | None = None,
+        max_tile_size: float | None = None,
+        max_tile_dim: int | None = None,
+        progress: Progress | None = None,
         **kwargs: Any,
     ) -> None:
         max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
@@ -57,8 +57,8 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
             max_tile_size=max_tile_size, max_tile_dim=max_tile_dim
         )
 
-        # find raw size of the download data (less than the actual download size as the image data is zipped in a
-        # compressed geotiff)
+        # find raw size of the download data (less than the actual download size as the image data
+        # is zipped in a compressed geotiff)
         raw_download_size = exp_image.size
         if geedim_log.getEffectiveLevel() <= logging.DEBUG:
             dtype_size = np.dtype(exp_image.dtype).itemsize
@@ -69,9 +69,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
             )
             geedim_log.debug(f"Num. tiles: {num_tiles}")
             geedim_log.debug(f"Tile shape: {tile_shape}")
-            geedim_log.debug(
-                f"Tile size: {PatchedBaseImage._str_format_size(int(raw_tile_size))}"
-            )
+            geedim_log.debug(f"Tile size: {PatchedBaseImage._str_format_size(int(raw_tile_size))}")
 
         if raw_download_size > 1e9:
             # warn if the download is large (>1GB)
@@ -104,14 +102,9 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                 # Run the tile downloads in a thread pool
                 tiles = exp_image._tiles(tile_shape=tile_shape)
                 futures = []
-                if (
-                    "coordinates" in self.footprint
-                    and len(self.footprint["coordinates"]) > 0
-                ):
+                if "coordinates" in self.footprint and len(self.footprint["coordinates"]) > 0:
                     if "crs" in self.footprint:
-                        crs = geedim.utils.rio_crs(
-                            self.footprint["crs"]["properties"]["name"]
-                        )
+                        crs = geedim.utils.rio_crs(self.footprint["crs"]["properties"]["name"])
                     else:
                         crs = CRS.from_epsg(4326)
                     im_bounds = transform_polygon(
@@ -136,9 +129,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                     if progress is not None and task is not None:
                         for completed_future in as_completed(futures):
                             n_finished = sum([future.done() for future in futures])
-                            progress.update(
-                                task, completed=n_finished, total=len(futures)
-                            )
+                            progress.update(task, completed=n_finished, total=len(futures))
                             progress.refresh()
                             completed_future.result()
                         progress.update(task, visible=False)
@@ -148,7 +139,8 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                 except KeyboardInterrupt:
                     geedim_log.error(
                         "Keyboard interrupt while downloading. "
-                        "[red]Please wait[/] while current downloads finish (this may take up to a few minutes)."
+                        "[red]Please wait[/] while current downloads finish "
+                        "(this may take up to a few minutes)."
                     )
                     executor.shutdown(wait=False, cancel_futures=True)
                     if filename.exists():
@@ -171,7 +163,8 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
 
 
 class ExportableGeedimImage(DownloadableABC):
-    """Simple wrapper around `geedim.PatchedBaseImage` to adhere to the DownloadableABC interface."""
+    """Simple wrapper around `geedim.PatchedBaseImage` to adhere to the DownloadableABC
+    interface."""
 
     def __init__(self, image: PatchedBaseImage):
         self.image = image
@@ -181,12 +174,12 @@ class ExportableGeedimImage(DownloadableABC):
         out: Path,
         region: GeoBoundingBox,
         crs: CRS,
-        bands: List[str],
-        scale: Optional[int] = None,
+        bands: list[str],
+        scale: int | None = None,
         dtype: str = "float32",
         **kwargs: Any,
     ) -> None:
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warn(f"Argument {key} is ignored.")
         self.image.export(
             out.name,
@@ -201,7 +194,8 @@ class ExportableGeedimImage(DownloadableABC):
 
 
 class DownloadableGeedimImage(DownloadableABC):
-    """Simple wrapper around `geedim.PatchedBaseImage` to adhere to the DownloadableABC interface."""
+    """Simple wrapper around `geedim.PatchedBaseImage` to adhere to the DownloadableABC
+    interface."""
 
     def __init__(self, image: PatchedBaseImage):
         self.image = image
@@ -211,15 +205,15 @@ class DownloadableGeedimImage(DownloadableABC):
         out: Path,
         region: GeoBoundingBox,
         crs: CRS,
-        bands: List[str],
-        max_tile_size: Optional[int] = None,
-        num_threads: Optional[int] = None,
-        scale: Optional[int] = None,
+        bands: list[str],
+        max_tile_size: int | None = None,
+        num_threads: int | None = None,
+        scale: int | None = None,
         dtype: str = "float32",
-        progress: Optional[Progress] = None,
+        progress: Progress | None = None,
         **kwargs: Any,
     ) -> None:
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warn(f"Argument {key} is ignored.")
         self.image.download(
             out,
@@ -245,15 +239,15 @@ class DownloadableGeedimImageCollection(DownloadableABC):
         out: Path,
         region: GeoBoundingBox,
         crs: CRS,
-        bands: List[str],
-        max_tile_size: Optional[int] = None,
-        num_threads: Optional[int] = None,
-        scale: Optional[int] = None,
+        bands: list[str],
+        max_tile_size: int | None = None,
+        num_threads: int | None = None,
+        scale: int | None = None,
         dtype: str = "float32",
-        progress: Optional[Progress] = None,
+        progress: Progress | None = None,
         **kwargs: Any,
     ) -> None:
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warn(f"Argument {key} is ignored.")
         if out.suffix != "":
             log.warn(f"Directory name for download has a suffix: {out.suffix}.")

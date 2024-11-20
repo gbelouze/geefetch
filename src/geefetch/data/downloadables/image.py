@@ -7,7 +7,7 @@ similar to what `geedim` provides for Image and ImageCollection.
 import logging
 import threading
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import ee
 import requests
@@ -27,7 +27,7 @@ class DownloadableGEEImage(DownloadableABC):
     def _get_download_url(
         self,
         image: ee.Image,
-        bands: List[str],
+        bands: list[str],
         region: GeoBoundingBox,
         crs: str,
     ) -> tuple[requests.Response, str]:
@@ -51,11 +51,12 @@ class DownloadableGEEImage(DownloadableABC):
         out: Path,
         region: GeoBoundingBox,
         crs: CRS,
-        bands: List[str],
+        bands: list[str],
         **kwargs: Any,
     ) -> None:
         """Download a GEE Image in one go.
-        It is up to the caller to make sure that the image does not exceed Google Earth Engine compute limit.
+        It is up to the caller to make sure that the image does not exceed
+        Google Earth Engine compute limit.
 
         Parameters
         ----------
@@ -70,7 +71,7 @@ class DownloadableGEEImage(DownloadableABC):
         crs : CRS
             The CRS to use for the features' geometries.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
         gee_crs = f"EPSG:{crs.to_epsg()}"
@@ -88,7 +89,7 @@ class DownloadableGEEImage(DownloadableABC):
                 ex_msg = f"Error downloading tile: {msg}"
             else:
                 ex_msg = str(response.json())
-            raise IOError(ex_msg)
+            raise OSError(ex_msg)
 
         with open(out, "wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):

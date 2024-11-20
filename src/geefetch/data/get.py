@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any
 
 import shapely
 from geobbox import GeoBoundingBox
@@ -73,16 +74,12 @@ def download_chip_ts(
     satellite: SatelliteABC,
     scale: int,
     out: Path,
-    selected_bands: Optional[List[str]] = None,
-    progress: Optional[Progress] = None,
+    selected_bands: list[str] | None = None,
+    progress: Progress | None = None,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = (
-        selected_bands
-        if selected_bands is not None
-        else satellite.default_selected_bands
-    )
+    bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
     data = data_get_lazy(**data_get_kwargs)
 
     try:
@@ -110,16 +107,12 @@ def download_chip(
     satellite: SatelliteABC,
     scale: int,
     out: Path,
-    selected_bands: Optional[List[str]] = None,
+    selected_bands: list[str] | None = None,
     check_clean: bool = True,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = (
-        selected_bands
-        if selected_bands is not None
-        else satellite.default_selected_bands
-    )
+    bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
     if out.exists():
         log.debug(f"Found feature chip [cyan]{out}[/]. Skipping download.")
         return out
@@ -153,15 +146,15 @@ def download_time_series(
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
-    satellite_get_kwargs: Optional[dict[str, Any]] = None,
-    satellite_download_kwargs: Optional[dict[str, Any]] = None,
+    satellite_get_kwargs: dict[str, Any] | None = None,
+    satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
     **kwargs: Any,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
@@ -206,9 +199,7 @@ def download_time_series(
         log.warning(f"Argument {kwarg} is ignored.")
     if not data_dir.is_dir():
         raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
-    satellite_get_kwargs = (
-        satellite_get_kwargs if satellite_get_kwargs is not None else {}
-    )
+    satellite_get_kwargs = satellite_get_kwargs if satellite_get_kwargs is not None else {}
     satellite_download_kwargs = (
         satellite_download_kwargs if satellite_download_kwargs is not None else {}
     )
@@ -216,9 +207,7 @@ def download_time_series(
     tracker = TileTracker(satellite, data_dir)
     with default_bar() as progress:
         tiles = list(
-            tiler.split(
-                bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs
-            )
+            tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
         )
 
         overall_task = progress.add_task(
@@ -235,9 +224,7 @@ def download_time_series(
                 )
                 | satellite_get_kwargs
             )
-            tile_path = tracker.get_path(
-                tile, format=satellite_download_kwargs.get("format", None)
-            )
+            tile_path = tracker.get_path(tile, format=satellite_download_kwargs.get("format", None))
             download_chip_ts(
                 satellite.get_time_series,
                 data_get_kwargs,
@@ -264,15 +251,15 @@ def download(
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
-    satellite_get_kwargs: Optional[dict[str, Any]] = None,
-    satellite_download_kwargs: Optional[dict[str, Any]] = None,
+    satellite_get_kwargs: dict[str, Any] | None = None,
+    satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
     in_parallel: bool = False,
     max_workers: int = 10,
 ) -> None:
@@ -321,9 +308,7 @@ def download(
     """
     if not data_dir.is_dir():
         raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
-    satellite_get_kwargs = (
-        satellite_get_kwargs if satellite_get_kwargs is not None else {}
-    )
+    satellite_get_kwargs = satellite_get_kwargs if satellite_get_kwargs is not None else {}
     satellite_download_kwargs = (
         satellite_download_kwargs if satellite_download_kwargs is not None else {}
     )
@@ -331,9 +316,7 @@ def download(
     tracker = TileTracker(satellite, data_dir)
     with default_bar() as progress:
         tiles = list(
-            tiler.split(
-                bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs
-            )
+            tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
         )
 
         overall_task = progress.add_task(
@@ -388,12 +371,13 @@ def download(
                     futures.append(future)
             if in_parallel:
                 try:
-                    for future in as_completed(futures):
+                    for _ in as_completed(futures):
                         progress.update(overall_task, advance=1)
                 except KeyboardInterrupt:
                     executor.shutdown(wait=False, cancel_futures=True)
                     log.error(
-                        "Keyboard interrupt. Please wait while current download finish (up to a few minutes)."
+                        "Keyboard interrupt. "
+                        "Please wait while current download finish (up to a few minutes)."
                     )
                     raise
     if satellite.is_raster:
@@ -402,15 +386,11 @@ def download(
         match satellite_download_kwargs["format"]:
             case Format.PARQUET:
                 merge_tracked_parquet(
-                    TileTracker(
-                        satellite, data_dir, filter=lambda p: p.suffix == ".parquet"
-                    )
+                    TileTracker(satellite, data_dir, filter=lambda p: p.suffix == ".parquet")
                 )
             case Format.GEOJSON:
                 merge_tracked_geojson(
-                    TileTracker(
-                        satellite, data_dir, filter=lambda p: p.suffix == ".geojson"
-                    )
+                    TileTracker(satellite, data_dir, filter=lambda p: p.suffix == ".geojson")
                 )
             case _ as x:
                 log.info(f"Don't know how to merge data of type {x}. Not merging.")
@@ -425,14 +405,14 @@ def download_gedi(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
 ) -> None:
     """Download GEDI images fused as rasters. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `gedi.vrt` is written to combine all the chips.
@@ -469,9 +449,7 @@ def download_gedi(
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
-        download_time_series
-        if composite_method == CompositeMethod.TIMESERIES
-        else download
+        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
     )
     download_func(
         data_dir=data_dir,
@@ -500,11 +478,11 @@ def download_gedi_vector(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     tile_shape: int = 500,
     resolution: int = 10,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
     format: Format = Format.CSV,
 ) -> None:
     """Download GEDI vector points. Points are written in several .geojson files
@@ -554,14 +532,14 @@ def download_s1(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
@@ -599,9 +577,7 @@ def download_s1(
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
-        download_time_series
-        if (composite_method == CompositeMethod.TIMESERIES)
-        else download
+        download_time_series if (composite_method == CompositeMethod.TIMESERIES) else download
     )
     download_func(
         data_dir=data_dir,
@@ -630,14 +606,14 @@ def download_s2(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
 ) -> None:
@@ -681,9 +657,7 @@ def download_s2(
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
     """
     download_func = (
-        download_time_series
-        if composite_method == CompositeMethod.TIMESERIES
-        else download
+        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
     )
     download_func(
         data_dir=data_dir,
@@ -713,14 +687,14 @@ def download_dynworld(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
 ) -> None:
     """Download Dynamic World images. Images are written in several .tif chips
     to `data_dir`. Additionnally a file `dynworld.vrt` is written to combine all the chips.
@@ -757,9 +731,7 @@ def download_dynworld(
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
-        download_time_series
-        if composite_method == CompositeMethod.TIMESERIES
-        else download
+        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
     )
     download_func(
         data_dir=data_dir,
@@ -787,14 +759,14 @@ def download_landsat8(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     resolution: int = 30,
     tile_shape: int = 500,
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
 ) -> None:
     """Download Landsat 8 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `landsat8.vrt` is written to combine all the chips.
@@ -831,9 +803,7 @@ def download_landsat8(
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
-        download_time_series
-        if composite_method == CompositeMethod.TIMESERIES
-        else download
+        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
     )
     download_func(
         data_dir=data_dir,
@@ -859,14 +829,14 @@ def download_palsar2(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
-    selected_bands: Optional[List[str]] = None,
-    crs: Optional[CRS] = None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
     resolution: int = 30,
     tile_shape: int = 500,
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: Optional[shapely.Polygon] = None,
+    filter_polygon: shapely.Polygon | None = None,
     orbit: P2Orbit = P2Orbit.DESCENDING,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
@@ -904,9 +874,7 @@ def download_palsar2(
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
-        download_time_series
-        if composite_method == CompositeMethod.TIMESERIES
-        else download
+        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
     )
     download_func(
         data_dir=data_dir,

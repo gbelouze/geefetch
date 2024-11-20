@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -23,8 +23,8 @@ class SatelliteABC(ABC):
         end_date: str,
         **kwargs: Any,
     ) -> DownloadableABC:
-        """Get downloadable data. It is up to the caller to make sure the computation will stay within the compute
-        resource limit, e.g. if Google Earth Engine is used as a backend.
+        """Get downloadable data. It is up to the caller to make sure the computation will stay
+        within the compute resource limit, e.g. if Google Earth Engine is used as a backend.
         """
         ...
 
@@ -36,19 +36,20 @@ class SatelliteABC(ABC):
         end_date: str,
         **kwargs: Any,
     ) -> DownloadableABC:
-        """Get downloadable data to fetch time series. It is up to the caller to make sure the computation will stay
-        within the compute resource limit, e.g. if Google Earth Engine is used as a backend.
+        """Get downloadable data to fetch time series. It is up to the caller to make sure
+        the computation will stay within the compute resource limit,
+        e.g. if Google Earth Engine is used as a backend.
         """
         ...
 
     @property
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         """List of all satellite bands."""
         raise NotImplementedError
 
     @property
     @abstractmethod
-    def default_selected_bands(self) -> List[str]:
+    def default_selected_bands(self) -> list[str]:
         """List of default selected satellite bands."""
         ...
 
@@ -82,9 +83,7 @@ class SatelliteABC(ABC):
 
     def __eq__(self, other):
         if not isinstance(other, SatelliteABC):
-            raise ValueError(
-                f"Cannot compare satellite with values of type {type(other)}."
-            )
+            raise ValueError(f"Cannot compare satellite with values of type {type(other)}.")
         return self.name == other.name
 
     def __str__(self) -> str:

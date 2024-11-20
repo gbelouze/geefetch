@@ -2,9 +2,9 @@
 
 import json
 import logging
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Callable
 
 import geopandas as gpd
 import pandas as pd
@@ -55,7 +55,7 @@ def vector_is_clean(path: Path) -> bool:
     try:
         match path.suffix:
             case ".geojson":
-                with open(path, "r") as fp:
+                with open(path) as fp:
                     x = json.load(fp)
                     return "features" in x and len(x["features"]) > 0
             case ".csv":
@@ -69,9 +69,7 @@ def vector_is_clean(path: Path) -> bool:
         return False
 
 
-def clean(
-    tracker: TileTracker, is_clean: Callable[[Path], bool], max_threads: int = 8
-) -> int:
+def clean(tracker: TileTracker, is_clean: Callable[[Path], bool], max_threads: int = 8) -> int:
     """Remove ill-formed and empty data files.
 
     Parameters
@@ -95,14 +93,13 @@ def clean(
             futures = [executor.submit(is_clean, path) for path in paths]
             log.debug("Futures submitted.")
             try:
-                while (n_finished := sum([future.done() for future in futures])) < len(
-                    futures
-                ):
+                while (n_finished := sum([future.done() for future in futures])) < len(futures):
                     progress.update(task, completed=n_finished, total=len(futures))
             except KeyboardInterrupt:
                 log.error(
                     "Keyboard interrupt while cleaning data. "
-                    "[red]Please wait[/] while current processes finish (this may take up to a few minutes)."
+                    "[red]Please wait[/] while current processes finish "
+                    "(this may take up to a few minutes)."
                 )
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
@@ -113,14 +110,12 @@ def clean(
         is_clean_results = [future.result() for future in as_completed(futures)]
 
     with default_bar() as progress:
-        for path, tile_is_clean in zip(paths, is_clean_results):
+        for path, tile_is_clean in zip(paths, is_clean_results, strict=False):
             if not tile_is_clean:
                 path.unlink()
                 log.debug(f"Ill formed or empty .tif file [cyan]{path}[/]. Removed.")
                 remove_count += 1
-    log.info(
-        f"Removed {remove_count} ill formed or empty.tif files in [cyan]{tracker.root}[/]"
-    )
+    log.info(f"Removed {remove_count} ill formed or empty.tif files in [cyan]{tracker.root}[/]")
     return remove_count
 
 

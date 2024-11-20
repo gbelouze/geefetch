@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -21,11 +21,11 @@ class S1(SatelliteABC):
     _default_selected_bands = ["VV", "VH"]
 
     @property
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         return self._bands
 
     @property
-    def default_selected_bands(self) -> List[str]:
+    def default_selected_bands(self) -> list[str]:
         return self._default_selected_bands
 
     @property
@@ -105,15 +105,13 @@ class S1(SatelliteABC):
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(
-                f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
@@ -147,7 +145,7 @@ class S1(SatelliteABC):
         s1_im: DownloadableGeedimImage
             A Sentinel-1 composite image of the specified AOI and time range.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
         s1_col = self.get_col(aoi, start_date, end_date, orbit)
@@ -156,12 +154,11 @@ class S1(SatelliteABC):
         n_images = len(info["features"])  # type: ignore[index]
         if n_images > 500:
             log.warning(
-                f"Sentinel-1 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
+                f"Sentinel-1 mosaicking with a large amount of images (n={n_images}). "
+                "Expect slower download time."
             )
         if n_images == 0:
-            log.error(
-                f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
 
         log.debug(f"Sentinel-1 mosaicking with {n_images} images.")

@@ -5,7 +5,7 @@ import logging
 import tempfile
 import threading
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import ee
 import geopandas as gpd
@@ -42,13 +42,14 @@ class DownloadableGEECollection(DownloadableABC):
         out: Path,
         region: GeoBoundingBox,
         crs: CRS,
-        bands: List[str],
+        bands: list[str],
         format: Format = Format.GEOJSON,
         split_recursion_depth: int = 0,
         **kwargs: Any,
     ) -> None:
         """Download a FeatureCollection in one go.
-        It is up to the caller to make sure that the collection does not exceed Google Earth Engine compute limit.
+        It is up to the caller to make sure that the collection does not exceed
+        Google Earth Engine compute limit.
 
         Parameters
         ----------
@@ -65,7 +66,7 @@ class DownloadableGEECollection(DownloadableABC):
         format : Format
             The desired filetype.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             if key not in ["scale", "progress", "max_tile_size"]:
                 log.warning(f"Argument {key} is ignored.")
 
@@ -90,15 +91,13 @@ class DownloadableGEECollection(DownloadableABC):
             resp_dict = response.json()
             if "error" in resp_dict and "message" in resp_dict["error"]:
                 msg = resp_dict["error"]["message"]
-                if (
-                    msg
-                    == "Unable to compute table: java.io.IOException: No space left on device"
-                ):
+                if msg == "Unable to compute table: java.io.IOException: No space left on device":
                     if split_recursion_depth > 3:
                         log.error(
-                            f"Attempted to split the download regions 3 times. Still getting error: {msg}. Aborting."
+                            "Attempted to split the download regions 3 times. "
+                            f"Still getting error: {msg}. Aborting."
                         )
-                        raise IOError(msg)
+                        raise OSError(msg)
                     log.debug(
                         f"Caught GEE exception '[black]{msg}[/]' for tile {out}. "
                         f"Attempting to split into smaller regions ({split_recursion_depth=})."
@@ -116,16 +115,14 @@ class DownloadableGEECollection(DownloadableABC):
                 ex_msg = f"Error downloading tile: {msg}"
             else:
                 ex_msg = str(response.json())
-            raise IOError(ex_msg)
+            raise OSError(ex_msg)
 
         if not response.ok:
             handle_error_response(response)
             return
 
         if format == Format.PARQUET:
-            with tempfile.NamedTemporaryFile(
-                suffix=".geojson", delete=False
-            ) as tmp_file:
+            with tempfile.NamedTemporaryFile(suffix=".geojson", delete=False) as tmp_file:
                 for data in response.iter_content(chunk_size=1024):
                     tmp_file.write(data)
                 tmp_file.flush()
@@ -143,7 +140,7 @@ class DownloadableGEECollection(DownloadableABC):
         out: Path,
         region: GeoBoundingBox,
         crs: CRS,
-        bands: List[str],
+        bands: list[str],
         format: Format = Format.GEOJSON,
         split_recursion_depth: int = 0,
         **kwargs: Any,
@@ -177,8 +174,8 @@ class DownloadableGEECollection(DownloadableABC):
         eastings = [region.left, center_easting, region.right]
         regions = [
             GeoBoundingBox(left, bottom, right, top, crs=region.crs)
-            for left, right in zip(eastings[:-1], eastings[1:])
-            for bottom, top in zip(northings[:-1], northings[1:])
+            for left, right in zip(eastings[:-1], eastings[1:], strict=True)
+            for bottom, top in zip(northings[:-1], northings[1:], strict=True)
         ]
 
         with tempfile.TemporaryDirectory() as tmp_dir:

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -52,11 +52,11 @@ class S2(SatelliteABC):
     ]
 
     @property
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         return self._bands
 
     @property
-    def default_selected_bands(self) -> List[str]:
+    def default_selected_bands(self) -> list[str]:
         return self._default_selected_bands
 
     @property
@@ -128,9 +128,7 @@ class S2(SatelliteABC):
             ee.Join.saveFirst("s2cloudless").apply(
                 primary=s2_col,
                 secondary=s2_cloud,
-                condition=ee.Filter.equals(
-                    leftField="system:index", rightField="system:index"
-                ),
+                condition=ee.Filter.equals(leftField="system:index", rightField="system:index"),
             )
         ).map(mask_s2_clouds)
 
@@ -176,21 +174,17 @@ class S2(SatelliteABC):
         info = s2_cloudless.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(
-                f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = (
-                    PatchedBaseImage(im)
-                )
+                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -232,7 +226,7 @@ class S2(SatelliteABC):
             A Sentinel-2 composite image of the specified AOI and time range,
             with clouds filtered out.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         s2_cloudless = self.get_col(
@@ -249,13 +243,15 @@ class S2(SatelliteABC):
         n_images = len(s2_cloudless.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
             log.warning(
-                f"Sentinel-2 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
+                f"Sentinel-2 mosaicking with a large amount of images (n={n_images}). "
+                "Expect slower download time."
             )
             log.info("Change cloud masking parameters to lower the amount of images.")
         if n_images == 0:
             if cloudless_portion < 15:
                 log.error(
-                    f"Found 0 Sentinel-2 image for {cloudless_portion=} which is already conservative"
+                    f"Found 0 Sentinel-2 image for {cloudless_portion=} "
+                    "which is already conservative. "
                     f"Check region {aoi.transform(WGS84)}"
                 )
                 raise RuntimeError("Collection of 0 Sentinel-2 image.")
