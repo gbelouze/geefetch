@@ -1,5 +1,6 @@
 [flake8]
 show-source = True
 builtins = unicode
-max-line-length = 120
-extend-ignore = E203
+# use flake8 only for pydoclint
+select = DOC
+extend-ignore = DOC5

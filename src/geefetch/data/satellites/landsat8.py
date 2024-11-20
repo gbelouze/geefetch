@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -130,9 +130,7 @@ def getSunAngles(date: ee.Date, footprint: ee.List) -> tuple[ee.Image, ee.Image]
     sunAzSW = sinSunAzSW.asin()
 
     sunAzSW = where(cosSunAzSW.lte(0), sunAzSW.multiply(-1).add(PI), sunAzSW)
-    sunAzSW = where(
-        cosSunAzSW.gt(0).And(sinSunAzSW.lte(0)), sunAzSW.add(PI * 2), sunAzSW
-    )
+    sunAzSW = where(cosSunAzSW.gt(0).And(sinSunAzSW.lte(0)), sunAzSW.add(PI * 2), sunAzSW)
 
     sunAz = sunAzSW.add(PI)
     sunAz = where(sunAz.gt(PI * 2), sunAz.subtract(PI * 2), sunAz)
@@ -152,12 +150,8 @@ def azimuth(footprint: ee.List) -> ee.Image:
     def y(point: ee.List) -> ee.Number:
         return ee.Number(ee.List(point).get(1))
 
-    upperCenter = (
-        line_from_coords(footprint, UPPER_LEFT, UPPER_RIGHT).centroid().coordinates()
-    )
-    lowerCenter = (
-        line_from_coords(footprint, LOWER_LEFT, LOWER_RIGHT).centroid().coordinates()
-    )
+    upperCenter = line_from_coords(footprint, UPPER_LEFT, UPPER_RIGHT).centroid().coordinates()
+    lowerCenter = line_from_coords(footprint, LOWER_LEFT, LOWER_RIGHT).centroid().coordinates()
     slope = ((y(lowerCenter)).subtract(y(upperCenter))).divide(
         (x(lowerCenter)).subtract(x(upperCenter))
     )
@@ -185,24 +179,12 @@ def _applyL8(image: ee.Image, kvol: ee.Image, kvol0: ee.Image) -> ee.Image:
     # f_iso = 0
     # f_geo = 0
     # f_vol = 0
-    blue = _correct_band(
-        image, "SR_B2", kvol, kvol0, f_iso=0.0774, f_geo=0.0079, f_vol=0.0372
-    )
-    green = _correct_band(
-        image, "SR_B3", kvol, kvol0, f_iso=0.1306, f_geo=0.0178, f_vol=0.0580
-    )
-    red = _correct_band(
-        image, "SR_B4", kvol, kvol0, f_iso=0.1690, f_geo=0.0227, f_vol=0.0574
-    )
-    nir = _correct_band(
-        image, "SR_B5", kvol, kvol0, f_iso=0.3093, f_geo=0.0330, f_vol=0.1535
-    )
-    swir1 = _correct_band(
-        image, "SR_B6", kvol, kvol0, f_iso=0.3430, f_geo=0.0453, f_vol=0.1154
-    )
-    swir2 = _correct_band(
-        image, "SR_B7", kvol, kvol0, f_iso=0.2658, f_geo=0.0387, f_vol=0.0639
-    )
+    blue = _correct_band(image, "SR_B2", kvol, kvol0, f_iso=0.0774, f_geo=0.0079, f_vol=0.0372)
+    green = _correct_band(image, "SR_B3", kvol, kvol0, f_iso=0.1306, f_geo=0.0178, f_vol=0.0580)
+    red = _correct_band(image, "SR_B4", kvol, kvol0, f_iso=0.1690, f_geo=0.0227, f_vol=0.0574)
+    nir = _correct_band(image, "SR_B5", kvol, kvol0, f_iso=0.3093, f_geo=0.0330, f_vol=0.1535)
+    swir1 = _correct_band(image, "SR_B6", kvol, kvol0, f_iso=0.3430, f_geo=0.0453, f_vol=0.1154)
+    swir2 = _correct_band(image, "SR_B7", kvol, kvol0, f_iso=0.2658, f_geo=0.0387, f_vol=0.0639)
     return image.select([]).addBands([blue, green, red, nir, swir1, swir2])  # type: ignore[no-any-return]
 
 
@@ -296,11 +278,11 @@ class Landsat8(SatelliteABC):
     ]
 
     @property
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         return self._bands
 
     @property
-    def default_selected_bands(self) -> List[str]:
+    def default_selected_bands(self) -> list[str]:
         return self._default_selected_bands
 
     @property
@@ -315,22 +297,7 @@ class Landsat8(SatelliteABC):
     def is_raster(self) -> bool:
         return True
 
-    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
-        min_p, max_p = self.pixel_range
-        im = im.clamp(min_p, max_p)
-        match dtype:
-            case DType.Float32:
-                return im
-            case DType.UInt16:
-                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-            case DType.UInt8:
-                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
-
-    def get_col(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str
-    ) -> ee.ImageCollection:
+    def get_col(self, aoi: GeoBoundingBox, start_date: str, end_date: str) -> ee.ImageCollection:
         """Get Landsat 8 collection.
 
         Parameters
@@ -341,6 +308,10 @@ class Landsat8(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+
+        Returns
+        -------
+        landsat_col : ee.ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
@@ -370,6 +341,10 @@ class Landsat8(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype : DType
+            The data type for the image
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -384,21 +359,17 @@ class Landsat8(SatelliteABC):
         info = landsat_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(
-                f"Found 0 Landsat 8 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Landsat 8 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Landsat 8 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("LANDSAT/LC08/C02/T1_L2/")] = PatchedBaseImage(
-                    im
-                )
+                images[id_.removeprefix("LANDSAT/LC08/C02/T1_L2/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -423,24 +394,26 @@ class Landsat8(SatelliteABC):
         composite_method: CompositeMethod
         dtype: DType
             The data type for the image.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
         landsat_im : DownloadableGeedimImage
             A Landsat 8 composite image of the specified AOI and time range.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         landsat_col = self.get_col(aoi, start_date, end_date)
-        min_p, max_p = self.pixel_range
         landsat_im = composite_method.transform(landsat_col).clip(bounds)
         landsat_im = self.convert_image(landsat_im, dtype)
         landsat_im = PatchedBaseImage(landsat_im)
         n_images = len(landsat_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
             log.warning(
-                f"Landsat 8 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
+                f"Landsat 8 mosaicking with a large amount of images (n={n_images})."
+                "Expect slower download time."
             )
             log.info("Change cloud masking parameters to lower the amount of images.")
         if n_images == 0:

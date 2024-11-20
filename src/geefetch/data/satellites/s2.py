@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -52,11 +52,11 @@ class S2(SatelliteABC):
     ]
 
     @property
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         return self._bands
 
     @property
-    def default_selected_bands(self) -> List[str]:
+    def default_selected_bands(self) -> list[str]:
         return self._default_selected_bands
 
     @property
@@ -70,19 +70,6 @@ class S2(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
-
-    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
-        min_p, max_p = self.pixel_range
-        im = im.clamp(min_p, max_p)
-        match dtype:
-            case DType.Float32:
-                return im
-            case DType.UInt16:
-                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-            case DType.UInt8:
-                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
         self,
@@ -102,11 +89,16 @@ class S2(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
-        cloudless_portion : int, optional
+        cloudless_portion : int
             Threshold for the portion of filled pixels that must be cloud/shadow free (%).
-            Images that do not fullfill the requirement are filtered out.
-        cloud_prb_thresh : int, optional
+            Images that do not fullfill the requirement are filtered out. Defaults to 60.
+        cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
+            Defaults to 30.
+
+        Returns
+        -------
+        s2_cloudless : ee.ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
@@ -120,8 +112,8 @@ class S2(SatelliteABC):
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
             .filter(
-                f"CLOUDY_PIXEL_PERCENTAGE<={100-cloudless_portion} && "
-                f"HIGH_PROBA_CLOUDS_PERCENTAGE<={(100-cloudless_portion)//2}"
+                f"CLOUDY_PIXEL_PERCENTAGE<={100 - cloudless_portion} && "
+                f"HIGH_PROBA_CLOUDS_PERCENTAGE<={(100 - cloudless_portion) // 2}"
             )
         )
 
@@ -141,9 +133,7 @@ class S2(SatelliteABC):
             ee.Join.saveFirst("s2cloudless").apply(
                 primary=s2_col,
                 secondary=s2_cloud,
-                condition=ee.Filter.equals(
-                    leftField="system:index", rightField="system:index"
-                ),
+                condition=ee.Filter.equals(leftField="system:index", rightField="system:index"),
             )
         ).map(mask_s2_clouds)
 
@@ -169,6 +159,15 @@ class S2(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype: DType
+            The data type for the image.
+        cloudless_portion : int
+            Threshold for the portion of filled pixels that must be cloud/shadow free (%).
+            Images that do not fullfill the requirement are filtered out.
+        cloud_prb_thresh : int
+            Threshold for cloud probability above which a pixel is filtered out (%).
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -189,21 +188,17 @@ class S2(SatelliteABC):
         info = s2_cloudless.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(
-                f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = (
-                    PatchedBaseImage(im)
-                )
+                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -231,13 +226,15 @@ class S2(SatelliteABC):
         composite_method: CompositeMethod
         dtype: DType
             The data type for the image.
-        cloudless_portion : int, optional
+        cloudless_portion : int
             Threshold for the portion of filled pixels that must be cloud/shadow free (%).
             Images that do not fullfill the requirement are filtered out.
-        cloud_prb_thresh : int, optional
+        cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
-        buffer : float, optional
+        buffer : float
             Kernel size to dilate cloud/shadow patches.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -245,7 +242,7 @@ class S2(SatelliteABC):
             A Sentinel-2 composite image of the specified AOI and time range,
             with clouds filtered out.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         s2_cloudless = self.get_col(
@@ -255,20 +252,21 @@ class S2(SatelliteABC):
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
         )
-        min_p, max_p = self.pixel_range
         s2_im = composite_method.transform(s2_cloudless).clip(bounds)
         s2_im = self.convert_image(s2_im, dtype)
         s2_im = PatchedBaseImage(s2_im)
         n_images = len(s2_cloudless.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
             log.warning(
-                f"Sentinel-2 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
+                f"Sentinel-2 mosaicking with a large amount of images (n={n_images}). "
+                "Expect slower download time."
             )
             log.info("Change cloud masking parameters to lower the amount of images.")
         if n_images == 0:
             if cloudless_portion < 15:
                 log.error(
-                    f"Found 0 Sentinel-2 image for {cloudless_portion=} which is already conservative"
+                    f"Found 0 Sentinel-2 image for {cloudless_portion=} "
+                    "which is already conservative. "
                     f"Check region {aoi.transform(WGS84)}"
                 )
                 raise RuntimeError("Collection of 0 Sentinel-2 image.")

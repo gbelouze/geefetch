@@ -7,7 +7,7 @@ similar to what `geedim` provides for Image and ImageCollection.
 import logging
 import threading
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import ee
 import requests
@@ -27,7 +27,7 @@ class DownloadableGEEImage(DownloadableABC):
     def _get_download_url(
         self,
         image: ee.Image,
-        bands: List[str],
+        bands: list[str],
         region: GeoBoundingBox,
         crs: str,
     ) -> tuple[requests.Response, str]:
@@ -51,33 +51,34 @@ class DownloadableGEEImage(DownloadableABC):
         out: Path,
         region: GeoBoundingBox,
         crs: CRS,
-        bands: List[str],
+        bands: list[str],
         **kwargs: Any,
     ) -> None:
         """Download a GEE Image in one go.
-        It is up to the caller to make sure that the image does not exceed Google Earth Engine compute limit.
+        It is up to the caller to make sure that the image does not exceed
+        Google Earth Engine compute limit.
 
         Parameters
         ----------
-        collection : ee.FeatureCollection
-            The collection to download.
         out : Path
             Path to the geojson file to download the collection to.
-        bands : list[str]
-            Properties of the collection to select for download.
         region : GeoBoundingBox
             The ROI.
         crs : CRS
             The CRS to use for the features' geometries.
+        bands : list[str]
+            Properties of the collection to select for download.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
         gee_crs = f"EPSG:{crs.to_epsg()}"
 
         # get image download url and response
         image = self.image
-        response, url = self._get_download_url(image, bands, region, gee_crs)
+        response, _ = self._get_download_url(image, bands, region, gee_crs)
 
         download_size = int(response.headers.get("content-length", 0))
 
@@ -88,8 +89,8 @@ class DownloadableGEEImage(DownloadableABC):
                 ex_msg = f"Error downloading tile: {msg}"
             else:
                 ex_msg = str(response.json())
-            raise IOError(ex_msg)
+            raise OSError(ex_msg)
 
-        with open(out, "wb") as geojsonfile:
+        with out.open("wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):
                 geojsonfile.write(data)

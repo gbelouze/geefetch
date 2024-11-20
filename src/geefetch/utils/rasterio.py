@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from osgeo import gdal
 from rasterio.crs import CRS

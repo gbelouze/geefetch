@@ -38,9 +38,7 @@ def get_mainland_geometry(shape: shapely.Geometry) -> shapely.Polygon:
         case shapely.Polygon:
             return shape
         case _:
-            raise TypeError(
-                f"Type {shape} cannot be interpreted as a country border shape."
-            )
+            raise TypeError(f"Type {shape} cannot be interpreted as a country border shape.")
 
 
 def load_country_filter_polygon(country: str) -> shapely.Polygon:
@@ -49,32 +47,30 @@ def load_country_filter_polygon(country: str) -> shapely.Polygon:
     log.debug(f"Country borders is downloaded to {country_borders_path}")
     country_borders = geopandas.read_file(country_borders_path)
     if country not in country_borders.name.values:
-        best_match, match_score = process.extractOne(
-            country, country_borders.name.values
-        )
+        best_match, _ = process.extractOne(country, country_borders.name.values)
         raise ValueError(f"Unknown country {country}. Did you mean {best_match} ?")
     country_borders = country_borders[country_borders.name == country].iloc[0].geometry
     return get_mainland_geometry(country_borders)
 
 
 def save_config(config: Any, dir: Path) -> None:
-    """When `geefetch` is called with a specified configuration file, save it to the tracker root."""
+    """When `geefetch` is called with a specified configuration file,
+    save it to the tracker root."""
     if not dir.exists():
         dir.mkdir()
     config_path = Path(dir / "config.yaml")
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
-        with open(config_path, "r") as saved_config_file:
-            saved_config_yaml = saved_config_file.read()
-            if saved_config_yaml != config_yaml:
-                log.error(
-                    f"Diff current config / saved config:\n{git_style_diff(config_yaml, saved_config_yaml)}"
-                )
-                raise ValueError("Current config and saved config disagree. Aborting.")
+        saved_config_yaml = config_path.read_text()
+        if saved_config_yaml != config_yaml:
+            log.error(
+                "Diff current config / saved config:\n"
+                f"{git_style_diff(config_yaml, saved_config_yaml)}"
+            )
+            raise ValueError("Current config and saved config disagree. Aborting.")
     else:
-        with open(config_path, "w") as config_file:
-            config_file.write(config_yaml)
-            log.debug(f"Config file is saved to {config_path}.")
+        config_path.write_text(config_yaml)
+        log.debug(f"Config file is saved to {config_path}.")
 
 
 def download_gedi(config_path: Path, vector: bool) -> None:
@@ -143,7 +139,8 @@ def download_s1(config_path: Path) -> None:
     config = load(config_path)
     if config.s1 is None:
         raise RuntimeError(
-            "Sentinel-1 is not configured. Pass `s1: {}` in the config file to use `satellite_default`."
+            "Sentinel-1 is not configured. "
+            "Pass `s1: {}` in the config file to use `satellite_default`."
         )
     if config.s1.selected_bands is None:
         config.s1.selected_bands = satellites.S1().default_selected_bands
@@ -182,7 +179,8 @@ def download_s2(config_path: Path) -> None:
     config = load(config_path)
     if config.s2 is None:
         raise RuntimeError(
-            "Sentinel-2 is not configured. Pass `s2: {}` in the config file to use `satellite_default`."
+            "Sentinel-2 is not configured. "
+            "Pass `s2: {}` in the config file to use `satellite_default`."
         )
     if config.s2.selected_bands is None:
         config.s2.selected_bands = satellites.S2().default_selected_bands
@@ -222,7 +220,8 @@ def download_dynworld(config_path: Path) -> None:
     config = load(config_path)
     if config.dynworld is None:
         raise RuntimeError(
-            "Dynamic World is not configured. Pass `dynworld: {}` in the config file to use `satellite_default`."
+            "Dynamic World is not configured. "
+            "Pass `dynworld: {}` in the config file to use `satellite_default`."
         )
     if config.dynworld.selected_bands is None:
         config.dynworld.selected_bands = satellites.DynWorld().default_selected_bands
@@ -260,7 +259,8 @@ def download_landsat8(config_path: Path) -> None:
     config = load(config_path)
     if config.landsat8 is None:
         raise RuntimeError(
-            "Landsat 8 is not configured. Pass `landsat8: {}` in the config file to use `satellite_default`."
+            "Landsat 8 is not configured. "
+            "Pass `landsat8: {}` in the config file to use `satellite_default`."
         )
     if config.landsat8.selected_bands is None:
         config.landsat8.selected_bands = satellites.Landsat8().default_selected_bands
@@ -298,7 +298,8 @@ def download_palsar2(config_path: Path) -> None:
     config = load(config_path)
     if config.palsar2 is None:
         raise RuntimeError(
-            "Palsar 2 is not configured. Pass `palsar2: {}` in the config file to use `satellite_default`."
+            "Palsar 2 is not configured. "
+            "Pass `palsar2: {}` in the config file to use `satellite_default`."
         )
     if config.palsar2.selected_bands is None:
         config.palsar2.selected_bands = satellites.Palsar2().default_selected_bands

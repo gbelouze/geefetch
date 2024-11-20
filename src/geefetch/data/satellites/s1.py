@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List
+from typing import Any
 
 import ee
 from geobbox import GeoBoundingBox
@@ -21,11 +21,11 @@ class S1(SatelliteABC):
     _default_selected_bands = ["VV", "VH"]
 
     @property
-    def bands(self) -> List[str]:
+    def bands(self) -> list[str]:
         return self._bands
 
     @property
-    def default_selected_bands(self) -> List[str]:
+    def default_selected_bands(self) -> list[str]:
         return self._default_selected_bands
 
     @property
@@ -39,19 +39,6 @@ class S1(SatelliteABC):
     @property
     def resolution(self):
         return 10
-
-    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
-        min_p, max_p = self.pixel_range
-        im = im.clamp(min_p, max_p)
-        match dtype:
-            case DType.Float32:
-                return im
-            case DType.UInt16:
-                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-            case DType.UInt8:
-                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-            case _:
-                raise ValueError(f"Unsupported {dtype=}.")
 
     def get_col(
         self,
@@ -70,6 +57,8 @@ class S1(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        orbit : S1Orbit
+            The orbit used to filter the collection.
 
         Returns
         -------
@@ -106,6 +95,12 @@ class S1(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype : DType
+            The data type for the image
+        orbit : S1Orbit
+            The orbit used to filter the collection before mosaicking
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -118,15 +113,13 @@ class S1(SatelliteABC):
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(
-                f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(
-                PatchedBaseImage.from_id(id_).footprint["coordinates"][0]
-            ).intersects(aoi.to_shapely_polygon()):
+            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
+                aoi.to_shapely_polygon()
+            ):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
@@ -153,32 +146,38 @@ class S1(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
-        composite_method: gd.CompositeMethod
+        composite_method: CompositeMethod
+            The method use to do mosaicking.
+        dtype : DType
+            The data type for the image
+        orbit : S1Orbit
+            The orbit used to filter the collection before mosaicking
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
         s1_im: DownloadableGeedimImage
             A Sentinel-1 composite image of the specified AOI and time range.
         """
-        for key in kwargs.keys():
+        for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         s1_col = self.get_col(aoi, start_date, end_date, orbit)
 
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images > 500:
             log.warning(
-                f"Sentinel-1 mosaicking with a large amount of images (n={n_images}). Expect slower download time."
+                f"Sentinel-1 mosaicking with a large amount of images (n={n_images}). "
+                "Expect slower download time."
             )
         if n_images == 0:
-            log.error(
-                f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}."
-            )
+            log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
 
         log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
+        bounds = aoi.transform(WGS84).to_ee_geometry()
         s1_im = composite_method.transform(s1_col).clip(bounds)
         s1_im = self.convert_image(s1_im, dtype)
         s1_im = PatchedBaseImage(s1_im)

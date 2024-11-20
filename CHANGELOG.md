@@ -14,10 +14,11 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 - Option to specify orbit direction for Palsar-2 data
 - Option to specify orbit direction for Sentinel-1 data [2b025b7](https://github.com/gbelouze/geefetch/commit/2b025b74474be5803895b9cb4d8497f587128923)
-- A `__main__.py` file to call the CLI with `python -m geefetch` [3c9b0c7](https://github.com/gbelouze/geefetch/commit/3c9b0c74833353dd8e048b59dd244f57ef89034b)
-- Added tests in `tests/` using pytest [2c12ebc](https://github.com/gbelouze/geefetch/commit/2c12ebc261617f864e7f8a996fd0725d2d46c731)
-- Added tests for timeseries download [5e6928a](https://github.com/gbelouze/geefetch/commit/5e6928a49e61a580985e4180b258874e5e9324d4)
+- Add a `__main__.py` file to call the CLI with `python -m geefetch` [3c9b0c7](https://github.com/gbelouze/geefetch/commit/3c9b0c74833353dd8e048b59dd244f57ef89034b)
+- Add tests in `tests/` using pytest [2c12ebc](https://github.com/gbelouze/geefetch/commit/2c12ebc261617f864e7f8a996fd0725d2d46c731)
+- Add tests for timeseries download [5e6928a](https://github.com/gbelouze/geefetch/commit/5e6928a49e61a580985e4180b258874e5e9324d4)
 - Add option to configure downloaded bands [3c2e600](https://github.com/gbelouze/geefetch/commit/3c2e600da02aa98be5ebc0b4c4630d2708cd7f70)
+- Add rules for linting with `ruff` and `pydoclint` [1b2ac36](https://github.com/gbelouze/geefetch/commit/1b2ac36bac64aa0c1dedb8beaa087559cd52d9fe)
 
 ### Changed
 
@@ -27,6 +28,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 ### Fixed
 
 - Fix `geefetch` attempting to download collection after it was already split-downloaded [b9f5bb1](https://github.com/gbelouze/geefetch/commit/b9f5bb12d4caaf073bd69e50e36e48809966f3ad)
+- Fix timeseries download for Palsar-2. [e777289c](https://github.com/gbelouze/geefetch/commit/e777289cc22f1d7551533abc2675e2747d51a8bd)
 
 ## [0.4.0](https://github.com/gbelouze/geefetch/compare/v0.4.0...v0.3.2) (2024-11-05)
 
@@ -94,4 +96,4 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Fix geojson merging ([aef8e6d](https://github.com/gbelouze/geefetch/commit/aef8e6dfc3f0cf855015d7b263fa42f11cf02c83) )
 - Fix config.s1 used for other satellites ([2333368](https://github.com/gbelouze/geefetch/commit/2333368d570689684e27f4d7fe9acaa0fb892a4f) )
 - Fix NamedTemporaryFile for Windows ([08c69cd](https://github.com/gbelouze/geefetch/commit/08c69cd0fa8238686a1ee81c02d686e370a71e64) )
-- Fix infinite loop for collection of 0 images ([237491a](https://github.com/gbelouze/geefetch/commit/237491af7b4f742be7db2dc2d445cb83a670c837) )
+- Fix infinite loop for collection of 0 images ([2t37491a](https://github.com/gbelouze/geefetch/commit/237491af7b4f742be7db2dc2d445cb83a670c837) )
