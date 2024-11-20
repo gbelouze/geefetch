@@ -19,6 +19,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Add tests for timeseries download [5e6928a](https://github.com/gbelouze/geefetch/commit/5e6928a49e61a580985e4180b258874e5e9324d4)
 - Add option to configure downloaded bands [3c2e600](https://github.com/gbelouze/geefetch/commit/3c2e600da02aa98be5ebc0b4c4630d2708cd7f70)
 - Add rules for linting with `ruff` and `pydoclint` [1b2ac36](https://github.com/gbelouze/geefetch/commit/1b2ac36bac64aa0c1dedb8beaa087559cd52d9fe)
+- Add geefetch version number in saved configs [1cac992](https://github.com/gbelouze/geefetch/commit/1cac992559fcd6f27ca7f1cd29f594421bc11b29)
 
 ### Changed
 

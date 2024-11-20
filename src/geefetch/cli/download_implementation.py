@@ -3,12 +3,14 @@ from pathlib import Path
 from typing import Any
 
 import geopandas
+import omegaconf
 import pooch
 import shapely
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from thefuzz import process
 
+import geefetch
 import geefetch.data.satellites as satellites
 from geefetch import data
 from geefetch.utils.config import git_style_diff
@@ -59,6 +61,8 @@ def save_config(config: Any, dir: Path) -> None:
     if not dir.exists():
         dir.mkdir()
     config_path = Path(dir / "config.yaml")
+    config = OmegaConf.to_container(omegaconf.DictConfig(config))
+    config["geefetch_version"] = geefetch.__version__
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
         saved_config_yaml = config_path.read_text()
