@@ -61,18 +61,16 @@ def save_config(config: Any, dir: Path) -> None:
     config_path = Path(dir / "config.yaml")
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
-        with open(config_path) as saved_config_file:
-            saved_config_yaml = saved_config_file.read()
-            if saved_config_yaml != config_yaml:
-                log.error(
-                    "Diff current config / saved config:\n"
-                    f"{git_style_diff(config_yaml, saved_config_yaml)}"
-                )
-                raise ValueError("Current config and saved config disagree. Aborting.")
+        saved_config_yaml = config_path.read_text()
+        if saved_config_yaml != config_yaml:
+            log.error(
+                "Diff current config / saved config:\n"
+                f"{git_style_diff(config_yaml, saved_config_yaml)}"
+            )
+            raise ValueError("Current config and saved config disagree. Aborting.")
     else:
-        with open(config_path, "w") as config_file:
-            config_file.write(config_yaml)
-            log.debug(f"Config file is saved to {config_path}.")
+        config_path.write_text(config_yaml)
+        log.debug(f"Config file is saved to {config_path}.")
 
 
 def download_gedi(config_path: Path, vector: bool) -> None:

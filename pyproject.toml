@@ -68,6 +68,8 @@ select = [
     "SIM",
     # isort
     "I",
+    # flake8-use-pathlib
+    "PTH"
 ]
 
 [tool.ruff.lint.pydocstyle]

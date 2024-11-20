@@ -131,7 +131,7 @@ class DownloadableGEECollection(DownloadableABC):
             gdf.reset_index(inplace=True, drop=True)
             gdf.to_parquet(out)
             return
-        with open(out, "wb") as geojsonfile:
+        with out.open("wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):
                 geojsonfile.write(data)
 

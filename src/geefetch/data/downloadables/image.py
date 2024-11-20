@@ -91,6 +91,6 @@ class DownloadableGEEImage(DownloadableABC):
                 ex_msg = str(response.json())
             raise OSError(ex_msg)
 
-        with open(out, "wb") as geojsonfile:
+        with out.open("wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):
                 geojsonfile.write(data)

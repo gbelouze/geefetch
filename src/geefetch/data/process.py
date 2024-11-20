@@ -50,20 +50,19 @@ def gedi_is_clean(path: Path) -> bool:
     return True
 
 
-def vector_is_clean(path: Path) -> bool:
+def vector_is_clean(fpath: Path) -> bool:
     """Check if the geojson file at location `path` is not empty."""
     try:
-        match path.suffix:
+        match fpath.suffix:
             case ".geojson":
-                with open(path) as fp:
-                    x = json.load(fp)
-                    return "features" in x and len(x["features"]) > 0
+                x = json.loads(fpath.read_text())
+                return "features" in x and len(x["features"]) > 0
             case ".csv":
-                return len(pd.read_csv(path, header=0)) > 0
+                return len(pd.read_csv(fpath, header=0)) > 0
             case ".parquet":
-                return len(gpd.read_parquet(path)) > 0
+                return len(gpd.read_parquet(fpath)) > 0
             case _ as suffix:
-                log.warning(f"Don't know how to check {suffix} file {path}")
+                log.warning(f"Don't know how to check {suffix} file {fpath}")
                 return True
     except pd.errors.EmptyDataError:
         return False
@@ -144,6 +143,5 @@ def merge_tracked_geojson(tracker: TileTracker) -> None:
         log.error(f"Found no file to merge in {tracker.root}.")
         return
     merged = merge_geojson(paths)
-    with open(merged_path, "w") as f:
-        json.dump(merged, f)
-        log.info(f"Merged geojson dataset into {merged_path}")
+    merged_path.write_text(json.dumps(merged))
+    log.info(f"Merged geojson dataset into {merged_path}")

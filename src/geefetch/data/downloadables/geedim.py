@@ -45,7 +45,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         filename = Path(filename)
         if filename.exists():
             if overwrite:
-                os.remove(filename)
+                filename.unlink()
             else:
                 raise FileExistsError(f"{filename} exists")
 

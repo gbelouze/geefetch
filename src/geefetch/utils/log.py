@@ -15,7 +15,7 @@ def setup(level: int = logging.NOTSET, logfile: Path | None = None) -> None:
     handlers = [RichHandler(markup=True)]
     install()
     if logfile is not None:
-        handlers.append(RichHandler(markup=True, console=Console(file=open(logfile, "a+"))))  # noqa: SIM115
+        handlers.append(RichHandler(markup=True, console=Console(file=logfile.open("a+"))))  # noqa: SIM115
     logging.basicConfig(
         level=max(logging.INFO, level), format=FORMAT, datefmt="[%X]", handlers=handlers
     )
