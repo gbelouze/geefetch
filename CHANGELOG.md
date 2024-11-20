@@ -28,7 +28,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 ### Fixed
 
 - Fix `geefetch` attempting to download collection after it was already split-downloaded [b9f5bb1](https://github.com/gbelouze/geefetch/commit/b9f5bb12d4caaf073bd69e50e36e48809966f3ad)
-- Fix timeseries download for Palsar-2.
+- Fix timeseries download for Palsar-2. [e777289c](https://github.com/gbelouze/geefetch/commit/e777289cc22f1d7551533abc2675e2747d51a8bd)
 
 ## [0.4.0](https://github.com/gbelouze/geefetch/compare/v0.4.0...v0.3.2) (2024-11-05)
 
