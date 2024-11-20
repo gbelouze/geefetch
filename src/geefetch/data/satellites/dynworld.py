@@ -77,6 +77,10 @@ class DynWorld(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+
+        Returns
+        -------
+        dynworld_col : ee.ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
@@ -104,6 +108,10 @@ class DynWorld(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype : DType
+            The data type for the image
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -136,7 +144,6 @@ class DynWorld(SatelliteABC):
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
-        buffer: float = 100,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Dynamic World cloud free collection.
@@ -150,8 +157,10 @@ class DynWorld(SatelliteABC):
         end_date : str
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
-        buffer : float, optional
-            Kernel size to dilate cloud/shadow patches.
+        dtype : DType
+            The data type for the image
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------

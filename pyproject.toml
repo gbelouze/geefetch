@@ -69,6 +69,7 @@ select = [
     # isort
     "I",
     # pydocstyle and pydoclint
+    # "D",
     "DOC",
     # flake8-use-pathlib
     "PTH",
@@ -89,6 +90,10 @@ convention = "numpy"
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*.py" = ["INP001"]
 "docs/**/*.py" = ["INP001"]
+
+[tool.pydoclint]
+style = "numpy"
+skip-checking-raises = true
 
 [tool.isort]
 profile = "black"

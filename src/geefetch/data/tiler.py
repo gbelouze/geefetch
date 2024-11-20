@@ -104,11 +104,12 @@ class Tiler:
             The area of interest.
         shape : int
             The desired side length for tiles (in meters).
-        crs : Optional[CRS], optional
+        crs : CRS | None
             The CRS in which to download data. If None, AOI is split in UTM zones and
             data is downloaded in their local UTM zones. Defaults to None.
-        filter_polygon : shapely.Polygon, optional
+        filter_polygon : shapely.Polygon | None
             If given, only yields tiles which WGS84 bounding boxes intersect the polygon.
+            Defaults to None.
 
         Yields
         ------

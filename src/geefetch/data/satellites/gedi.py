@@ -177,16 +177,18 @@ class GEDIvector(SatelliteABC):
 
         Parameters
         ----------
-        aoi : ee.Geometry
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
-        gedi_cols : ee.FeatureCollection
+        gedi_cols : DownloadableGEECollection
             A collection of GEDI points over the specified AOI and time period.
         """
         for key in kwargs:
@@ -286,6 +288,10 @@ class GEDIraster(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype: DType
+            The data type for the image.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -323,17 +329,21 @@ class GEDIraster(SatelliteABC):
 
         Parameters
         ----------
-        aoi : ee.Geometry
+        aoi : GeoBoundingBox
             Area of interest.
         start_date : str
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
             Percentage of cloud above which the whole image is filtered out.
+        dtype: DType
+            The data type for the image.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
-        gedi_col : ee.ImageCollection
+        gedi_col : DownloadableGeedimImage
             The GEDI collection of the specified AOI and time range.
         """
         for key in kwargs:

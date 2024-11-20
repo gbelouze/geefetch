@@ -30,7 +30,7 @@ class DownloadableABC(ABC):
             The CRS in which `region` is expressed and in which to express the data.
         bands : list[str]
             The bands (for images) or properties (for collections) to select for download.
-        **kwargs
+        **kwargs : Any
             Any additional necessary arguments.
         """
         ...

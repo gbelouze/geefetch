@@ -173,27 +173,29 @@ def download_time_series(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int, optional
+    max_tile_size : int
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error.
         Defaults to 10 Mb.
-    satellite_get_kwargs : Optional[dict[str, Any]], optional
+    satellite_get_kwargs : dict[str, Any] | None
         Satellite-dependent parameters for getting data. Defaults to None.
-    satellite_download_kwargs : Optional[dict[str, Any]], optional
+    satellite_download_kwargs : dict[str, Any] | None
         Satellite-dependent parameters for downloading data. Defaults to None.
-    check_clean : bool, optional
+    check_clean : bool
         Whether to check if the data is clean. Defaults to True.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    **kwargs : Any
+        Accepted but ignored additional arguments.
     """
     for kwarg in kwargs:
         log.warning(f"Argument {kwarg} is ignored.")
@@ -279,31 +281,32 @@ def download(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+        Defaults to None.
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int, optional
+    max_tile_size : int
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error.
         Defaults to 10 Mb.
-    satellite_get_kwargs : Optional[dict[str, Any]], optional
+    satellite_get_kwargs : dict[str, Any] | None
         Satellite-dependent parameters for getting data. Defaults to None.
-    satellite_download_kwargs : Optional[dict[str, Any]], optional
+    satellite_download_kwargs : dict[str, Any] | None
         Satellite-dependent parameters for downloading data. Defaults to None.
-    check_clean : bool, optional
+    check_clean : bool
         Whether to check if the data is clean. Defaults to True.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    in_parallel : bool, optional
+    in_parallel : bool
         Whether to send parallel download requests. Do not use if the download backend
         is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
-    max_workers : int, optional
+    max_workers : int
         How many parallel workers are used in case `in_parallel` is True. Defaults to 10.
     """
     if not data_dir.is_dir():
@@ -427,25 +430,25 @@ def download_gedi(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int, optional
+    max_tile_size : int
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
-    composite_method : CompositeMethod, optional
+    composite_method : CompositeMethod
         The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
         download data as a time series instead of turning it into a mosaic.
         Defaults to CompositeMethod.MEDIAN.
-    dtype : DType, optional
+    dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
@@ -498,18 +501,18 @@ def download_gedi_vector(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    format : Format, optional
+    format : Format
         Format in which to save the vector points. Defaults to Format.CSV.
     """
     download(
@@ -555,26 +558,28 @@ def download_s1(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int, optional
+    max_tile_size : int
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
-    composite_method : CompositeMethod, optional
+    composite_method : CompositeMethod
         The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
         download data as a time series instead of turning it into a mosaic.
         Defaults to CompositeMethod.MEDIAN.
-    dtype : DType, optional
+    dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    orbit : S1Orbit
+        The orbit used to filter Sentinel-1 images. Defaults to S1Orbit.ASCENDING.
     """
     download_func = (
         download_time_series if (composite_method == CompositeMethod.TIMESERIES) else download
@@ -630,30 +635,30 @@ def download_s2(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int, optional
+    max_tile_size : int
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
-    composite_method : CompositeMethod, optional
+    composite_method : CompositeMethod
         The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
         download data as a time series instead of turning it into a mosaic.
         Defaults to CompositeMethod.MEDIAN.
-    dtype : DType, optional
+    dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    cloudless_portion : int, optional
+    cloudless_portion : int
         Portion of the image expected to be cloudless.
         See :meth:`geefetch.data.s2.get`. Defaults to 60.
-    cloud_prb_thresh : int, optional
+    cloud_prb_thresh : int
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
     """
     download_func = (
@@ -709,25 +714,25 @@ def download_dynworld(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int, optional
+    max_tile_size : int
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
-    composite_method : CompositeMethod, optional
+    composite_method : CompositeMethod
         The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
         download data as a time series instead of turning it into a mosaic.
         Defaults to CompositeMethod.MEDIAN.
-    dtype : DType, optional
+    dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
@@ -781,25 +786,25 @@ def download_landsat8(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 30.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int, optional
+    max_tile_size : int
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
-    composite_method : CompositeMethod, optional
+    composite_method : CompositeMethod
         The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
         download data as a time series instead of turning it into a mosaic.
         Defaults to CompositeMethod.MEDIAN.
-    dtype : DType, optional
+    dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
@@ -852,26 +857,29 @@ def download_palsar2(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
-    selected_bands : Optional[List[str]], optional
+    selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
-    crs : Optional[CRS], optional
+    crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int, optional
+    resolution : int
         Resolution of the downloaded data, in meters. Defaults to 30.
-    tile_shape : int, optional
+    tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int, optional
+    max_tile_size : int
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
-    composite_method : CompositeMethod, optional
+    composite_method : CompositeMethod
         The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
         download data as a time series instead of turning it into a mosaic.
         Defaults to CompositeMethod.MEDIAN.
-    dtype : DType, optional
+    dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : Optional[shapely.Polygon], optional
+    filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    orbit : P2Orbit
+        The orbit used to filter Palsar-2 images. Defaults to P2Orbit.ASCENDING.
+
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download

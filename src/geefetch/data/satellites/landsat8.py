@@ -308,6 +308,10 @@ class Landsat8(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+
+        Returns
+        -------
+        landsat_col : ee.ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
@@ -337,6 +341,10 @@ class Landsat8(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype : DType
+            The data type for the image
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -386,6 +394,8 @@ class Landsat8(SatelliteABC):
         composite_method: CompositeMethod
         dtype: DType
             The data type for the image.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------

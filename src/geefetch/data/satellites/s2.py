@@ -89,11 +89,16 @@ class S2(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
-        cloudless_portion : int, optional
+        cloudless_portion : int
             Threshold for the portion of filled pixels that must be cloud/shadow free (%).
-            Images that do not fullfill the requirement are filtered out.
-        cloud_prb_thresh : int, optional
+            Images that do not fullfill the requirement are filtered out. Defaults to 60.
+        cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
+            Defaults to 30.
+
+        Returns
+        -------
+        s2_cloudless : ee.ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
@@ -154,6 +159,15 @@ class S2(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype: DType
+            The data type for the image.
+        cloudless_portion : int
+            Threshold for the portion of filled pixels that must be cloud/shadow free (%).
+            Images that do not fullfill the requirement are filtered out.
+        cloud_prb_thresh : int
+            Threshold for cloud probability above which a pixel is filtered out (%).
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -212,13 +226,15 @@ class S2(SatelliteABC):
         composite_method: CompositeMethod
         dtype: DType
             The data type for the image.
-        cloudless_portion : int, optional
+        cloudless_portion : int
             Threshold for the portion of filled pixels that must be cloud/shadow free (%).
             Images that do not fullfill the requirement are filtered out.
-        cloud_prb_thresh : int, optional
+        cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
-        buffer : float, optional
+        buffer : float
             Kernel size to dilate cloud/shadow patches.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------

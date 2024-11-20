@@ -73,7 +73,8 @@ def clean(tracker: TileTracker, is_clean: Callable[[Path], bool], max_threads: i
 
     Parameters
     ----------
-    is_clean: Callable[[Path, Tile], bool]
+    tracker : TileTracker
+    is_clean: Callable[[Path], bool]
         The filtering function, called on every registered tile to determined
         whether it should be kept.
     max_threads: int
@@ -83,6 +84,10 @@ def clean(tracker: TileTracker, is_clean: Callable[[Path], bool], max_threads: i
     -------
     int
         The number of removed files.
+
+    .. deprecated:: 0.4.0
+          `clean` will be removed in GeeFetch 0.5.0.
+
     """
     remove_count = 0
     paths = [path for path in iter(tracker)]

@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from geobbox import GeoBoundingBox
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from rasterio.crs import CRS
 
 from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
@@ -33,7 +32,7 @@ class GEEConfig:
         Your GEE id, to connect to the API.
 
         .. see also:: https://developers.google.com/earth-engine/apidocs/ee-initialize
-    max_tile_size : int, optional
+    max_tile_size : int
         Size constraint in MB for the request sent to GEE. This is heuristical and depends
         in general on what satellite you are interested in.
         Decrease if User Memory Excess Error, but choose highest possible otherwise. Defaults is 10.
@@ -53,7 +52,7 @@ class SpatialAOIConfig:
     right : float
     top : float
     bottom : float
-    epsg : int, optional
+    epsg : int
         EPSG code for the CRS in which the boundaries are given. If given,
         the downloaded data will be expressed in that same CRS.
         Defaults is 4326, corresponding to WGS84 (latitude, longitude).
@@ -99,7 +98,7 @@ class AOIConfig:
     ----------
     spatial : SpatialAOIConfig
     temporal : TemporalAOIConfig
-    country : Optional[str]
+    country : str | None
         The name of a country. If given, spatial AOI is further restricted to its area
         that intersects the country boundaries. Defaults to None.
 
@@ -133,6 +132,13 @@ class SatelliteDefaultConfig:
         The data type for downloaded images. Can be used to
         reduce file size and download speed at the cost of
         some loss of precision.
+    composite_method : CompositeMethod
+        The mosaicking method. Use CompositeMethod.TIMESERIES
+        to download time series instead of mosaicks. Defaults
+        to CompositeMethod.MEDIAN.
+    selected_bands : list[str] | None
+        The bands to download. If None, will use the satellite
+        default bands. Defaults to None.
     """
 
     aoi: AOIConfig
@@ -150,10 +156,11 @@ class GediConfig(SatelliteDefaultConfig):
 
     Attributes
     ----------
-    format : Filetype for downloading vector GEDI
+    format : Format
+        Filetype for downloading vector GEDI. Defaults to Format.PARQUET
     """
 
-    format: Format = Format.CSV
+    format: Format = Format.PARQUET
 
 
 @dataclass
@@ -170,10 +177,10 @@ class S2Config(SatelliteDefaultConfig):
 
     Attributes
     ----------
-    cloudless_portion : int, optional
+    cloudless_portion : int
         Threshold for the portion of filled pixels that must be cloud/shadow free (%).
         Images that do not fullfill the requirement are filtered out before mosaicking.
-    cloud_prb_thresh : int, optional
+    cloud_prb_threshold : int
         Threshold for cloud probability above which a pixel is filtered out (%).
     """
 
@@ -208,17 +215,17 @@ class GeefetchConfig:
         The path to store downloaded data.
     satellite_default : SatelliteDefaultConfig
         Default satellite configuration.
-    gedi : GediConfig
+    gedi : GediConfig | None
         GEDI specific configuration / variation to the default.
-    s1 : S1Config
+    s1 : S1Config | None
         Sentinel-1 specific configuration / variation to the default.
-    s2 : S2Config
+    s2 : S2Config | None
         Sentinel-2 specific configuration / variation to the default.
-    dynworld : DynWorldConfig
+    dynworld : DynWorldConfig | None
         Dynamic world specific configuration / variation to the default.
-    landsat8 : Landsat8Config
+    landsat8 : Landsat8Config | None
         Landsat 8 specific configuration / variation to the default.
-    palsar2 : Palsar2Config
+    palsar2 : Palsar2Config | None
         Palsar 2 specific configuration / variation to the default.
     """
 
@@ -235,12 +242,12 @@ class GeefetchConfig:
         self.data_dir = self.data_dir.expanduser().absolute()
 
 
-def post_omegaconf_load(config: Any) -> None:
+def post_omegaconf_load(config: DictConfig) -> None:
     """Updates in place the missing satellites config with the default.
 
     Parameters
     ----------
-    config : GeefetchConfig
+    config : DictConfig
         The config loaded by OmegaConf.
     """
     OmegaConf.resolve(config)

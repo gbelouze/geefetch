@@ -65,6 +65,12 @@ class Palsar2(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        orbit : P2Orbit
+            The orbit used to filter the collection before mosaicking.
+
+        Returns
+        -------
+        palsar2_col : ee.ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
@@ -96,6 +102,12 @@ class Palsar2(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype : DType
+            The data type for the image
+        orbit : P2Orbit
+            The orbit used to filter the collection before mosaicking.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -143,7 +155,14 @@ class Palsar2(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
-        composite_method: gd.CompositeMethod
+        composite_method: CompositeMethod
+            The method use to do mosaicking.
+        dtype : DType
+            The data type for the image
+        orbit : P2Orbit
+            The orbit used to filter the collection before mosaicking
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------

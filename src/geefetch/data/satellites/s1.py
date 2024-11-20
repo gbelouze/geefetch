@@ -57,6 +57,8 @@ class S1(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        orbit : S1Orbit
+            The orbit used to filter the collection.
 
         Returns
         -------
@@ -93,6 +95,12 @@ class S1(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
+        dtype : DType
+            The data type for the image
+        orbit : S1Orbit
+            The orbit used to filter the collection before mosaicking
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------
@@ -138,7 +146,14 @@ class S1(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
-        composite_method: gd.CompositeMethod
+        composite_method: CompositeMethod
+            The method use to do mosaicking.
+        dtype : DType
+            The data type for the image
+        orbit : S1Orbit
+            The orbit used to filter the collection before mosaicking
+        **kwargs : Any
+            Accepted but ignored additional arguments.
 
         Returns
         -------

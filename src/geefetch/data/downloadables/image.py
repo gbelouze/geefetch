@@ -60,16 +60,16 @@ class DownloadableGEEImage(DownloadableABC):
 
         Parameters
         ----------
-        collection : ee.FeatureCollection
-            The collection to download.
         out : Path
             Path to the geojson file to download the collection to.
-        bands : list[str]
-            Properties of the collection to select for download.
         region : GeoBoundingBox
             The ROI.
         crs : CRS
             The CRS to use for the features' geometries.
+        bands : list[str]
+            Properties of the collection to select for download.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
