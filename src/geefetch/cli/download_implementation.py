@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from thefuzz import process
 
+import geefetch.data.satellites as satellites
 from geefetch import data
 from geefetch.utils.config import git_style_diff
 from geefetch.utils.gee import auth
@@ -87,12 +88,15 @@ def download_gedi(config_path: Path, vector: bool) -> None:
     auth(config.gedi.gee.ee_project_id)
     bounds = config.gedi.aoi.spatial.as_bbox()
     if vector:
+        if config.gedi.selected_bands is None:
+            config.gedi.selected_bands = satellites.GEDIvector().default_selected_bands
         save_config(config.gedi, config.data_dir / "gedi_vector")
         data.get.download_gedi_vector(
             data_dir,
             bounds,
             config.gedi.aoi.temporal.start_date,
             config.gedi.aoi.temporal.end_date,
+            config.gedi.selected_bands,
             crs=(
                 CRS.from_epsg(config.gedi.aoi.spatial.epsg)
                 if config.gedi.aoi.spatial.epsg != 4326
@@ -108,12 +112,15 @@ def download_gedi(config_path: Path, vector: bool) -> None:
             format=config.gedi.format,
         )
     else:
+        if config.gedi.selected_bands is None:
+            config.gedi.selected_bands = satellites.GEDIraster().default_selected_bands
         save_config(config.gedi, config.data_dir / "gedi_raster")
         data.get.download_gedi(
             data_dir,
             bounds,
             config.gedi.aoi.temporal.start_date,
             config.gedi.aoi.temporal.end_date,
+            config.gedi.selected_bands,
             crs=(
                 CRS.from_epsg(config.gedi.aoi.spatial.epsg)
                 if config.gedi.aoi.spatial.epsg != 4326
@@ -138,6 +145,8 @@ def download_s1(config_path: Path) -> None:
         raise RuntimeError(
             "Sentinel-1 is not configured. Pass `s1: {}` in the config file to use `satellite_default`."
         )
+    if config.s1.selected_bands is None:
+        config.s1.selected_bands = satellites.S1().default_selected_bands
     save_config(config.s1, config.data_dir / "s1")
 
     data_dir = Path(config.data_dir)
@@ -148,6 +157,7 @@ def download_s1(config_path: Path) -> None:
         bounds,
         config.s1.aoi.temporal.start_date,
         config.s1.aoi.temporal.end_date,
+        config.s1.selected_bands,
         crs=(
             CRS.from_epsg(config.s1.aoi.spatial.epsg)
             if config.s1.aoi.spatial.epsg != 4326
@@ -174,6 +184,8 @@ def download_s2(config_path: Path) -> None:
         raise RuntimeError(
             "Sentinel-2 is not configured. Pass `s2: {}` in the config file to use `satellite_default`."
         )
+    if config.s2.selected_bands is None:
+        config.s2.selected_bands = satellites.S2().default_selected_bands
     save_config(config.s2, config.data_dir / "s2")
 
     data_dir = Path(config.data_dir)
@@ -184,6 +196,7 @@ def download_s2(config_path: Path) -> None:
         bounds,
         config.s2.aoi.temporal.start_date,
         config.s2.aoi.temporal.end_date,
+        config.s2.selected_bands,
         crs=(
             CRS.from_epsg(config.s2.aoi.spatial.epsg)
             if config.s2.aoi.spatial.epsg != 4326
@@ -211,6 +224,8 @@ def download_dynworld(config_path: Path) -> None:
         raise RuntimeError(
             "Dynamic World is not configured. Pass `dynworld: {}` in the config file to use `satellite_default`."
         )
+    if config.dynworld.selected_bands is None:
+        config.dynworld.selected_bands = satellites.DynWorld().default_selected_bands
     save_config(config.dynworld, config.data_dir / "dyn_world")
 
     data_dir = Path(config.data_dir)
@@ -221,6 +236,7 @@ def download_dynworld(config_path: Path) -> None:
         bounds,
         config.dynworld.aoi.temporal.start_date,
         config.dynworld.aoi.temporal.end_date,
+        config.dynworld.selected_bands,
         crs=(
             CRS.from_epsg(config.dynworld.aoi.spatial.epsg)
             if config.dynworld.aoi.spatial.epsg != 4326
@@ -246,6 +262,8 @@ def download_landsat8(config_path: Path) -> None:
         raise RuntimeError(
             "Landsat 8 is not configured. Pass `landsat8: {}` in the config file to use `satellite_default`."
         )
+    if config.landsat8.selected_bands is None:
+        config.landsat8.selected_bands = satellites.Landsat8().default_selected_bands
     save_config(config.landsat8, config.data_dir / "landsat8")
     data_dir = Path(config.data_dir)
     auth(config.landsat8.gee.ee_project_id)
@@ -255,6 +273,7 @@ def download_landsat8(config_path: Path) -> None:
         bounds,
         config.landsat8.aoi.temporal.start_date,
         config.landsat8.aoi.temporal.end_date,
+        config.landsat8.selected_bands,
         crs=(
             CRS.from_epsg(config.landsat8.aoi.spatial.epsg)
             if config.landsat8.aoi.spatial.epsg
@@ -281,6 +300,8 @@ def download_palsar2(config_path: Path) -> None:
         raise RuntimeError(
             "Palsar 2 is not configured. Pass `palsar2: {}` in the config file to use `satellite_default`."
         )
+    if config.palsar2.selected_bands is None:
+        config.palsar2.selected_bands = satellites.Palsar2().default_selected_bands
     save_config(config.palsar2, config.data_dir / "palsar2")
     data_dir = Path(config.data_dir)
     auth(config.palsar2.gee.ee_project_id)
@@ -290,6 +311,7 @@ def download_palsar2(config_path: Path) -> None:
         bounds,
         config.palsar2.aoi.temporal.start_date,
         config.palsar2.aoi.temporal.end_date,
+        config.palsar2.selected_bands,
         crs=(
             CRS.from_epsg(config.palsar2.aoi.spatial.epsg)
             if config.palsar2.aoi.spatial.epsg
@@ -325,3 +347,9 @@ def download_all(config_path: Path) -> None:
     if config.dynworld is not None:
         log.info("Downloading Dynamic World data.")
         download_dynworld(config_path)
+    if config.palsar2 is not None:
+        log.info("Downloading Palsar-2 data.")
+        download_palsar2(config_path)
+    if config.landsat8 is not None:
+        log.info("Downloading Landsat-8 data.")
+        download_landsat8(config_path)

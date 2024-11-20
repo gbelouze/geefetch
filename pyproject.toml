@@ -51,6 +51,8 @@ dev = [
     "mypy",
     "pytest",
     "pre-commit",
+    "types-retry",
+    "types-requests"
 ]
 doc = [
     "sphinx",

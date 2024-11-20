@@ -87,6 +87,7 @@ class S1Orbit(Enum):
 
     ASCENDING = "ASCENDING"
     DESCENDING = "DESCENDING"
+    BOTH = "BOTH"
 
 
 class P2Orbit(Enum):

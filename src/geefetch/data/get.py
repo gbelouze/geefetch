@@ -1,7 +1,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
 import shapely
 from geobbox import GeoBoundingBox
@@ -73,11 +73,16 @@ def download_chip_ts(
     satellite: SatelliteABC,
     scale: int,
     out: Path,
+    selected_bands: Optional[List[str]] = None,
     progress: Optional[Progress] = None,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = satellite.selected_bands
+    bands = (
+        selected_bands
+        if selected_bands is not None
+        else satellite.default_selected_bands
+    )
     data = data_get_lazy(**data_get_kwargs)
 
     try:
@@ -105,11 +110,16 @@ def download_chip(
     satellite: SatelliteABC,
     scale: int,
     out: Path,
+    selected_bands: Optional[List[str]] = None,
     check_clean: bool = True,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = satellite.selected_bands
+    bands = (
+        selected_bands
+        if selected_bands is not None
+        else satellite.default_selected_bands
+    )
     if out.exists():
         log.debug(f"Found feature chip [cyan]{out}[/]. Skipping download.")
         return out
@@ -143,6 +153,7 @@ def download_time_series(
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
@@ -169,6 +180,8 @@ def download_time_series(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
@@ -215,7 +228,11 @@ def download_time_series(
 
         for tile in tiles:
             data_get_kwargs = (
-                dict(aoi=tile, start_date=start_date, end_date=end_date)
+                dict(
+                    aoi=tile,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
                 | satellite_get_kwargs
             )
             tile_path = tracker.get_path(
@@ -229,6 +246,7 @@ def download_time_series(
                 resolution,
                 tile_path.with_name(tile_path.stem),
                 progress=progress,
+                selected_bands=selected_bands,
                 max_tile_size=max_tile_size,
                 **satellite_download_kwargs,
             )
@@ -246,6 +264,7 @@ def download(
     satellite: SatelliteABC,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
@@ -273,6 +292,8 @@ def download(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
@@ -343,6 +364,7 @@ def download(
                         resolution,
                         tile_path,
                         progress=progress,
+                        selected_bands=selected_bands,
                         max_tile_size=max_tile_size,
                         check_clean=check_clean,
                         **satellite_download_kwargs,
@@ -358,6 +380,7 @@ def download(
                         resolution,
                         tile_path,
                         progress=progress,
+                        selected_bands=selected_bands,
                         max_tile_size=max_tile_size,
                         check_clean=check_clean,
                         **satellite_download_kwargs,
@@ -402,6 +425,7 @@ def download_gedi(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
@@ -423,6 +447,8 @@ def download_gedi(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
@@ -474,6 +500,7 @@ def download_gedi_vector(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     tile_shape: int = 500,
     resolution: int = 10,
@@ -493,6 +520,8 @@ def download_gedi_vector(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
@@ -525,6 +554,7 @@ def download_s1(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
@@ -547,6 +577,8 @@ def download_s1(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
@@ -598,6 +630,7 @@ def download_s2(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
@@ -621,6 +654,8 @@ def download_s2(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
@@ -678,6 +713,7 @@ def download_dynworld(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     resolution: int = 10,
     tile_shape: int = 500,
@@ -699,6 +735,8 @@ def download_dynworld(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
@@ -749,6 +787,7 @@ def download_landsat8(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     resolution: int = 30,
     tile_shape: int = 500,
@@ -770,6 +809,8 @@ def download_landsat8(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
@@ -818,6 +859,7 @@ def download_palsar2(
     bbox: GeoBoundingBox,
     start_date: str,
     end_date: str,
+    selected_bands: Optional[List[str]] = None,
     crs: Optional[CRS] = None,
     resolution: int = 30,
     tile_shape: int = 500,
@@ -840,6 +882,8 @@ def download_palsar2(
         The start date of the time period of interest.
     end_date : str
         The end date of the time period of interest.
+    selected_bands : Optional[List[str]], optional
+        The bands to download. If None, the default satellite bands are used.
     crs : Optional[CRS], optional
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.

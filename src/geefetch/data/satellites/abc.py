@@ -15,7 +15,11 @@ class SatelliteABC(ABC):
 
     @abstractmethod
     def get(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str, **kwargs: Any
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str,
+        end_date: str,
+        **kwargs: Any,
     ) -> DownloadableABC:
         """Get downloadable data. It is up to the caller to make sure the computation will stay within the compute
         resource limit, e.g. if Google Earth Engine is used as a backend.
@@ -24,7 +28,11 @@ class SatelliteABC(ABC):
 
     @abstractmethod
     def get_time_series(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str, **kwargs: Any
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str,
+        end_date: str,
+        **kwargs: Any,
     ) -> DownloadableABC:
         """Get downloadable data to fetch time series. It is up to the caller to make sure the computation will stay
         within the compute resource limit, e.g. if Google Earth Engine is used as a backend.
@@ -39,8 +47,8 @@ class SatelliteABC(ABC):
 
     @property
     @abstractmethod
-    def selected_bands(self) -> List[str]:
-        """List of selected satellite bands."""
+    def default_selected_bands(self) -> List[str]:
+        """List of default selected satellite bands."""
         ...
 
     @property

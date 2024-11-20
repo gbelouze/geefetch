@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, List
 
 import ee
 from geobbox import GeoBoundingBox
@@ -29,7 +29,7 @@ class DynWorld(SatelliteABC):
         "snow_and_ice",
         "label",
     ]
-    _selected_bands = [
+    _default_selected_bands = [
         "water",
         "trees",
         "grass",
@@ -42,12 +42,12 @@ class DynWorld(SatelliteABC):
     ]
 
     @property
-    def bands(self):
+    def bands(self) -> List[str]:
         return self._bands
 
     @property
-    def selected_bands(self):
-        return self._selected_bands
+    def default_selected_bands(self) -> List[str]:
+        return self._default_selected_bands
 
     @property
     def pixel_range(self):

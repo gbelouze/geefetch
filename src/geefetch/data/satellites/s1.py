@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, List
 
 import ee
 from geobbox import GeoBoundingBox
@@ -18,15 +18,15 @@ __all__ = ["S1"]
 
 class S1(SatelliteABC):
     _bands = ["HH", "HV", "VV", "VH", "angle"]
-    _selected_bands = ["VV", "VH"]
+    _default_selected_bands = ["VV", "VH"]
 
     @property
-    def bands(self):
+    def bands(self) -> List[str]:
         return self._bands
 
     @property
-    def selected_bands(self):
-        return self._selected_bands
+    def default_selected_bands(self) -> List[str]:
+        return self._default_selected_bands
 
     @property
     def pixel_range(self):
@@ -85,7 +85,6 @@ class S1(SatelliteABC):
             .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VH"))
             .filter(ee.Filter.eq("instrumentMode", "IW"))
             .filter(ee.Filter.eq("orbitProperties_pass", orbit.value))
-            .select(self.selected_bands)
         )
 
     def get_time_series(
