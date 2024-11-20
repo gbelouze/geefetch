@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -21,7 +22,8 @@ def gee_project_id() -> str:
     match os.getenv(GEE_PROJECT_ID_ENV_NAME):
         case None:
             pytest.fail(
-                f"Did not find {GEE_PROJECT_ID_ENV_NAME} in the environment. Cannot query Google Earth Engine."
+                f"Did not find {GEE_PROJECT_ID_ENV_NAME} in the environment. "
+                "Cannot query Google Earth Engine."
             )
         case _ as project_id:
             assert isinstance(project_id, str)
@@ -29,15 +31,12 @@ def gee_project_id() -> str:
 
 
 @pytest.fixture
-def paris_config_path(
-    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
-) -> Path:
+def paris_config_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str) -> Path:
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
 
     conf_path = tmp_path / "config.yaml"
-    with open(conf_path, "w+") as conf_file:
-        conf_file.write(OmegaConf.to_yaml(raw_paris_config))
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     return conf_path
 
 
@@ -50,8 +49,7 @@ def paris_timeseriesconfig_path(
     raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
 
     conf_path = tmp_path / "config.yaml"
-    with open(conf_path, "w+") as conf_file:
-        conf_file.write(OmegaConf.to_yaml(raw_paris_config))
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     return conf_path
 
 
@@ -64,6 +62,7 @@ def paris_config(paris_config_path: Path) -> GeefetchConfig:
 def paris_timeseries_config(paris_config_path: Path) -> GeefetchConfig:
     config = load(paris_config_path)
     config.satellite_default.composite_method = CompositeMethod.TIMESERIES
+    return config
 
 
 # ----
@@ -72,9 +71,7 @@ def paris_timeseries_config(paris_config_path: Path) -> GeefetchConfig:
 
 
 def pytest_addoption(parser):
-    parser.addoption(
-        "--run-slow", action="store_true", help="Don't skip tests marked with @slow"
-    )
+    parser.addoption("--run-slow", action="store_true", help="Don't skip tests marked with @slow")
 
 
 def pytest_runtest_setup(item):
@@ -83,3 +80,18 @@ def pytest_runtest_setup(item):
 
 
 # ---
+# Configure logging
+
+
+def pytest_configure(config):
+    """Disable the loggers."""
+    for logger_name in [
+        "google",
+        "urllib3",
+        "googleapiclient",
+        "rasterio",
+        "geedim",
+        "patched_geedim",
+    ]:
+        logger = logging.getLogger(logger_name)
+        logger.propagate = False
