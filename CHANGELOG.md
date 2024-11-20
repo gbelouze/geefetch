@@ -17,6 +17,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Add a `__main__.py` file to call the CLI with `python -m geefetch` [3c9b0c7](https://github.com/gbelouze/geefetch/commit/3c9b0c74833353dd8e048b59dd244f57ef89034b)
 - Add tests in `tests/` using pytest [2c12ebc](https://github.com/gbelouze/geefetch/commit/2c12ebc261617f864e7f8a996fd0725d2d46c731)
 - Add tests for timeseries download [5e6928a](https://github.com/gbelouze/geefetch/commit/5e6928a49e61a580985e4180b258874e5e9324d4)
+- Add option to configure downloaded bands [3c2e600](https://github.com/gbelouze/geefetch/commit/3c2e600da02aa98be5ebc0b4c4630d2708cd7f70)
 - Add rules for linting with `ruff` and `pydoclint` [1b2ac36](https://github.com/gbelouze/geefetch/commit/1b2ac36bac64aa0c1dedb8beaa087559cd52d9fe)
 
 ### Changed
