@@ -185,14 +185,10 @@ class S2Config(SatelliteDefaultConfig):
 class DynWorldConfig(SatelliteDefaultConfig):
     """The structured type for configuring Dynamic World."""
 
-    pass
-
 
 @dataclass
 class Landsat8Config(SatelliteDefaultConfig):
     """The structured type for configuring Landsat 8."""
-
-    pass
 
 
 @dataclass
@@ -200,7 +196,6 @@ class Palsar2Config(SatelliteDefaultConfig):
     """The structured type for configuring Landsat 8."""
 
     orbit: P2Orbit = P2Orbit.DESCENDING
-    pass
 
 
 @dataclass
@@ -249,8 +244,6 @@ def post_omegaconf_load(config: Any) -> None:
         The config loaded by OmegaConf.
     """
     OmegaConf.resolve(config)
-    if config.satellite_default.selected_bands is not None:
-        raise ValueError("Selected bands should be specified for default satellite.")
     config.gedi = (
         OmegaConf.merge(OmegaConf.structured(GediConfig), config.satellite_default, config.gedi)
         if "gedi" in config
@@ -306,4 +299,6 @@ def load(path: Path) -> GeefetchConfig:
     post_omegaconf_load(from_yaml)
     from_structured = OmegaConf.structured(GeefetchConfig)
     merged = OmegaConf.merge(from_structured, from_yaml)
+    if merged.satellite_default.selected_bands is not None:
+        raise ValueError("Selected bands should not be specified for default satellite.")
     return OmegaConf.to_object(merged)  # type: ignore

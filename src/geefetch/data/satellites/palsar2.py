@@ -118,7 +118,7 @@ class Palsar2(SatelliteABC):
                 # aoi intersects im
                 im = ee.Image(id_)
                 im = self.convert_image(im, dtype)
-                images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")] = PatchedBaseImage(
+                images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = PatchedBaseImage(
                     im
                 )
         return DownloadableGeedimImageCollection(images)

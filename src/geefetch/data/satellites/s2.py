@@ -107,8 +107,8 @@ class S2(SatelliteABC):
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
             .filter(
-                f"CLOUDY_PIXEL_PERCENTAGE<={100-cloudless_portion} && "
-                f"HIGH_PROBA_CLOUDS_PERCENTAGE<={(100-cloudless_portion)//2}"
+                f"CLOUDY_PIXEL_PERCENTAGE<={100 - cloudless_portion} && "
+                f"HIGH_PROBA_CLOUDS_PERCENTAGE<={(100 - cloudless_portion) // 2}"
             )
         )
 
@@ -236,7 +236,6 @@ class S2(SatelliteABC):
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
         )
-        min_p, max_p = self.pixel_range
         s2_im = composite_method.transform(s2_cloudless).clip(bounds)
         s2_im = self.convert_image(s2_im, dtype)
         s2_im = PatchedBaseImage(s2_im)

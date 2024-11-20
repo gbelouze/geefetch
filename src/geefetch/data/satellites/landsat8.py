@@ -396,7 +396,6 @@ class Landsat8(SatelliteABC):
             log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         landsat_col = self.get_col(aoi, start_date, end_date)
-        min_p, max_p = self.pixel_range
         landsat_im = composite_method.transform(landsat_col).clip(bounds)
         landsat_im = self.convert_image(landsat_im, dtype)
         landsat_im = PatchedBaseImage(landsat_im)

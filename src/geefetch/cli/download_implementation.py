@@ -47,7 +47,7 @@ def load_country_filter_polygon(country: str) -> shapely.Polygon:
     log.debug(f"Country borders is downloaded to {country_borders_path}")
     country_borders = geopandas.read_file(country_borders_path)
     if country not in country_borders.name.values:
-        best_match, match_score = process.extractOne(country, country_borders.name.values)
+        best_match, _ = process.extractOne(country, country_borders.name.values)
         raise ValueError(f"Unknown country {country}. Did you mean {best_match} ?")
     country_borders = country_borders[country_borders.name == country].iloc[0].geometry
     return get_mainland_geometry(country_borders)

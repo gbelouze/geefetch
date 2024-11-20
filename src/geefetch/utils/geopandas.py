@@ -6,7 +6,7 @@ import pandas as pd
 
 from ..utils.rasterio import WGS84
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 def merge_parquet(paths: list[Path]) -> gpd.GeoDataFrame:

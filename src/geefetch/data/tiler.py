@@ -110,9 +110,9 @@ class Tiler:
         filter_polygon : shapely.Polygon, optional
             If given, only yields tiles which WGS84 bounding boxes intersect the polygon.
 
-        Returns
-        -------
-        List[GeoBoundingBox]
+        Yields
+        ------
+        GeoBoundingBox
         """
         if crs is not None and crs.units_factor[0] != "metre":
             log.warning("Using a tiler with non-metric CRS.")

@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack
@@ -231,6 +232,8 @@ class DownloadableGeedimImage(DownloadableABC):
 class DownloadableGeedimImageCollection(DownloadableABC):
     """Wrapper to download a collection of geedim images."""
 
+    IMAGE_ID_REGEXP = r"[a-zA-Z0-9_-]+"
+
     def __init__(self, id_to_images: dict[str, PatchedBaseImage]):
         self.id_to_images = id_to_images
 
@@ -264,6 +267,11 @@ class DownloadableGeedimImageCollection(DownloadableABC):
                 total=len(self.id_to_images),
             )
             for id_, image in self.id_to_images.items():
+                if not re.fullmatch(DownloadableGeedimImageCollection.IMAGE_ID_REGEXP, id_):
+                    raise ValueError(
+                        f"Image id {id_} is not valid "
+                        "(should be alphanumeric, optionally using underscores/dashes)."
+                    )
                 dst_path = out / f"{id_}.tif"
                 if dst_path.exists():
                     log.debug(f"Found existing {dst_path}. Skipping download.")

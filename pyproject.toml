@@ -68,12 +68,27 @@ select = [
     "SIM",
     # isort
     "I",
+    # pydocstyle and pydoclint
+    "DOC",
     # flake8-use-pathlib
-    "PTH"
+    "PTH",
+    # flake8-logging
+    "LOG",
+    # flake8-no-pep420
+    "INP",
+    "PIE",
+    "T20",
+    # pytest
+    "PT",
 ]
+ignore = ["DOC501", "DOC201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*.py" = ["INP001"]
+"docs/**/*.py" = ["INP001"]
 
 [tool.isort]
 profile = "black"

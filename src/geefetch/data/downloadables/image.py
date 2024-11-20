@@ -78,7 +78,7 @@ class DownloadableGEEImage(DownloadableABC):
 
         # get image download url and response
         image = self.image
-        response, url = self._get_download_url(image, bands, region, gee_crs)
+        response, _ = self._get_download_url(image, bands, region, gee_crs)
 
         download_size = int(response.headers.get("content-length", 0))
 

@@ -12,7 +12,7 @@ from rich.progress import (
 __all__ = ["default_bar", "disable_progress"]
 
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 def disable_progress() -> bool:
@@ -40,4 +40,4 @@ def default_bar() -> Progress:
 
 
 if __name__ == "__main__":
-    print(disable_progress())
+    log.info(f"{disable_progress()=}")
