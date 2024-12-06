@@ -24,7 +24,7 @@ dependencies = [
     "click",
     "earthengine-api",
     "geedim",
-    "geobbox>=0.0.4",
+    "geobbox@git+https://github.com/gbelouze/geobbox@dev",
     "geopandas>=1.0.1",
     "jsons",
     "numpy",
