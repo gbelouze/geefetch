@@ -11,7 +11,7 @@ def auth(project: str) -> None:
     project : str
         Google Earth Engine project id.
     """
-    ee.Authenticate(auth_mode="appdefault")
+    ee.Authenticate()
     ee.Initialize(
         project=project,
         opt_url="https://earthengine-highvolume.googleapis.com",
