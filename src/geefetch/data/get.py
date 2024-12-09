@@ -131,12 +131,18 @@ def download_chip(
     except Exception as e:
         log.error(f"Failed to download chip to {out}: {e}")
         raise DownloadError from e
-    if satellite.is_raster and check_clean and not tif_is_clean(out):
-        log.error(f"Tif file {out} contains missing data.")
-        raise BadDataError
-    if satellite.is_vector and check_clean and not vector_is_clean(out):
-        log.error(f"Geojson file {out} contains no data.")
-        raise BadDataError
+    if satellite.is_raster and not tif_is_clean(out):
+        if check_clean:
+            log.error(f"Tif file {out} contains missing data.")
+            raise BadDataError
+        else:
+            log.warn(f"Tif file {out} contains missing data")
+    if satellite.is_vector and not vector_is_clean(out):
+        if check_clean:
+            log.error(f"Vector file {out} contains no data.")
+            raise BadDataError
+        else:
+            log.warn(f"Vector file {out} contains no data.")
     return out
 
 
@@ -526,6 +532,7 @@ def download_gedi_vector(
         resolution=resolution,
         filter_polygon=filter_polygon,
         in_parallel=False,
+        check_clean=False,
         satellite_download_kwargs={"format": format},
     )
 
