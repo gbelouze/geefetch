@@ -24,7 +24,7 @@ dependencies = [
     "click",
     "earthengine-api",
     "geedim",
-    "geobbox>=0.0.2",
+    "geobbox>=0.1.0",
     "geopandas>=1.0.1",
     "jsons",
     "numpy",
@@ -45,7 +45,15 @@ source = "https://github.com/gbelouze/geefetch"
 tracker = "https://github.com/gbelouze/geefetch/issues"
 
 [project.optional-dependencies]
-dev = ["mypy", "pytest", "pre-commit", "types-retry", "types-requests"]
+dev = [
+    "mypy",
+    "pytest",
+    "pre-commit",
+    "ruff",
+    "types-retry",
+    "types-requests",
+    "pydoclint[flake8]",
+]
 doc = ["sphinx", "sphinx_rtd_theme", "sphinxcontrib-napoleon", "sphinx-click"]
 
 [project.scripts]
@@ -109,23 +117,6 @@ markers = ["slow"]
 log_cli = true
 log_cli_level = "DEBUG"
 log_level = "DEBUG"
-
-[tool.black]
-line-length = 88
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
 
 [tool.mypy]
 python_version = "3.11"

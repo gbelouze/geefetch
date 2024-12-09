@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fixed" and "Security".
 
+## [0.4.2](https://github.com/gbelouze/geefetch/compare/v0.4.2...v0.4.1) (2024-12-09)
+
+### Fixed
+
+- Use the latest `ee.Authenticate` API [fdf1086](https://github.com/gbelouze/geefetch/commit/fdf1086d48aaa71f41f368385c5ab08fc93b40d9)
+
+### Changed
+
+- Updated `geobbox` version dependency to `0.1.0`
+- Don't fail on missing `GEDI` data [3ba99d1](https://github.com/gbelouze/geefetch/commit/3ba99d176136db50437ba0f68697b1872305dfb7)
+
 ## [0.4.1](https://github.com/gbelouze/geefetch/compare/v0.4.1...v0.4.0) (2024-11-20)
 
 ### Added
