@@ -80,6 +80,7 @@ def download_chip_ts(
 ) -> Path:
     """Download a specific chip of data from the satellite."""
     bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
+    satellite.check_selected_bands(bands)
     data = data_get_lazy(**data_get_kwargs)
 
     try:
