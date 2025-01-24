@@ -1,0 +1,32 @@
+name: default
+
+on:
+  # run when pr on main branch
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  pre-commit_and_changelog:
+    name: pre-commit_and_changelog
+    runs-on: ubuntu-latest
+    defaults:  # this is necessary
+      run:
+        shell: bash -l {0}
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+      - name: run pre-commit
+        uses: pre-commit/action@v3.0.1
+      - name: check changelog
+        uses: tarides/changelog-check-action@v2
+        with:
+          changelog: CHANGELOG.md
+
+  test_installation:
+    name: test_installation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+      - name: test installation
+        uses: ./.github/actions/test_installation
