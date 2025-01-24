@@ -12,7 +12,43 @@ from geefetch.cli.download_implementation import (
     download_s1,
     download_s2,
 )
-from geefetch.cli.omegaconfig import load
+from geefetch.cli.omegaconfig import GeefetchConfig, load
+from geefetch.utils.enums import CompositeMethod
+
+
+@pytest.fixture
+def paris_config_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str) -> Path:
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
+def paris_timeseriesconfig_path(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+) -> Path:
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
+
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
+def paris_config(paris_config_path: Path) -> GeefetchConfig:
+    return load(paris_config_path)
+
+
+@pytest.fixture
+def paris_timeseries_config(paris_config_path: Path) -> GeefetchConfig:
+    config = load(paris_config_path)
+    config.satellite_default.composite_method = CompositeMethod.TIMESERIES
+    return config
 
 
 @pytest.fixture
@@ -30,10 +66,22 @@ def paris_config_all_s1_bands_path(
 
 def test_download_s1(paris_config_path: Path):
     download_s1(paris_config_path)
+    conf = load(paris_config_path)
+    downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+    assert len(downloaded_files) == 1
+    assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
 
 
 def test_download_timeseries_s1(paris_timeseriesconfig_path: Path):
     download_s1(paris_timeseriesconfig_path)
+    conf = load(paris_timeseriesconfig_path)
+    downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.tif")))
+    assert len(downloaded_files) == 5
+    assert downloaded_files[0].parts[-3:] == (
+        "s1",
+        "s1_EPSG2154_650000_6860000",
+        "S1A_IW_GRDH_1SDV_20200111T174030_20200111T174055_030756_0386DC_869A.tif",
+    )
 
 
 def test_select_bands_s1(paris_config_all_s1_bands_path: Path):
@@ -46,6 +94,17 @@ def test_select_bands_s1(paris_config_all_s1_bands_path: Path):
             band_tags = ds.tags(band_idx)
             band_name = band_tags.get("name", f"Unknown name for band {band_idx}")
             assert target_band_name == band_name
+
+
+def test_download_gedi_vector(paris_config_path: Path):
+    download_gedi(paris_config_path, vector=True)
+    conf = load(paris_config_path)
+    downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.parquet")))
+    assert len(downloaded_files) == 2
+    assert downloaded_files[0].parts[-2:] == (
+        "gedi_vector",
+        "gedi_vector_EPSG2154_650000_6860000.parquet",
+    )
 
 
 @pytest.mark.slow
@@ -66,10 +125,6 @@ def test_download_dynworld(paris_config_path: Path):
 @pytest.mark.slow
 def test_download_timeseries_dynworld(paris_timeseriesconfig_path: Path):
     download_dynworld(paris_timeseriesconfig_path)
-
-
-def test_download_gedi_vector(paris_config_path: Path):
-    download_gedi(paris_config_path, vector=True)
 
 
 @pytest.mark.slow
