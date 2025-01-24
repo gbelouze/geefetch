@@ -9,7 +9,7 @@ runs:
     - name: Set up conda env
       uses: conda-incubator/setup-miniconda@v3
       with:
-        activate-environment: anaconda-client-env
+        activate-environment: geefetch-env
         environment-file: environment.yml
     - name: Pip install
       shell: bash -l {0}

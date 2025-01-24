@@ -22,11 +22,11 @@ jobs:
         with:
           changelog: CHANGELOG.md
 
-  install_and_test:
-    name: install_and_test
+  test_installation:
+    name: test_installation
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
         uses: actions/checkout@v3
-      - name: install and test
-        uses: ./.github/actions/install_and_test
+      - name: test installation
+        uses: ./.github/actions/test_installation
