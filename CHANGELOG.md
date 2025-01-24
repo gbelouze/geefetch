@@ -10,10 +10,13 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ## pre-release
 
+### Added
+
+- Set up Github actions for formatting, tracking CHANGELOG and testing `geefetch` installation [15652c1](https://github.com/gbelouze/geefetch/commit/15652c1c6bb4ac4415cd23c76437510824addb9c)
+
 ### Fixed
 
 - Forward the selected bands specified in the config to the downloader [f4a838c](https://github.com/gbelouze/geefetch/commit/f4a838ced47994ead899e8b5e8bd8104ea5e24c7)
-
 
 ## [0.4.2](https://github.com/gbelouze/geefetch/compare/v0.4.2...v0.4.1) (2024-12-09)
 
