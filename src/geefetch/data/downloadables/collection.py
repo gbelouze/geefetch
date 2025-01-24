@@ -68,7 +68,10 @@ class DownloadableGEECollection(DownloadableABC):
         for key in kwargs:
             if key not in ["scale", "progress", "max_tile_size"]:
                 log.warning(f"Argument {key} is ignored.")
-        return self._recursively_download(out, region, crs, bands, format)
+        tmp_out = out.with_suffix(f".tmp.{out.suffix}")
+        tmp_out.unlink(missing_ok=True)
+        self._recursively_download(tmp_out, region, crs, bands, format)
+        tmp_out.replace(out)
 
     def _recursively_download(
         self,
