@@ -46,6 +46,7 @@ class S1(SatelliteABC):
         start_date: str,
         end_date: str,
         orbit: S1Orbit = S1Orbit.ASCENDING,
+        selected_bands: list[str] | None = None,
     ) -> ee.ImageCollection:
         """Get Sentinel-1 collection.
 
@@ -59,6 +60,8 @@ class S1(SatelliteABC):
             End date in "YYYY-MM-DD" format.
         orbit : S1Orbit
             The orbit used to filter the collection.
+        selected_bands : list[str] | None
+            The bands to be downloaded.
 
         Returns
         -------
@@ -66,12 +69,37 @@ class S1(SatelliteABC):
             A Sentinel-1 collection of the specified AOI and time range.
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
+        selected_bands = self.default_selected_bands if selected_bands is None else selected_bands
+        self.check_selected_bands(selected_bands)
+
+        # Only accepted combination are [VV], [HH], [HH, HV] or [VV, VH]
+        if (
+            "VV" in selected_bands
+            and ("HH" in selected_bands or "HV" in selected_bands)
+            or "HH" in selected_bands
+            and "VH" in selected_bands
+            or "VH" in selected_bands
+            and "VV" not in selected_bands
+            or "HV" in selected_bands
+            and "HH" not in selected_bands
+        ):
+            raise ValueError(
+                "Only polarization band combination accepted for Sentinel-1 are "
+                "[VV], [HH], [HH, HV] or [VV, VH]"
+            )
+
+        band_filter = ee.Filter.And(
+            *[
+                ee.Filter.listContains("transmitterReceiverPolarisation", band)
+                for band in selected_bands
+                if band != "angle"
+            ]
+        )
         return (  # type: ignore[no-any-return]
             ee.ImageCollection("COPERNICUS/S1_GRD")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
-            .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
-            .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VH"))
+            .filter(band_filter)
             .filter(ee.Filter.eq("instrumentMode", "IW"))
             .filter(ee.Filter.eq("orbitProperties_pass", orbit.value))
         )
@@ -83,6 +111,7 @@ class S1(SatelliteABC):
         end_date: str,
         dtype: DType = DType.Float32,
         orbit: S1Orbit = S1Orbit.ASCENDING,
+        selected_bands: list[str] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Sentinel-1 collection.
@@ -99,6 +128,8 @@ class S1(SatelliteABC):
             The data type for the image
         orbit : S1Orbit
             The orbit used to filter the collection before mosaicking
+        selected_bands : list[str] | None
+            The bands to be downloaded.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -107,7 +138,7 @@ class S1(SatelliteABC):
         s1_im: DownloadableGeedimImageCollection
             A Sentinel-1 time series collection of the specified AOI and time range.
         """
-        s1_col = self.get_col(aoi, start_date, end_date, orbit)
+        s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
 
         images = {}
         info = s1_col.getInfo()
@@ -134,6 +165,7 @@ class S1(SatelliteABC):
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
         orbit: S1Orbit = S1Orbit.ASCENDING,
+        selected_bands: list[str] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Sentinel-1 collection.
@@ -152,6 +184,8 @@ class S1(SatelliteABC):
             The data type for the image
         orbit : S1Orbit
             The orbit used to filter the collection before mosaicking
+        selected_bands : list[str] | None
+            The bands to be downloaded.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -163,7 +197,7 @@ class S1(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        s1_col = self.get_col(aoi, start_date, end_date, orbit)
+        s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
 
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]

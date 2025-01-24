@@ -80,6 +80,7 @@ def download_chip_ts(
 ) -> Path:
     """Download a specific chip of data from the satellite."""
     bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
+    satellite.check_selected_bands(bands)
     data = data_get_lazy(**data_get_kwargs)
 
     try:
@@ -466,6 +467,7 @@ def download_gedi(
         satellite=GEDIraster(),
         start_date=start_date,
         end_date=end_date,
+        selected_bands=selected_bands,
         crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
@@ -527,6 +529,7 @@ def download_gedi_vector(
         satellite=GEDIvector(),
         start_date=start_date,
         end_date=end_date,
+        selected_bands=selected_bands,
         crs=crs,
         tile_shape=tile_shape,
         resolution=resolution,
@@ -597,6 +600,7 @@ def download_s1(
         satellite=S1(),
         start_date=start_date,
         end_date=end_date,
+        selected_bands=selected_bands,
         crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
@@ -608,6 +612,7 @@ def download_s1(
             "composite_method": composite_method,
             "dtype": dtype,
             "orbit": orbit,
+            "selected_bands": selected_bands,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
@@ -677,6 +682,7 @@ def download_s2(
         satellite=S2(),
         start_date=start_date,
         end_date=end_date,
+        selected_bands=selected_bands,
         crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
@@ -751,6 +757,7 @@ def download_dynworld(
         satellite=DynWorld(),
         start_date=start_date,
         end_date=end_date,
+        selected_bands=selected_bands,
         crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
@@ -823,6 +830,7 @@ def download_landsat8(
         satellite=Landsat8(),
         start_date=start_date,
         end_date=end_date,
+        selected_bands=selected_bands,
         crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,
@@ -897,6 +905,7 @@ def download_palsar2(
         satellite=Palsar2(),
         start_date=start_date,
         end_date=end_date,
+        selected_bands=selected_bands,
         crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,

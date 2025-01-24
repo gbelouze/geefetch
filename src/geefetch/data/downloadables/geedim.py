@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import threading
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import ExitStack
 from pathlib import Path
@@ -150,6 +151,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                     raise
                 except Exception as ex:
                     geedim_log.info(f"Exception: {str(ex)}\nCancelling...")
+                    geedim_log.debug("".join(traceback.format_tb(ex.__traceback__)))
                     executor.shutdown(wait=False, cancel_futures=True)
                     if filename.exists():
                         filename.unlink()

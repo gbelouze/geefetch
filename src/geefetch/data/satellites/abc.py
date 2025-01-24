@@ -101,3 +101,9 @@ class SatelliteABC(ABC):
                 return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
             case _:
                 raise ValueError(f"Unsupported {dtype=}.")
+
+    def check_selected_bands(self, bands: list[str]) -> None:
+        """Check that a selection of bands is a subset of the satellite's bands."""
+        unknown_bands = set(bands) - set(self.bands)
+        if len(unknown_bands) > 0:
+            raise ValueError(f"Unknown bands {unknown_bands} for satellite {self.full_name}.")
