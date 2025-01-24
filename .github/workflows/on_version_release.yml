@@ -1,0 +1,27 @@
+name: default
+
+on:
+  # runs when a version release is published
+  release:
+    types: [published]
+
+jobs:
+  test_installation:
+    name: test_installation
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-13, windows-latest]
+        include:
+          - os: ubuntu-latest
+            release_suffix: ubuntu
+          - os: macos-13  # using macos-13 fixes an issue with memory allocation
+            release_suffix: mac
+          - os: windows-latest
+            release_suffix: windows
+      fail-fast: false  # so if one OS fails the rest carry on
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+      - name: install and test
+        uses: ./.github/actions/install_and_test

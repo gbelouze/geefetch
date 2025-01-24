@@ -1,0 +1,25 @@
+name: test install
+description: re-usable steps for installing and testing
+
+runs:
+  using: "composite"
+  steps:
+    - name: Clone repo
+      uses: actions/checkout@v3
+    - name: Set up conda env
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        activate-environment: anaconda-client-env
+        environment-file: environment.yml
+    - name: Pip install
+      shell: bash -l {0}
+      run: |
+        pip install .
+    - name: List dependencies
+      shell: bash -l {0}
+      run: |
+        conda list
+    - name: Run geefetch help
+      shell: bash -l {0}
+      run: |
+        geefetch --help
