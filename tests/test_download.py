@@ -13,6 +13,7 @@ from geefetch.cli.download_implementation import (
     download_s2,
 )
 from geefetch.cli.omegaconfig import GeefetchConfig, load
+from geefetch.data.process import tif_is_clean
 from geefetch.utils.enums import CompositeMethod
 
 
@@ -82,6 +83,18 @@ def test_download_timeseries_s1(paris_timeseriesconfig_path: Path):
         "s1_EPSG2154_650000_6860000",
         "S1A_IW_GRDH_1SDV_20200111T174030_20200111T174055_030756_0386DC_869A.tif",
     )
+
+
+def test_download_s1_overwrite_garbage(paris_config_path: Path):
+    conf = load(paris_config_path)
+    downloaded_tif_path = Path(conf.data_dir) / "s1" / "s1_EPSG2154_650000_6860000.tif"
+    downloaded_tif_path.parent.mkdir()
+    downloaded_tif_path.write_text("Garbage content")
+    download_s1(paris_config_path)
+    downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+    assert len(downloaded_files) == 1
+    assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
+    assert tif_is_clean(downloaded_tif_path)
 
 
 def test_select_bands_s1(paris_config_all_s1_bands_path: Path):
