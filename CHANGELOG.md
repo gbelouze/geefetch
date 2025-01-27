@@ -13,6 +13,12 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 ### Added
 
 - Set up Github actions for formatting, tracking CHANGELOG and testing `geefetch` installation [15652c1](https://github.com/gbelouze/geefetch/commit/15652c1c6bb4ac4415cd23c76437510824addb9c)
+- Tests for band selection [ecab767](https://github.com/gbelouze/geefetch/commit/ecab767270f446c11e72a73d79fe68f2db1791dc)
+
+### Changed
+
+- Downloads are made atomic by first downloading `abc.tif` to `abc.tmp.tif` [d79873f](https://github.com/gbelouze/geefetch/commit/d79873fe5932d7f291673f6da2c3cd55950bfa4e)
+- Already existing downloads are not skipped over if they are corrupted [569c563](https://github.com/gbelouze/geefetch/commit/569c563692d4d6880122ace47f5e81c0af36885a)
 
 ### Fixed
 

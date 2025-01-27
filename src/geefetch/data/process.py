@@ -26,6 +26,16 @@ __all__ = [
 ]
 
 
+def tif_is_not_corrupted(path: Path) -> bool:
+    """Check that a 'tif' file is not corrupted, i.e. can be open with rasterio."""
+    try:
+        with rio.open(path) as x:
+            x.read(1, window=rio.windows.Window(0, 0, 1, 1))
+    except rio.RasterioIOError:
+        return False
+    return True
+
+
 def tif_is_clean(path: Path) -> bool:
     """Check that a 'tif' file is valid and not full of NODATA."""
     try:

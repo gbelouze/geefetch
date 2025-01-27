@@ -41,6 +41,24 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         progress: Progress | None = None,
         **kwargs: Any,
     ) -> None:
+        filename = Path(filename)
+        tmp_filename = filename.with_suffix(f".tmp.{filename.suffix}")
+        tmp_filename.unlink(missing_ok=True)
+        self._download(
+            tmp_filename, overwrite, num_threads, max_tile_size, max_tile_dim, progress, **kwargs
+        )
+        tmp_filename.replace(filename)
+
+    def _download(
+        self,
+        filename: Path | str,
+        overwrite: bool = False,
+        num_threads: int | None = None,
+        max_tile_size: float | None = None,
+        max_tile_dim: int | None = None,
+        progress: Progress | None = None,
+        **kwargs: Any,
+    ) -> None:
         max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
         geedim_log.debug(f"Using {max_threads} threads for download.")
         out_lock = threading.Lock()

@@ -18,6 +18,7 @@ from .process import (
     merge_tracked_geojson,
     merge_tracked_parquet,
     tif_is_clean,
+    tif_is_not_corrupted,
     vector_is_clean,
 )
 from .satellites import (
@@ -115,8 +116,13 @@ def download_chip(
     """Download a specific chip of data from the satellite."""
     bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
     if out.exists():
-        log.debug(f"Found feature chip [cyan]{out}[/]. Skipping download.")
-        return out
+        log.debug(f"Found feature chip [cyan]{out}[/]")
+        if not tif_is_not_corrupted(out):
+            log.info(f"File [cyan]{out}[/] is corrupted. Removing it.")
+            out.unlink()
+        else:
+            log.debug(f"File {out} does not seem corrupted. Skipping download.")
+            return out
     data = data_get_lazy(**data_get_kwargs)
 
     try:
