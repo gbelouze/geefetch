@@ -2,7 +2,8 @@
 
 from enum import Enum
 
-import ee
+from ee.image import Image
+from ee.imagecollection import ImageCollection
 
 
 class DType(Enum):
@@ -13,7 +14,7 @@ class DType(Enum):
     Float32 = "FLOAT32"
     Float64 = "FLOAT64"
 
-    def transform(self, im: ee.Image) -> ee.Image:
+    def transform(self, im: Image) -> Image:
         match self:
             case DType.UInt8:
                 return im.toUint8()
@@ -39,7 +40,7 @@ class CompositeMethod(Enum):
     MOSAIC = "MOSAIC"
     TIMESERIES = "TIME_SERIES"
 
-    def transform(self, col: ee.ImageCollection) -> ee.Image:
+    def transform(self, col: ImageCollection) -> Image:
         match self:
             case CompositeMethod.MEAN:
                 return col.mean()

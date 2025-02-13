@@ -9,8 +9,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
-import ee
 import requests
+from ee.image import Image
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 
@@ -26,7 +26,7 @@ class DownloadableGEEImage(DownloadableABC):
 
     def _get_download_url(
         self,
-        image: ee.Image,
+        image: Image,
         bands: list[str],
         region: GeoBoundingBox,
         crs: str,
@@ -43,7 +43,7 @@ class DownloadableGEEImage(DownloadableABC):
             )
             return requests.get(url, stream=True), url
 
-    def __init__(self, image: ee.Image):
+    def __init__(self, image: Image):
         self.image = image
 
     def download(

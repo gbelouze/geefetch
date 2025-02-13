@@ -9,6 +9,7 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 import rasterio as rio
+from rasterio.windows import Window
 
 from ..utils.geopandas import merge_geojson, merge_parquet
 from ..utils.progress import default_bar
@@ -17,6 +18,7 @@ from .tiler import TileTracker
 log = logging.getLogger(__name__)
 
 __all__ = [
+    "geofile_is_clean",
     "tif_is_clean",
     "gedi_is_clean",
     "vector_is_clean",
@@ -30,7 +32,7 @@ def tif_is_not_corrupted(path: Path) -> bool:
     """Check that a 'tif' file is not corrupted, i.e. can be open with rasterio."""
     try:
         with rio.open(path) as x:
-            x.read(1, window=rio.windows.Window(0, 0, 1, 1))
+            x.read(1, window=Window(0, 0, 1, 1))
     except rio.RasterioIOError:
         return False
     return True
@@ -76,6 +78,18 @@ def vector_is_clean(fpath: Path) -> bool:
                 return True
     except pd.errors.EmptyDataError:
         return False
+
+
+def geofile_is_clean(fpath: Path) -> bool:
+    """Check if the geofile at location `path` is not corrupted."""
+    match fpath.suffix:
+        case ".tif" | ".vrt":
+            return tif_is_not_corrupted(fpath)
+        case ".geojson" | ".csv" | ".parquet":
+            return vector_is_clean(fpath)
+        case _ as suffix:
+            log.warning(f"Don't know how to check {suffix} file {fpath}")
+            return True
 
 
 def clean(tracker: TileTracker, is_clean: Callable[[Path], bool], max_threads: int = 8) -> int:

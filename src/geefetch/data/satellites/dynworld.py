@@ -1,7 +1,8 @@
 import logging
 from typing import Any
 
-import ee
+from ee.image import Image
+from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
@@ -66,7 +67,7 @@ class DynWorld(SatelliteABC):
         aoi: GeoBoundingBox,
         start_date: str,
         end_date: str,
-    ) -> ee.ImageCollection:
+    ) -> ImageCollection:
         """Get Dynamic World cloud free collection.
 
         Parameters
@@ -80,12 +81,12 @@ class DynWorld(SatelliteABC):
 
         Returns
         -------
-        dynworld_col : ee.ImageCollection
+        dynworld_col : ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
         return (  # type: ignore[no-any-return]
-            ee.ImageCollection("GOOGLE/DYNAMICWORLD/V1")
+            ImageCollection("GOOGLE/DYNAMICWORLD/V1")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
         )
@@ -128,11 +129,11 @@ class DynWorld(SatelliteABC):
             raise RuntimeError("Collection of 0 Dynamic World image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            footprint = PatchedBaseImage.from_id(id_).footprint
+            assert footprint is not None
+            if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
-                im = ee.Image(id_)
+                im = Image(id_)
                 im = self.convert_image(im, dtype)
                 images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)

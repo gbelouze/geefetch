@@ -1,7 +1,10 @@
 import logging
 from typing import Any
 
-import ee
+from ee.filter import Filter
+from ee.image import Image
+from ee.imagecollection import ImageCollection
+from ee.join import Join
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
@@ -78,7 +81,7 @@ class S2(SatelliteABC):
         end_date: str,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 30,
-    ) -> ee.ImageCollection:
+    ) -> ImageCollection:
         """Get Sentinel-2 cloud free collection.
 
         Parameters
@@ -98,17 +101,17 @@ class S2(SatelliteABC):
 
         Returns
         -------
-        s2_cloudless : ee.ImageCollection
+        s2_cloudless : ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
         s2_cloud = (
-            ee.ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY")
+            ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
         )
         s2_col = (
-            ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+            ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
             .filter(
@@ -117,9 +120,9 @@ class S2(SatelliteABC):
             )
         )
 
-        def mask_s2_clouds(im: ee.Image) -> ee.Image:
+        def mask_s2_clouds(im: Image) -> Image:
             qa = im.select("QA60")
-            cloud_prb = ee.Image(im.get("s2cloudless")).select("probability")
+            cloud_prb = Image(im.get("s2cloudless")).select("probability")
             cloud_bit_mask = 1 << 10
             cirrus_bit_mask = 1 << 11
             mask = (
@@ -129,11 +132,11 @@ class S2(SatelliteABC):
             )
             return im.updateMask(mask)
 
-        s2_cloudless = ee.ImageCollection(
-            ee.Join.saveFirst("s2cloudless").apply(
+        s2_cloudless = ImageCollection(
+            Join.saveFirst("s2cloudless").apply(
                 primary=s2_col,
                 secondary=s2_cloud,
-                condition=ee.Filter.equals(leftField="system:index", rightField="system:index"),
+                condition=Filter.equals(leftField="system:index", rightField="system:index"),
             )
         ).map(mask_s2_clouds)
 
@@ -192,11 +195,11 @@ class S2(SatelliteABC):
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            footprint = PatchedBaseImage.from_id(id_).footprint
+            assert footprint is not None
+            if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
-                im = ee.Image(id_)
+                im = Image(id_)
                 im = self.convert_image(im, dtype)
                 images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)

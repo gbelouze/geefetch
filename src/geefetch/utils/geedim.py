@@ -1,4 +1,4 @@
-import rasterio as rio
+import rasterio.warp as riow
 from rasterio.crs import CRS
 from shapely import Polygon
 
@@ -16,5 +16,5 @@ def bounds_to_polygon(left: float, bottom: float, right: float, top: float) -> P
 
 
 def transform_polygon(polygon: Polygon, src_crs: CRS, dst_crs: CRS) -> Polygon:
-    xs, ys = rio.warp.transform(src_crs, dst_crs, *polygon.exterior.xy)
+    xs, ys = riow.transform(src_crs, dst_crs, *polygon.exterior.xy)
     return Polygon(zip(xs, ys, strict=True))

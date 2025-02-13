@@ -14,6 +14,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 - Set up Github actions for formatting, tracking CHANGELOG and testing `geefetch` installation [15652c1](https://github.com/gbelouze/geefetch/commit/15652c1c6bb4ac4415cd23c76437510824addb9c)
 - Tests for band selection [ecab767](https://github.com/gbelouze/geefetch/commit/ecab767270f446c11e72a73d79fe68f2db1791dc)
+- Tests for vector band selection [45de5ce](https://github.com/gbelouze/geefetch/commit/45de5ce0b7781950a3750795b25f7c56c7cd0a4e)
 
 ### Changed
 

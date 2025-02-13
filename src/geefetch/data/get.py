@@ -15,10 +15,10 @@ from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
 from .process import (
+    geofile_is_clean,
     merge_tracked_geojson,
     merge_tracked_parquet,
     tif_is_clean,
-    tif_is_not_corrupted,
     vector_is_clean,
 )
 from .satellites import (
@@ -117,7 +117,7 @@ def download_chip(
     bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
     if out.exists():
         log.debug(f"Found feature chip [cyan]{out}[/]")
-        if not tif_is_not_corrupted(out):
+        if not geofile_is_clean(out):
             log.info(f"File [cyan]{out}[/] is corrupted. Removing it.")
             out.unlink()
         else:
@@ -143,13 +143,13 @@ def download_chip(
             log.error(f"Tif file {out} contains missing data.")
             raise BadDataError
         else:
-            log.warn(f"Tif file {out} contains missing data")
+            log.warning(f"Tif file {out} contains missing data")
     if satellite.is_vector and not vector_is_clean(out):
         if check_clean:
             log.error(f"Vector file {out} contains no data.")
             raise BadDataError
         else:
-            log.warn(f"Vector file {out} contains no data.")
+            log.warning(f"Vector file {out} contains no data.")
     return out
 
 

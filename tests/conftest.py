@@ -3,14 +3,14 @@ import os
 from pathlib import Path
 
 import pytest
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 TESTS_DIR = Path(__file__).parent
 GEE_PROJECT_ID_ENV_NAME = "GEEFETCH_GEE_PROJECT_ID"
 
 
 @pytest.fixture
-def raw_paris_config() -> DictConfig:
+def raw_paris_config() -> DictConfig | ListConfig:
     return OmegaConf.load(TESTS_DIR / "data" / "paris_config.yaml")
 
 
@@ -22,6 +22,7 @@ def gee_project_id() -> str:
                 f"Did not find {GEE_PROJECT_ID_ENV_NAME} in the environment. "
                 "Cannot query Google Earth Engine."
             )
+            raise RuntimeError
         case _ as project_id:
             assert isinstance(project_id, str)
             return project_id

@@ -1,7 +1,9 @@
 import logging
 from typing import Any
 
-import ee
+from ee.filter import Filter
+from ee.image import Image
+from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
@@ -54,7 +56,7 @@ class Palsar2(SatelliteABC):
         start_date: str,
         end_date: str,
         orbit: P2Orbit,
-    ) -> ee.ImageCollection:
+    ) -> ImageCollection:
         """Get Palsar 2 collection.
 
         Parameters
@@ -70,15 +72,15 @@ class Palsar2(SatelliteABC):
 
         Returns
         -------
-        palsar2_col : ee.ImageCollection
+        palsar2_col : ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
         palsar2_col = (
-            ee.ImageCollection("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")
+            ImageCollection("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
-            .filter(ee.Filter.eq("PassDirection", orbit.value))
+            .filter(Filter.eq("PassDirection", orbit.value))
         )
 
         return palsar2_col  # type: ignore[no-any-return]
@@ -124,11 +126,11 @@ class Palsar2(SatelliteABC):
             raise RuntimeError("Collection of 0 Palsar-2 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            footprint = PatchedBaseImage.from_id(id_).footprint
+            assert footprint is not None
+            if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
-                im = ee.Image(id_)
+                im = Image(id_)
                 im = self.convert_image(im, dtype)
                 images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = PatchedBaseImage(
                     im

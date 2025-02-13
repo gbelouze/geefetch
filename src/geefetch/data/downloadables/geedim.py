@@ -11,6 +11,7 @@ from typing import Any
 import geedim.utils
 import numpy as np
 import rasterio as rio
+import rasterio.windows as riow
 from geedim.download import BaseImage
 from geedim.enums import ExportType
 from geedim.tile import Tile
@@ -80,6 +81,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         # find raw size of the download data (less than the actual download size as the image data
         # is zipped in a compressed geotiff)
         raw_download_size = exp_image.size
+        assert raw_download_size is not None
         if geedim_log.getEffectiveLevel() <= logging.DEBUG:
             dtype_size = np.dtype(exp_image.dtype).itemsize
             raw_tile_size = tile_shape[0] * tile_shape[1] * exp_image.count * dtype_size
@@ -122,6 +124,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                 # Run the tile downloads in a thread pool
                 tiles = exp_image._tiles(tile_shape=tile_shape)
                 futures = []
+                assert self.footprint is not None
                 if "coordinates" in self.footprint and len(self.footprint["coordinates"]) > 0:
                     if "crs" in self.footprint:
                         crs = geedim.utils.rio_crs(self.footprint["crs"]["properties"]["name"])
@@ -136,9 +139,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                     im_bounds = None
                 keep_count, skip_count = 0, 0
                 for tile in tiles:
-                    tile_bounds = bounds_to_polygon(
-                        *rio.windows.bounds(tile.window, exp_image.transform)
-                    )
+                    tile_bounds = bounds_to_polygon(*riow.bounds(tile.window, exp_image.transform))
                     if im_bounds is None or tile_bounds.intersects(im_bounds):
                         futures.append(executor.submit(download_tile, tile))
                         keep_count += 1
@@ -201,7 +202,7 @@ class ExportableGeedimImage(DownloadableABC):
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
         self.image.export(
             out.name,
             ExportType.drive,
@@ -235,7 +236,7 @@ class DownloadableGeedimImage(DownloadableABC):
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
         self.image.download(
             out,
             region=region.to_ee_geometry(),
@@ -271,9 +272,9 @@ class DownloadableGeedimImageCollection(DownloadableABC):
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
-            log.warn(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
         if out.suffix != "":
-            log.warn(f"Directory name for download has a suffix: {out.suffix}.")
+            log.warning(f"Directory name for download has a suffix: {out.suffix}.")
         if not out.exists():
             out.mkdir()
         if not out.is_dir():

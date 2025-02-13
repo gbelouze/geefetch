@@ -3,10 +3,10 @@
 import logging
 import sys
 
-import ee
 import geobbox
 import rasterio as rio
-import rasterio.warp as warp
+import rasterio.warp as riow
+from ee.image import Image
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 
@@ -109,11 +109,11 @@ def get_center_tif(ds: rio._base.DatasetBase) -> Coordinate:
         "`geefetch.coords.get_center_tif` is decrecated and will be removed in GeeFetch 0.5.0."
     )
     x, y = ds.xy(ds.height // 2, ds.width // 2)
-    lon, lat = warp.transform(ds.crs, WGS84, [x], [y])
+    lon, lat = riow.transform(ds.crs, WGS84, [x], [y])
     return lat[0], lon[0]
 
 
-def get_shape_image(image: ee.Image) -> tuple[int, int]:
+def get_shape_image(image: Image) -> tuple[int, int]:
     """Compute the shape of a GEE image in (width, height) format.
 
     Parameters
