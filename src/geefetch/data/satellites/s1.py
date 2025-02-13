@@ -1,7 +1,9 @@
 import logging
 from typing import Any
 
-import ee
+from ee.filter import Filter
+from ee.image import Image
+from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
@@ -47,7 +49,7 @@ class S1(SatelliteABC):
         end_date: str,
         orbit: S1Orbit = S1Orbit.ASCENDING,
         selected_bands: list[str] | None = None,
-    ) -> ee.ImageCollection:
+    ) -> ImageCollection:
         """Get Sentinel-1 collection.
 
         Parameters
@@ -65,7 +67,7 @@ class S1(SatelliteABC):
 
         Returns
         -------
-        s1_col : ee.ImageCollection
+        s1_col : ImageCollection
             A Sentinel-1 collection of the specified AOI and time range.
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
@@ -88,20 +90,20 @@ class S1(SatelliteABC):
                 "[VV], [HH], [HH, HV] or [VV, VH]"
             )
 
-        band_filter = ee.Filter.And(
+        band_filter = Filter.And(
             *[
-                ee.Filter.listContains("transmitterReceiverPolarisation", band)
+                Filter.listContains("transmitterReceiverPolarisation", band)
                 for band in selected_bands
                 if band != "angle"
             ]
         )
         return (  # type: ignore[no-any-return]
-            ee.ImageCollection("COPERNICUS/S1_GRD")
+            ImageCollection("COPERNICUS/S1_GRD")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
             .filter(band_filter)
-            .filter(ee.Filter.eq("instrumentMode", "IW"))
-            .filter(ee.Filter.eq("orbitProperties_pass", orbit.value))
+            .filter(Filter.eq("instrumentMode", "IW"))
+            .filter(Filter.eq("orbitProperties_pass", orbit.value))
         )
 
     def get_time_series(
@@ -148,11 +150,11 @@ class S1(SatelliteABC):
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            footprint = PatchedBaseImage.from_id(id_).footprint
+            assert footprint is not None
+            if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
-                im = ee.Image(id_)
+                im = Image(id_)
                 im = self.convert_image(im, dtype)
                 images[id_.removeprefix("COPERNICUS/S1_GRD/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)

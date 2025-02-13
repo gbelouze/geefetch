@@ -7,9 +7,9 @@ import threading
 from pathlib import Path
 from typing import Any
 
-import ee
 import geopandas as gpd
 import requests
+from ee.featurecollection import FeatureCollection
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 
@@ -26,11 +26,11 @@ __all__: list[str] = []
 class DownloadableGEECollection(DownloadableABC):
     lock = threading.Lock()
 
-    def __init__(self, collection: ee.FeatureCollection):
+    def __init__(self, collection: FeatureCollection):
         self.collection = collection
 
     def _get_download_url(
-        self, collection: ee.FeatureCollection, format: Format
+        self, collection: FeatureCollection, format: Format
     ) -> tuple[requests.Response, str]:
         """Get tile download url and response."""
         with self.lock:
@@ -144,6 +144,7 @@ class DownloadableGEECollection(DownloadableABC):
                     tmp_file.write(data)
                 tmp_file.flush()
                 gdf = gpd.read_file(tmp_file.name).to_crs(old_crs)
+                assert isinstance(gdf, gpd.GeoDataFrame)
                 Path(tmp_file.name).unlink()
             gdf.reset_index(inplace=True, drop=True)
             gdf.to_parquet(out)

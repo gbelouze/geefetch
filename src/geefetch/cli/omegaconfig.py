@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from geobbox import GeoBoundingBox
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
 
 from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
@@ -242,7 +242,7 @@ class GeefetchConfig:
         self.data_dir = self.data_dir.expanduser().absolute()
 
 
-def post_omegaconf_load(config: DictConfig) -> None:
+def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
     """Updates in place the missing satellites config with the default.
 
     Parameters

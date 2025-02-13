@@ -4,7 +4,11 @@ import logging
 from enum import Enum
 from typing import Any
 
-import ee
+from ee.ee_list import List as eeList
+from ee.featurecollection import FeatureCollection
+from ee.filter import Filter
+from ee.image import Image
+from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
@@ -32,7 +36,7 @@ class EsaClass(Enum):
     WATER_BODY = 80
 
 
-def inList(band: ee.Image, values: list[int | float]) -> ee.Image:
+def inList(band: Image, values: list[int | float]) -> Image:
     if not values:
         raise ValueError("Values must contain at least one element")
     mask = band.eq(values.pop())
@@ -41,55 +45,55 @@ def inList(band: ee.Image, values: list[int | float]) -> ee.Image:
     return mask
 
 
-def rangeContains(band: ee.Image, mini: int | float, maxi: int | float) -> ee.Image:
+def rangeContains(band: Image, mini: int | float, maxi: int | float) -> Image:
     return band.gte(mini).And(band.lte(maxi))
 
 
-def qualityFilter(strict: bool = False) -> ee.Filter:
-    filter = ee.Filter.And(
-        ee.Filter.rangeContains("rh98", 0, 80),
-        ee.Filter.eq("quality_flag", 1),
-        ee.Filter.eq("degrade_flag", 0),
-        ee.Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
-        ee.Filter.eq("elevation_bias_flag", 0),
-        ee.Filter.gte("sensitivity", 0.98),
+def qualityFilter(strict: bool = False) -> Filter:
+    filter = Filter.And(
+        Filter.rangeContains("rh98", 0, 80),
+        Filter.eq("quality_flag", 1),
+        Filter.eq("degrade_flag", 0),
+        Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
+        Filter.eq("elevation_bias_flag", 0),
+        Filter.gte("sensitivity", 0.98),
     )
 
     if strict:
-        filter = ee.Filter.And(
+        filter = Filter.And(
             filter,
-            ee.Filter.Or(
-                ee.Filter.rangeContains("solar_azimuth", 70, 120),
-                ee.Filter.rangeContains("solar_azimuth", 240, 290),
+            Filter.Or(
+                Filter.rangeContains("solar_azimuth", 70, 120),
+                Filter.rangeContains("solar_azimuth", 240, 290),
             ),
-            ee.Filter.lte("solar_elevation", -10),
-            ee.Filter.gte("energy_total", 5_000),
+            Filter.lte("solar_elevation", -10),
+            Filter.gte("energy_total", 5_000),
         )
     return filter  # type: ignore[no-any-return]
 
 
-def relaxedQualityFilter(strict: bool = False) -> ee.Filter:
-    filter = ee.Filter.And(
-        ee.Filter.rangeContains("rh98", 0, 80),
-        ee.Filter.eq("quality_flag", 1),
-        ee.Filter.eq("degrade_flag", 0),
-        ee.Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
-        ee.Filter.eq("elevation_bias_flag", 0),
-        ee.Filter.Or(
-            ee.Filter.And(
-                ee.Filter.rangeContains("rh98", 0, 5.0),
-                ee.Filter.gte("sensitivity", 0.9),
+def relaxedQualityFilter() -> Filter:
+    filter = Filter.And(
+        Filter.rangeContains("rh98", 0, 80),
+        Filter.eq("quality_flag", 1),
+        Filter.eq("degrade_flag", 0),
+        Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
+        Filter.eq("elevation_bias_flag", 0),
+        Filter.Or(
+            Filter.And(
+                Filter.rangeContains("rh98", 0, 5.0),
+                Filter.gte("sensitivity", 0.9),
             ),
-            ee.Filter.And(
-                ee.Filter.rangeContains("rh98", 5, 80),
-                ee.Filter.gte("sensitivity", 0.97),
+            Filter.And(
+                Filter.rangeContains("rh98", 5, 80),
+                Filter.gte("sensitivity", 0.97),
             ),
         ),
     )
     return filter  # type: ignore[no-any-return]
 
 
-def qualityMask(data: ee.Image, esa: ee.Image | None = None, strict: bool = False) -> ee.Image:
+def qualityMask(data: Image, esa: Image | None = None, strict: bool = False) -> Image:
     rh98 = data.select("rh98")
     data = data.updateMask(
         rangeContains(rh98, 0, 80)
@@ -126,14 +130,6 @@ def qualityMask(data: ee.Image, esa: ee.Image | None = None, strict: bool = Fals
                 )
             )
         )
-    return data
-
-
-def relaxedQualityMask(
-    data: ee.Image, esa: ee.Image | None = None, strict: bool = False
-) -> ee.Image:
-    rh98 = data.select("rh98")
-    data = data.updateMask(rangeContains(rh98, 0, 80))
     return data
 
 
@@ -205,7 +201,7 @@ class GEDIvector(SatelliteABC):
                 f"Your AOI down to latitude {aoi_wgs84.bottom:.1f}° will not be fully represented."
             )
         table_ids = (
-            ee.FeatureCollection("LARSE/GEDI/GEDI02_A_002_INDEX")
+            FeatureCollection("LARSE/GEDI/GEDI02_A_002_INDEX")
             .filterBounds(aoi.to_ee_geometry())
             .filter(f'time_start > "{start_date}" && time_end < "{end_date}"')
         )
@@ -214,10 +210,10 @@ class GEDIvector(SatelliteABC):
         ]
         gedi_filter = relaxedQualityFilter()
         collections = [
-            (ee.FeatureCollection(gedi_id).filterBounds(aoi.to_ee_geometry()).filter(gedi_filter))
+            (FeatureCollection(gedi_id).filterBounds(aoi.to_ee_geometry()).filter(gedi_filter))
             for gedi_id in gedi_ids
         ]
-        return DownloadableGEECollection(ee.FeatureCollection(ee.List(collections)).flatten())
+        return DownloadableGEECollection(FeatureCollection(eeList(collections)).flatten())
 
     @property
     def name(self) -> str:
@@ -245,7 +241,7 @@ class GEDIraster(SatelliteABC):
     def pixel_range(self):
         return 0, 100
 
-    def get_col(self, aoi: GeoBoundingBox, start_date: str, end_date: str) -> ee.ImageCollection:
+    def get_col(self, aoi: GeoBoundingBox, start_date: str, end_date: str) -> ImageCollection:
         """Get GEDI collection.
 
         Parameters
@@ -259,11 +255,11 @@ class GEDIraster(SatelliteABC):
 
         Returns
         -------
-        gedi_col : ee.ImageCollection
+        gedi_col : ImageCollection
             A GEDI collection of the specified AOI and time range.
         """
         return (  # type: ignore[no-any-return]
-            ee.ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY")
+            ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY")
             .filterBounds(aoi.buffer(10_000).to_ee_geometry())
             .filterDate(start_date, end_date)
             .map(qualityMask)
@@ -308,11 +304,11 @@ class GEDIraster(SatelliteABC):
             raise RuntimeError("Collection of 0 GEDI image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
-            if Polygon(PatchedBaseImage.from_id(id_).footprint["coordinates"][0]).intersects(
-                aoi.to_shapely_polygon()
-            ):
+            footprint = PatchedBaseImage.from_id(id_).footprint
+            assert footprint is not None
+            if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
-                im = ee.Image(id_)
+                im = Image(id_)
                 im = self.convert_image(im, dtype)
                 images[id_.removeprefix("LARSE/GEDI/GEDI02_A_002_MONTHLY/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)

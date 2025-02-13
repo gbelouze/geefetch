@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-import ee
+from ee.image import Image
 from geobbox import GeoBoundingBox
 
 from ...utils.enums import DType
@@ -89,7 +89,7 @@ class SatelliteABC(ABC):
     def __str__(self) -> str:
         return self.name
 
-    def convert_image(self, im: ee.Image, dtype: DType) -> ee.Image:
+    def convert_image(self, im: Image, dtype: DType) -> Image:
         min_p, max_p = self.pixel_range
         im = im.clamp(min_p, max_p)
         match dtype:
