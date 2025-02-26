@@ -86,6 +86,7 @@ class S1Orbit(Enum):
 
     ASCENDING = "ASCENDING"
     DESCENDING = "DESCENDING"
+    AS_BANDS = "AS_BANDS"
     BOTH = "BOTH"
 
 

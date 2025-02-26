@@ -602,13 +602,25 @@ def download_s1(
     download_func = (
         download_time_series if (composite_method == CompositeMethod.TIMESERIES) else download
     )
+
+    download_selected_bands: list[str] | None
+    if orbit == S1Orbit.AS_BANDS and composite_method != CompositeMethod.TIMESERIES:
+        selected_bands = (
+            selected_bands if selected_bands is not None else S1().default_selected_bands
+        )
+        download_selected_bands = [
+            *(f"{band}_ascending" for band in selected_bands),
+            *(f"{band}_descending" for band in selected_bands),
+        ]
+    else:
+        download_selected_bands = selected_bands
     download_func(
         data_dir=data_dir,
         bbox=bbox,
         satellite=S1(),
         start_date=start_date,
         end_date=end_date,
-        selected_bands=selected_bands,
+        selected_bands=download_selected_bands,
         crs=crs,
         resolution=resolution,
         tile_shape=tile_shape,

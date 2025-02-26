@@ -97,14 +97,23 @@ class S1(SatelliteABC):
                 if band != "angle"
             ]
         )
-        return (  # type: ignore[no-any-return]
+        col = (
             ImageCollection("COPERNICUS/S1_GRD")
             .filterDate(start_date, end_date)
             .filterBounds(bounds)
             .filter(band_filter)
             .filter(Filter.eq("instrumentMode", "IW"))
-            .filter(Filter.eq("orbitProperties_pass", orbit.value))
         )
+
+        match orbit:
+            case S1Orbit.ASCENDING | S1Orbit.DESCENDING:
+                col = col.filter(Filter.eq("orbitProperties_pass", orbit.value))
+            case S1Orbit.BOTH:
+                pass
+            case S1Orbit.AS_BANDS:
+                raise ValueError(f"Cannot get S1 collection with {orbit=}")
+
+        return col  # type: ignore[no-any-return]
 
     def get_time_series(
         self,
@@ -140,6 +149,8 @@ class S1(SatelliteABC):
         s1_im: DownloadableGeedimImageCollection
             A Sentinel-1 time series collection of the specified AOI and time range.
         """
+        if orbit == S1Orbit.AS_BANDS:
+            raise ValueError("Orbit AS_BANDS is not permitted for downloading time series.")
         s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
 
         images = {}
@@ -199,23 +210,38 @@ class S1(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
+        def get_im(orbit: S1Orbit) -> Image:
+            s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
 
-        info = s1_col.getInfo()
-        n_images = len(info["features"])  # type: ignore[index]
-        if n_images > 500:
-            log.warning(
-                f"Sentinel-1 mosaicking with a large amount of images (n={n_images}). "
-                "Expect slower download time."
-            )
-        if n_images == 0:
-            log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
-            raise RuntimeError("Collection of 0 Sentinel-1 image.")
+            info = s1_col.getInfo()
+            n_images = len(info["features"])  # type: ignore[index]
+            if n_images > 500:
+                log.warning(
+                    f"Sentinel-1 mosaicking with a large amount of images (n={n_images}). "
+                    "Expect slower download time."
+                )
+            if n_images == 0:
+                log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
+                raise RuntimeError("Collection of 0 Sentinel-1 image.")
 
-        log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
-        s1_im = composite_method.transform(s1_col).clip(bounds)
-        s1_im = self.convert_image(s1_im, dtype)
+            log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
+            bounds = aoi.transform(WGS84).to_ee_geometry()
+            s1_im = composite_method.transform(s1_col).clip(bounds)
+            s1_im = self.convert_image(s1_im, dtype)
+            return s1_im
+
+        match orbit:
+            case S1Orbit.ASCENDING | S1Orbit.DESCENDING | S1Orbit.BOTH:
+                s1_im = get_im(orbit)
+            case S1Orbit.AS_BANDS:
+                s1_im_asc = get_im(S1Orbit.ASCENDING).select(selected_bands)
+                s1_im_asc = s1_im_asc.rename([f"{band}_ascending" for band in selected_bands])  # type: ignore[union-attr]
+
+                s1_im_desc = get_im(S1Orbit.DESCENDING).select(selected_bands)
+                s1_im_desc = s1_im_desc.rename([f"{band}_descending" for band in selected_bands])  # type: ignore[union-attr]
+
+                s1_im = s1_im_asc.addBands(s1_im_desc)
+
         s1_im = PatchedBaseImage(s1_im)
         return DownloadableGeedimImage(s1_im)
 

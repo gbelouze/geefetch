@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from pathlib import Path
 
 import geopandas as gpd
@@ -20,13 +21,16 @@ from geefetch.utils.enums import CompositeMethod, P2Orbit, S1Orbit
 
 
 @pytest.fixture
-def paris_config_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str) -> Path:
+def paris_config_path(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+) -> Generator[Path]:
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
 
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
-    return conf_path
+    yield conf_path
+    conf_path.unlink()
 
 
 @pytest.fixture
