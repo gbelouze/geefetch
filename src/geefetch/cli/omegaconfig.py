@@ -305,7 +305,7 @@ def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
             OmegaConf.structured(NASADEMConfig), config.satellite_default, config.nasadem
         )
         if "nasadem" in config
-        else None,
+        else None
     )
 
 

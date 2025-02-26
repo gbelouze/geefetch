@@ -2,7 +2,6 @@ import logging
 from typing import Any
 
 from ee.image import Image
-from ee.imagecollection import ImageCollection
 from ee.terrain import Terrain
 from geobbox import GeoBoundingBox
 
@@ -46,25 +45,16 @@ class NASADEM(SatelliteABC):
     def resolution(self):
         return 30
 
-    def get_col(
+    def get_im(
         self,
-        aoi: GeoBoundingBox,
-    ) -> ImageCollection:
+    ) -> Image:
         """Get NASADEM collection.
-
-        Parameters
-        ----------
-        aoi : GeoBoundingBox
-            Area of interest.
 
         Returns
         -------
-        dem_col : ImageCollection
+        dem_im : Image
         """
-        bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
-        return (  # type: ignore[no-any-return]
-            ImageCollection("NASA/NASADEM_HGT/001").filterBounds(bounds).map(compute_slope)
-        )
+        return compute_slope(Image("NASA/NASADEM_HGT/001"))
 
     def get_time_series(
         self,
@@ -111,8 +101,7 @@ class NASADEM(SatelliteABC):
             log.warning(f"Argument {key} is ignored.")
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
-        dem_col = self.get_col(aoi)
-        dem_im = dem_col.mosaic().clip(bounds)  # Mosaic single static dataset
+        dem_im = self.get_im().clip(bounds)
         dem_im = self.convert_image(dem_im, dtype)
         return DownloadableGeedimImage(PatchedBaseImage(dem_im))
 

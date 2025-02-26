@@ -9,6 +9,7 @@ from geefetch.cli.download_implementation import (
     download_dynworld,
     download_gedi,
     download_landsat8,
+    download_nasadem,
     download_palsar2,
     download_s1,
     download_s2,
@@ -183,3 +184,14 @@ def test_download_palsar2(paris_config_path: Path):
 @pytest.mark.slow
 def test_download_timeseries_palsar2(paris_timeseriesconfig_path: Path):
     download_palsar2(paris_timeseriesconfig_path)
+
+
+@pytest.mark.slow
+def test_download_nasadem(paris_config_path: Path):
+    download_nasadem(paris_config_path)
+
+
+@pytest.mark.slow
+def test_download_timeseries_nasadem(paris_timeseriesconfig_path: Path):
+    with pytest.raises(ValueError, match="Time series is not relevant for DEM."):
+        download_nasadem(paris_timeseriesconfig_path)
