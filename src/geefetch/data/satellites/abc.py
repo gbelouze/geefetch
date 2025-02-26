@@ -74,10 +74,11 @@ class SatelliteABC(ABC):
         return not self.is_raster
 
     @property
-    def pixel_range(self) -> tuple[float, float]:
+    def pixel_range(self) -> tuple[float, float] | dict[str, tuple[float, float]]:
         """The minimum and maximum values that pixels can take.
 
         When converting the image to another type, pixels outside of that value range will saturate.
+        Can be given as a (min, max) tuple (for every band), or as band specific (min, max) tuples.
         """
         raise NotImplementedError
 
@@ -90,17 +91,42 @@ class SatelliteABC(ABC):
         return self.name
 
     def convert_image(self, im: Image, dtype: DType) -> Image:
-        min_p, max_p = self.pixel_range
-        im = im.clamp(min_p, max_p)
-        match dtype:
-            case DType.Float32:
+        pixel_range = self.pixel_range
+        match pixel_range:
+            case tuple():
+                min_p, max_p = pixel_range
+                im = im.clamp(min_p, max_p)
+                match dtype:
+                    case DType.Float32:
+                        return im
+                    case DType.UInt16:
+                        return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
+                    case DType.UInt8:
+                        return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+                    case _:
+                        raise ValueError(f"Unsupported {dtype=}.")
+            case dict():
+                for band, (min_p, max_p) in pixel_range.items():
+                    band_im = im.select(band).clamp(min_p, max_p)
+                    match dtype:
+                        case DType.Float32:
+                            pass
+                        case DType.UInt16:
+                            band_im = (
+                                band_im.add(-min_p)
+                                .multiply((2**16 - 1) / (max_p - min_p))
+                                .toUint16()
+                            )
+                        case DType.UInt8:
+                            band_im = (
+                                band_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
+                            )
+                        case _:
+                            raise ValueError(f"Unsupported {dtype=}.")
+                    im = im.addBands(band_im, overwrite=True)
                 return im
-            case DType.UInt16:
-                return im.add(-min_p).multiply((2**16 - 1) / (max_p - min_p)).toUint16()
-            case DType.UInt8:
-                return im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
             case _:
-                raise ValueError(f"Unsupported {dtype=}.")
+                raise TypeError(f"Unexpected type {type(pixel_range)} for satellite's pixel range.")
 
     def check_selected_bands(self, bands: list[str]) -> None:
         """Check that a selection of bands is a subset of the satellite's bands."""
