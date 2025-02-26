@@ -94,7 +94,7 @@ class Tiler:
         aoi: GeoBoundingBox,
         shape: int,
         crs: CRS | None = None,
-        filter_polygon: shapely.Polygon | None = None,
+        filter_polygon: shapely.Geometry | None = None,
     ) -> Iterator[GeoBoundingBox]:
         """Split a region into non-overlapping tiles having shape `shape`x`shape`.
 
@@ -107,7 +107,7 @@ class Tiler:
         crs : CRS | None
             The CRS in which to download data. If None, AOI is split in UTM zones and
             data is downloaded in their local UTM zones. Defaults to None.
-        filter_polygon : shapely.Polygon | None
+        filter_polygon : shapely.Geometry | None
             If given, only yields tiles which WGS84 bounding boxes intersect the polygon.
             Defaults to None.
 

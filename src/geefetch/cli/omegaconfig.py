@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
@@ -91,16 +92,16 @@ class TemporalAOIConfig:
 
 
 @dataclass
-class AOIConfig:
+class AOIConfig:  # noqa: 605
     """Configuration of a spatial/temporal Area of Interest (AOI).
 
     Attributes
     ----------
     spatial : SpatialAOIConfig
     temporal : TemporalAOIConfig
-    country : str | None
-        The name of a country. If given, spatial AOI is further restricted to its area
-        that intersects the country boundaries. Defaults to None.
+    country : str | list[str] | None
+        The name of one or more countries. If given, spatial AOI is further restricted to its area
+        that intersects one of the country boundaries. Defaults to None.
 
         .. note:: See https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
             for possible values
@@ -108,10 +109,13 @@ class AOIConfig:
 
     spatial: SpatialAOIConfig
     temporal: TemporalAOIConfig
+
     # The name of a line in geopandas.datasets "naturalearth_lowres"
     # ..see also: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
-    # Used to filter further the AOI to a country boundaries
-    country: str | None = None
+    # Used to further filter the AOI to a country boundaries
+    # Currently limited by https://github.com/omry/omegaconf/issues/144
+    # so we can't type check
+    country: Any = None
 
 
 @dataclass
@@ -232,6 +236,8 @@ class GeefetchConfig:
         Landsat 8 specific configuration / variation to the default.
     palsar2 : Palsar2Config | None
         Palsar 2 specific configuration / variation to the default.
+    nasadem : NASADEMConfig | None
+        NASA-DEM specific configuration / variation to the default.
     """
 
     data_dir: Path
@@ -253,7 +259,7 @@ def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
 
     Parameters
     ----------
-    config : DictConfig
+    config : DictConfig | ListConfig
         The config loaded by OmegaConf.
     """
     OmegaConf.resolve(config)
