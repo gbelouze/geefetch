@@ -4,6 +4,7 @@ import logging
 from enum import Enum
 from typing import Any
 
+import ee
 from ee.ee_list import List as eeList
 from ee.featurecollection import FeatureCollection
 from ee.filter import Filter
@@ -231,7 +232,7 @@ class GEDIvector(SatelliteABC):
 class GEDIraster(SatelliteABC):
     @property
     def bands(self):
-        raise NotImplementedError
+        return ee.ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY").first().bandNames().getInfo()
 
     @property
     def default_selected_bands(self) -> list[str]:
