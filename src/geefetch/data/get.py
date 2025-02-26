@@ -167,7 +167,7 @@ def download_time_series(
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
     **kwargs: Any,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
@@ -205,7 +205,7 @@ def download_time_series(
         Satellite-dependent parameters for downloading data. Defaults to None.
     check_clean : bool
         Whether to check if the data is clean. Defaults to True.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     **kwargs : Any
         Accepted but ignored additional arguments.
@@ -274,7 +274,7 @@ def download(
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
     in_parallel: bool = False,
     max_workers: int = 10,
 ) -> None:
@@ -314,7 +314,7 @@ def download(
         Satellite-dependent parameters for downloading data. Defaults to None.
     check_clean : bool
         Whether to check if the data is clean. Defaults to True.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     in_parallel : bool
         Whether to send parallel download requests. Do not use if the download backend
@@ -428,7 +428,7 @@ def download_gedi(
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
 ) -> None:
     """Download GEDI images fused as rasters. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `gedi.vrt` is written to combine all the chips.
@@ -461,7 +461,7 @@ def download_gedi(
         Defaults to CompositeMethod.MEDIAN.
     dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
@@ -499,7 +499,7 @@ def download_gedi_vector(
     crs: CRS | None = None,
     tile_shape: int = 500,
     resolution: int = 10,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
 ) -> None:
     """Download GEDI vector points. Points are written in several .geojson files
@@ -524,7 +524,7 @@ def download_gedi_vector(
         Side length of a downloaded chip, in pixels. Defaults to 500.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     format : Format
         Format in which to save the vector points. Defaults to Format.CSV.
@@ -558,7 +558,7 @@ def download_s1(
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
@@ -592,7 +592,7 @@ def download_s1(
         Defaults to CompositeMethod.MEDIAN.
     dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     orbit : S1Orbit
         The orbit used to filter Sentinel-1 images. Defaults to S1Orbit.ASCENDING.
@@ -636,7 +636,7 @@ def download_s2(
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
 ) -> None:
@@ -671,7 +671,7 @@ def download_s2(
         Defaults to CompositeMethod.MEDIAN.
     dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     cloudless_portion : int
         Portion of the image expected to be cloudless.
@@ -718,7 +718,7 @@ def download_dynworld(
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
 ) -> None:
     """Download Dynamic World images. Images are written in several .tif chips
     to `data_dir`. Additionnally a file `dynworld.vrt` is written to combine all the chips.
@@ -751,7 +751,7 @@ def download_dynworld(
         Defaults to CompositeMethod.MEDIAN.
     dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
@@ -791,7 +791,7 @@ def download_landsat8(
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
 ) -> None:
     """Download Landsat 8 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `landsat8.vrt` is written to combine all the chips.
@@ -824,7 +824,7 @@ def download_landsat8(
         Defaults to CompositeMethod.MEDIAN.
     dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     """
     download_func = (
@@ -862,7 +862,7 @@ def download_palsar2(
     max_tile_size: int = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
-    filter_polygon: shapely.Polygon | None = None,
+    filter_polygon: shapely.Geometry | None = None,
     orbit: P2Orbit = P2Orbit.DESCENDING,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
@@ -896,7 +896,7 @@ def download_palsar2(
         Defaults to CompositeMethod.MEDIAN.
     dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
-    filter_polygon : shapely.Polygon | None
+    filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     orbit : P2Orbit
         The orbit used to filter Palsar-2 images. Defaults to P2Orbit.ASCENDING.

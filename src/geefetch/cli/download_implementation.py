@@ -43,16 +43,32 @@ def get_mainland_geometry(shape: shapely.Geometry) -> shapely.Polygon:
             raise TypeError(f"Type {shape} cannot be interpreted as a country border shape.")
 
 
-def load_country_filter_polygon(country: str) -> shapely.Polygon:
+def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.MultiPolygon:
     """Load the mailand shape of a country."""
+    match country:
+        case str():
+            country = [country]
+        case None | []:
+            return None
+        case list() if all(isinstance(x, str) for x in country):
+            pass
+        case _:
+            raise TypeError(
+                f"Unexpected type {type(country)} for country. "
+                "Must be `str`, `list[str]` or `None`."
+            )
+
     country_borders_path = pooch.retrieve(url=COUNTRY_BORDERS_URL, known_hash=None)
     log.debug(f"Country borders is downloaded to {country_borders_path}")
     country_borders = geopandas.read_file(country_borders_path)
-    if country not in country_borders.name.values:
-        best_match, _ = process.extractOne(country, country_borders.name.values)
-        raise ValueError(f"Unknown country {country}. Did you mean {best_match} ?")
-    country_borders = country_borders[country_borders.name == country].iloc[0].geometry
-    return get_mainland_geometry(country_borders)
+    polygons = []
+    for c in country:
+        if c not in country_borders.name.values:
+            best_match, _ = process.extractOne(c, country_borders.name.values)
+            raise ValueError(f"Unknown country {c}. Did you mean {best_match} ?")
+        borders = country_borders[country_borders.name == c].iloc[0].geometry
+        polygons.append(get_mainland_geometry(borders))
+    return shapely.ops.unary_union(polygons)
 
 
 def save_config(config: Any, dir: Path) -> None:
