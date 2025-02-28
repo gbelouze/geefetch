@@ -26,24 +26,7 @@ COUNTRY_BORDERS_URL = (
 )
 
 
-def get_mainland_geometry(shape: shapely.Geometry) -> shapely.Polygon:
-    """Get the largest geometry from a multipolygon-like shapely geometry."""
-    match shape:
-        case shapely.MultiPolygon():
-            max_area, max_geom = 0, None
-            for geom in shape.geoms:
-                if geom.area > max_area:
-                    max_area, max_geom = geom.area, geom
-            if max_geom is None:
-                raise ValueError("Empty shape.")
-            return max_geom
-        case shapely.Polygon():
-            return shape
-        case _:
-            raise TypeError(f"Type {shape} cannot be interpreted as a country border shape.")
-
-
-def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.MultiPolygon:
+def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.MultiPolygon | None:
     """Load the mailand shape of a country."""
     match country:
         case str():
@@ -67,7 +50,7 @@ def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.Multi
             best_match, _ = process.extractOne(c, country_borders.name.values)
             raise ValueError(f"Unknown country {c}. Did you mean {best_match} ?")
         borders = country_borders[country_borders.name == c].iloc[0].geometry
-        polygons.append(get_mainland_geometry(borders))
+        polygons.append(borders)
     return shapely.ops.unary_union(polygons)
 
 
