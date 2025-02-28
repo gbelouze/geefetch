@@ -25,7 +25,7 @@ config_option = click.option(
 )
 @click.option("--debug", is_flag=True)
 def main(verbose, quiet, logfile, debug):
-    """Download satellites from Google Earth Engine."""
+    """Download satellite data from Google Earth Engine."""
     from .logging_implementation import logging_setup
 
     logging_setup(verbose, quiet, logfile, debug)
@@ -98,3 +98,12 @@ def palsar2(config):
     from .download_implementation import download_palsar2
 
     download_palsar2(config)
+
+
+@main.command()
+@config_option
+def nasadem(config):
+    """Download NASA-DEM images."""
+    from .download_implementation import download_nasadem
+
+    download_nasadem(config)

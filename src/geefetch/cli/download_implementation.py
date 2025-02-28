@@ -395,3 +395,6 @@ def download_all(config_path: Path) -> None:
     if config.landsat8 is not None:
         log.info("Downloading Landsat-8 data.")
         download_landsat8(config_path)
+    if config.nasadem is not None:
+        log.info("Downloading NASADEM")
+        download_nasadem(config_path)
