@@ -200,14 +200,14 @@ class Landsat8Config(SatelliteDefaultConfig):
 
 @dataclass
 class Palsar2Config(SatelliteDefaultConfig):
-    """The structured type for configuring Landsat 8."""
+    """The structured type for configuring Palsar 2."""
 
     orbit: P2Orbit = P2Orbit.DESCENDING
 
 
 @dataclass
 class NASADEMConfig(SatelliteDefaultConfig):
-    """The structured type for configuring Landsat 8."""
+    """The structured type for configuring NASADEM."""
 
 
 @dataclass
