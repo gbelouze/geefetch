@@ -8,13 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fixed" and "Security".
 
-## pre-release
+## [0.5.1](https://github.com/gbelouze/geefetch/compare/v0.5.1...v0.5.0) (2025-02-26)
 
 ### Added
 
-- Accept multiple countries to filter the AOI [8e26b05](https://github.com/gbelouze/geefetch/commit/8e26b057059fca2a7e670eb1a873c19932baa0e9)
 - Support for [NASADEM](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001) [0d814d5](https://github.com/gbelouze/geefetch/commit/0d814d5b6c99578441356ef6e92ef6b15f055b96)
+- Accept multiple countries to filter the AOI [8e26b05](https://github.com/gbelouze/geefetch/commit/8e26b057059fca2a7e670eb1a873c19932baa0e9)
 - `AS_BANDS` option for Sentinel-1 orbit, to mosaic ascending and descending bands as different bands [72b396b](https://github.com/gbelouze/geefetch/commit/72b396b22f84051839b3a584d59b8ff1e95e5fd5)
+
+### Changed
+
+- Removed legacy code `geefetch.coords` [302b24e](https://github.com/gbelouze/geefetch/commit/302b24ee1ed95e60d1ccb977d068b8b2ec6d2278)
 
 ## [0.5.0](https://github.com/gbelouze/geefetch/compare/v0.5.0...v0.4.2) (2025-02-13)
 

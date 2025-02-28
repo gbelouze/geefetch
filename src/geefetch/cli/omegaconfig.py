@@ -237,7 +237,7 @@ class GeefetchConfig:
     palsar2 : Palsar2Config | None
         Palsar 2 specific configuration / variation to the default.
     nasadem : NASADEMConfig | None
-        NASA DEM specific conifuration / variation to the default.
+        NASA-DEM specific configuration / variation to the default.
     """
 
     data_dir: Path

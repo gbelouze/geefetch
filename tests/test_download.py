@@ -199,9 +199,9 @@ class TestDownloadOtherSatellites:
     def test_download_timeseries_palsar2(self, paris_timeseriesconfig_path: Path):
         download_palsar2(paris_timeseriesconfig_path)
 
-    def test_download_nasadem(paris_config_path: Path):
+    def test_download_nasadem(self, paris_config_path: Path):
         download_nasadem(paris_config_path)
 
-    def test_download_timeseries_nasadem(paris_timeseriesconfig_path: Path):
+    def test_download_timeseries_nasadem(self, paris_timeseriesconfig_path: Path):
         with pytest.raises(ValueError, match="Time series is not relevant for DEM."):
             download_nasadem(paris_timeseriesconfig_path)
