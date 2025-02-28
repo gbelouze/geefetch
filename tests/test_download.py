@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from pathlib import Path
 
 import geopandas as gpd
@@ -9,6 +10,7 @@ from geefetch.cli.download_implementation import (
     download_dynworld,
     download_gedi,
     download_landsat8,
+    download_nasadem,
     download_palsar2,
     download_s1,
     download_s2,
@@ -19,13 +21,16 @@ from geefetch.utils.enums import CompositeMethod, P2Orbit, S1Orbit
 
 
 @pytest.fixture
-def paris_config_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str) -> Path:
+def paris_config_path(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+) -> Generator[Path]:
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
 
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
-    return conf_path
+    yield conf_path
+    conf_path.unlink()
 
 
 @pytest.fixture
@@ -193,3 +198,10 @@ class TestDownloadOtherSatellites:
 
     def test_download_timeseries_palsar2(self, paris_timeseriesconfig_path: Path):
         download_palsar2(paris_timeseriesconfig_path)
+
+    def test_download_nasadem(paris_config_path: Path):
+        download_nasadem(paris_config_path)
+
+    def test_download_timeseries_nasadem(paris_timeseriesconfig_path: Path):
+        with pytest.raises(ValueError, match="Time series is not relevant for DEM."):
+            download_nasadem(paris_timeseriesconfig_path)

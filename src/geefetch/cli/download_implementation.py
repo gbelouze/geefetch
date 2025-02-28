@@ -336,6 +336,44 @@ def download_palsar2(config_path: Path) -> None:
     )
 
 
+def download_nasadem(config_path: Path) -> None:
+    """Download NASADEM images."""
+    config = load(config_path)
+    if config.nasadem is None:
+        raise RuntimeError(
+            "NASADEM is not configured. "
+            "Pass `nasadem: {}` in the config file to use `satellite_default`."
+        )
+    if config.nasadem.selected_bands is None:
+        config.nasadem.selected_bands = satellites.NASADEM().default_selected_bands
+    save_config(config.nasadem, config.data_dir / "nasadem")
+    data_dir = Path(config.data_dir)
+    auth(config.nasadem.gee.ee_project_id)
+    bounds = config.nasadem.aoi.spatial.as_bbox()
+    data.get.download_nasadem(
+        data_dir,
+        bounds,
+        config.nasadem.aoi.temporal.start_date,
+        config.nasadem.aoi.temporal.end_date,
+        crs=(
+            CRS.from_epsg(config.nasadem.aoi.spatial.epsg)
+            if config.nasadem.aoi.spatial.epsg
+            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
+            else None
+        ),
+        composite_method=config.nasadem.composite_method,
+        dtype=config.nasadem.dtype,
+        resolution=config.nasadem.resolution,
+        tile_shape=config.nasadem.tile_size,
+        max_tile_size=config.nasadem.gee.max_tile_size,
+        filter_polygon=(
+            None
+            if config.nasadem.aoi.country is None
+            else load_country_filter_polygon(config.nasadem.aoi.country)
+        ),
+    )
+
+
 def download_all(config_path: Path) -> None:
     """Download all configured satellites."""
     config = load(config_path)

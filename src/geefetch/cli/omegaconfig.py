@@ -204,9 +204,14 @@ class Landsat8Config(SatelliteDefaultConfig):
 
 @dataclass
 class Palsar2Config(SatelliteDefaultConfig):
-    """The structured type for configuring Landsat 8."""
+    """The structured type for configuring Palsar 2."""
 
     orbit: P2Orbit = P2Orbit.DESCENDING
+
+
+@dataclass
+class NASADEMConfig(SatelliteDefaultConfig):
+    """The structured type for configuring NASADEM."""
 
 
 @dataclass
@@ -231,6 +236,8 @@ class GeefetchConfig:
         Landsat 8 specific configuration / variation to the default.
     palsar2 : Palsar2Config | None
         Palsar 2 specific configuration / variation to the default.
+    nasadem : NASADEMConfig | None
+        NASA DEM specific conifuration / variation to the default.
     """
 
     data_dir: Path
@@ -241,6 +248,7 @@ class GeefetchConfig:
     dynworld: DynWorldConfig | None
     landsat8: Landsat8Config | None
     palsar2: Palsar2Config | None
+    nasadem: NASADEMConfig | None
 
     def __post_init__(self):
         self.data_dir = self.data_dir.expanduser().absolute()
@@ -295,6 +303,14 @@ def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
             config.palsar2,
         )
         if "palsar2" in config
+        else None
+    )
+
+    config.nasadem = (
+        OmegaConf.merge(
+            OmegaConf.structured(NASADEMConfig), config.satellite_default, config.nasadem
+        )
+        if "nasadem" in config
         else None
     )
 
