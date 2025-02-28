@@ -12,7 +12,8 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Added
 
-- Suppert for [NASADEM](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001) [0d814d5](https://github.com/gbelouze/geefetch/commit/0d814d5b6c99578441356ef6e92ef6b15f055b96)
+- Support for [NASADEM](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001) [0d814d5](https://github.com/gbelouze/geefetch/commit/0d814d5b6c99578441356ef6e92ef6b15f055b96)
+- `AS_BANDS` option for Sentinel-1 orbit, to mosaic ascending and descending bands as different bands [72b396b](https://github.com/gbelouze/geefetch/commit/72b396b22f84051839b3a584d59b8ff1e95e5fd5)
 
 ## [0.5.0](https://github.com/gbelouze/geefetch/compare/v0.5.0...v0.4.2) (2025-02-13)
 

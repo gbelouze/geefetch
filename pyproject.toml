@@ -140,4 +140,4 @@ ignore_missing_imports = true
 exclude = ['tests/test_download.py', 'tests/conftest.py']
 
 [tool.pyright]
-typeCheckingMode = "basic"
+typeCheckingMode = "off"

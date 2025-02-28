@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from pathlib import Path
 
 import geopandas as gpd
@@ -14,19 +15,22 @@ from geefetch.cli.download_implementation import (
     download_s1,
     download_s2,
 )
-from geefetch.cli.omegaconfig import GeefetchConfig, load
+from geefetch.cli.omegaconfig import load
 from geefetch.data.process import tif_is_clean
-from geefetch.utils.enums import CompositeMethod
+from geefetch.utils.enums import CompositeMethod, P2Orbit, S1Orbit
 
 
 @pytest.fixture
-def paris_config_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str) -> Path:
+def paris_config_path(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+) -> Generator[Path]:
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
 
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
-    return conf_path
+    yield conf_path
+    conf_path.unlink()
 
 
 @pytest.fixture
@@ -42,16 +46,16 @@ def paris_timeseriesconfig_path(
     return conf_path
 
 
-@pytest.fixture
-def paris_config(paris_config_path: Path) -> GeefetchConfig:
-    return load(paris_config_path)
-
-
-@pytest.fixture
-def paris_timeseries_config(paris_config_path: Path) -> GeefetchConfig:
-    config = load(paris_config_path)
-    config.satellite_default.composite_method = CompositeMethod.TIMESERIES
-    return config
+# @pytest.fixture
+# def paris_config(paris_config_path: Path) -> GeefetchConfig:
+#     return load(paris_config_path)
+#
+#
+# @pytest.fixture
+# def paris_timeseries_config(paris_config_path: Path) -> GeefetchConfig:
+#     config = load(paris_config_path)
+#     config.satellite_default.composite_method = CompositeMethod.TIMESERIES
+#     return config
 
 
 @pytest.fixture
@@ -68,9 +72,17 @@ def paris_config_selected_bands_path(
     return conf_path
 
 
-def test_download_s1(paris_config_path: Path):
-    download_s1(paris_config_path)
-    conf = load(paris_config_path)
+@pytest.fixture(params=list(S1Orbit), ids=lambda x: f"s1_orbit={x.value}")
+def paris_config_path_all_s1_orbits(request, paris_config_path: Path):
+    config = OmegaConf.load(paris_config_path)
+    config.s1.orbit = request.param
+    paris_config_path.write_text(OmegaConf.to_yaml(config))
+    return paris_config_path
+
+
+def test_download_s1(paris_config_path_all_s1_orbits: Path):
+    download_s1(paris_config_path_all_s1_orbits)
+    conf = load(paris_config_path_all_s1_orbits)
     downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
     assert len(downloaded_files) == 1
     assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
@@ -176,9 +188,20 @@ def test_download_timeseries_landsat8(paris_timeseriesconfig_path: Path):
     download_landsat8(paris_timeseriesconfig_path)
 
 
+@pytest.fixture(params=list(P2Orbit), ids=lambda x: f"palsar_orbit={x.value}")
+def paris_config_path_all_palsar_orbits(request, paris_config_path: Path):
+    config = OmegaConf.load(paris_config_path)
+    config.palsar2.orbit = request.param
+    paris_config_path.write_text(OmegaConf.to_yaml(config))
+    return paris_config_path
+
+
 @pytest.mark.slow
-def test_download_palsar2(paris_config_path: Path):
-    download_palsar2(paris_config_path)
+def test_download_palsar2(paris_config_path_all_palsar_orbits: Path):
+    download_palsar2(paris_config_path_all_palsar_orbits)
+    conf = load(paris_config_path_all_palsar_orbits)
+    downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+    assert len(downloaded_files) == 1
 
 
 @pytest.mark.slow
