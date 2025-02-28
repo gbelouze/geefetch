@@ -102,6 +102,8 @@ convention = "numpy"
 [tool.pydoclint]
 style = "numpy"
 skip-checking-raises = true
+check-style-mismatch = true
+ignore=["DOC201","DOC202","DOC402","DOC403","DOC501","DOC501"] # ignore what ruff implements
 
 [tool.isort]
 profile = "black"
