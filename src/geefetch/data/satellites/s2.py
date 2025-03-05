@@ -77,8 +77,8 @@ class S2(SatelliteABC):
     def get_col(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 30,
     ) -> ImageCollection:
@@ -88,9 +88,9 @@ class S2(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         cloudless_portion : int
             Threshold for the portion of filled pixels that must be cloud/shadow free (%).
@@ -105,20 +105,19 @@ class S2(SatelliteABC):
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
-        s2_cloud = (
-            ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY")
-            .filterDate(start_date, end_date)
-            .filterBounds(bounds)
-        )
+        s2_cloud = ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY").filterBounds(bounds)
         s2_col = (
             ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-            .filterDate(start_date, end_date)
             .filterBounds(bounds)
             .filter(
                 f"CLOUDY_PIXEL_PERCENTAGE<={100 - cloudless_portion} && "
                 f"HIGH_PROBA_CLOUDS_PERCENTAGE<={(100 - cloudless_portion) // 2}"
             )
         )
+
+        if start_date is not None and end_date is not None:
+            s2_cloud = s2_cloud.filterDate(start_date, end_date)
+            s2_col = s2_col.filterDate(start_date, end_date)
 
         def mask_s2_clouds(im: Image) -> Image:
             qa = im.select("QA60")
@@ -145,8 +144,8 @@ class S2(SatelliteABC):
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
@@ -158,9 +157,9 @@ class S2(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         dtype: DType
             The data type for the image.
@@ -207,8 +206,8 @@ class S2(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
         cloudless_portion: int = 60,
@@ -222,9 +221,9 @@ class S2(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
         dtype: DType

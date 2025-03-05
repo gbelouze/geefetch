@@ -301,16 +301,18 @@ class Landsat8(SatelliteABC):
     def is_raster(self) -> bool:
         return True
 
-    def get_col(self, aoi: GeoBoundingBox, start_date: str, end_date: str) -> ImageCollection:
+    def get_col(
+        self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
+    ) -> ImageCollection:
         """Get Landsat 8 collection.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
 
         Returns
@@ -319,19 +321,18 @@ class Landsat8(SatelliteABC):
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
-        landsat_col = (
-            ImageCollection("LANDSAT/LC08/C02/T1_L2")
-            .filterDate(start_date, end_date)
-            .filterBounds(bounds)
-        )
+        landsat_col = ImageCollection("LANDSAT/LC08/C02/T1_L2")
+        if start_date is not None and end_date is not None:
+            landsat_col = landsat_col.filterDate(start_date, end_date)
+        landsat_col = landsat_col.filterBounds(bounds)
 
         return landsat_col.map(maskLandsat8cloud).map(applyBRDF_L8)  # type: ignore[no-any-return]
 
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.UInt16,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
@@ -341,9 +342,9 @@ class Landsat8(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         dtype : DType
             The data type for the image
@@ -379,8 +380,8 @@ class Landsat8(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
         **kwargs: Any,
@@ -391,9 +392,9 @@ class Landsat8(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
         dtype: DType

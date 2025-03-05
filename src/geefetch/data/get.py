@@ -159,8 +159,8 @@ def download_time_series(
     data_dir: Path,
     bbox: GeoBoundingBox,
     satellite: SatelliteABC,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -184,9 +184,9 @@ def download_time_series(
         The box defining the region of interest.
     satellite : SatelliteABC
         The satellite which the images should originate from.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -266,8 +266,8 @@ def download(
     data_dir: Path,
     bbox: GeoBoundingBox,
     satellite: SatelliteABC,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -292,9 +292,9 @@ def download(
         The box defining the region of interest.
     satellite : SatelliteABC
         The satellite which the images should originate from.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -421,8 +421,8 @@ def download(
 def download_gedi(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -441,9 +441,9 @@ def download_gedi(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -495,8 +495,8 @@ def download_gedi(
 def download_gedi_vector(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     tile_shape: int = 500,
@@ -513,9 +513,9 @@ def download_gedi_vector(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -551,8 +551,8 @@ def download_gedi_vector(
 def download_s1(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -572,9 +572,9 @@ def download_s1(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -641,8 +641,8 @@ def download_s1(
 def download_s2(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -663,9 +663,9 @@ def download_s2(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -723,8 +723,8 @@ def download_s2(
 def download_dynworld(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -743,9 +743,9 @@ def download_dynworld(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -796,8 +796,8 @@ def download_dynworld(
 def download_landsat8(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
@@ -816,9 +816,9 @@ def download_landsat8(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -867,8 +867,8 @@ def download_landsat8(
 def download_palsar2(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
@@ -888,9 +888,9 @@ def download_palsar2(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
@@ -943,8 +943,8 @@ def download_palsar2(
 def download_nasadem(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str,
-    end_date: str,
+    start_date: str | None,
+    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -963,9 +963,9 @@ def download_nasadem(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str
+    start_date : str | None
         The start date of the time period of interest.
-    end_date : str
+    end_date : str | None
         The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.

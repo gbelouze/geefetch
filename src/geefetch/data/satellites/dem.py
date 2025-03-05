@@ -59,8 +59,8 @@ class NASADEM(SatelliteABC):
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
@@ -69,8 +69,8 @@ class NASADEM(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
         **kwargs: Any,
@@ -81,9 +81,9 @@ class NASADEM(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             (Unused) Included for compatibility.
-        end_date : str
+        end_date : str | None
             (Unused) Included for compatibility.
         composite_method: CompositeMethod
             (Unused) NASADEM is a single static dataset.

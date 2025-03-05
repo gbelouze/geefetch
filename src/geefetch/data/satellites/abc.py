@@ -19,8 +19,8 @@ class SatelliteABC(ABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         **kwargs: Any,
     ) -> DownloadableABC:
         """Get downloadable data. It is up to the caller to make sure the computation will stay
@@ -32,8 +32,8 @@ class SatelliteABC(ABC):
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         **kwargs: Any,
     ) -> DownloadableABC:
         """Get downloadable data to fetch time series. It is up to the caller to make sure

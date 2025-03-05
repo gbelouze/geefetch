@@ -98,7 +98,7 @@ class AOIConfig:  # noqa: 605
     Attributes
     ----------
     spatial : SpatialAOIConfig
-    temporal : TemporalAOIConfig
+    temporal : TemporalAOIConfig | None
     country : str | list[str] | None
         The name of one or more countries. If given, spatial AOI is further restricted to its area
         that intersects one of the country boundaries. Defaults to None.
@@ -108,7 +108,7 @@ class AOIConfig:  # noqa: 605
     """
 
     spatial: SpatialAOIConfig
-    temporal: TemporalAOIConfig
+    temporal: TemporalAOIConfig | None
 
     # The name of a line in geopandas.datasets "naturalearth_lowres"
     # ..see also: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
