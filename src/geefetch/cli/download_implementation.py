@@ -378,6 +378,54 @@ def download_nasadem(config_path: Path) -> None:
     )
 
 
+def download_custom(config_path: Path, custom_name: str) -> None:
+    """Download Custom images."""
+    config = load(config_path)
+    if config.customs is None or custom_name not in config.customs:
+        raise RuntimeError(f"No configuration given for custom satellites {custom_name}.")
+    custom_config = config.customs[custom_name]
+    if custom_config.selected_bands is None:
+        raise ValueError("`selected_bands` must be given for custom satellites.")
+    satellite_custom = satellites.CustomSatellite(
+        custom_config.url, custom_config.pixel_range, name=custom_name
+    )
+    save_config(custom_config, config.data_dir / satellite_custom.name)
+    data_dir = Path(config.data_dir)
+    auth(custom_config.gee.ee_project_id)
+    bounds = custom_config.aoi.spatial.as_bbox()
+    start_date = (
+        custom_config.aoi.temporal.start_date if custom_config.aoi.temporal is not None else None
+    )
+    end_date = (
+        custom_config.aoi.temporal.end_date if custom_config.aoi.temporal is not None else None
+    )
+
+    data.get.download_custom(
+        satellite_custom,
+        data_dir,
+        bounds,
+        start_date,
+        end_date,
+        crs=(
+            CRS.from_epsg(custom_config.aoi.spatial.epsg)
+            if custom_config.aoi.spatial.epsg
+            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
+            else None
+        ),
+        composite_method=custom_config.composite_method,
+        dtype=custom_config.dtype,
+        resolution=custom_config.resolution,
+        tile_shape=custom_config.tile_size,
+        max_tile_size=custom_config.gee.max_tile_size,
+        selected_bands=custom_config.selected_bands,
+        filter_polygon=(
+            None
+            if custom_config.aoi.country is None
+            else load_country_filter_polygon(custom_config.aoi.country)
+        ),
+    )
+
+
 def download_all(config_path: Path) -> None:
     """Download all configured satellites."""
     config = load(config_path)
@@ -402,3 +450,7 @@ def download_all(config_path: Path) -> None:
     if config.nasadem is not None:
         log.info("Downloading NASADEM")
         download_nasadem(config_path)
+    if config.customs is not None:
+        for custom_name in config.customs:
+            log.info(f"Downloading CustomSatellite({custom_name}).")
+            download_custom(config_path, custom_name)

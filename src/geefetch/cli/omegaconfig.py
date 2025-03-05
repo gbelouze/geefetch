@@ -215,6 +215,21 @@ class NASADEMConfig(SatelliteDefaultConfig):
 
 
 @dataclass
+class CustomSatelliteConfig(SatelliteDefaultConfig):
+    """The structured type for configuring a custom GEE dataset source."""
+
+    url: str = "unknown"
+    pixel_range: tuple[float, float] = (-1, -1)
+
+    def __post_init__(self):
+        if self.url == "unknown":
+            raise ValueError("Argument `url` must be given.")
+        self.pixel_range = tuple(self.pixel_range)  # type: ignore[assignment]
+        if self.pixel_range == (-1, -1):
+            raise ValueError("Argument `pixel_range` must be given.")
+
+
+@dataclass
 class GeefetchConfig:
     """The structured type for a GeeFetch configuration.
 
@@ -238,6 +253,8 @@ class GeefetchConfig:
         Palsar 2 specific configuration / variation to the default.
     nasadem : NASADEMConfig | None
         NASA-DEM specific configuration / variation to the default.
+    customs : dict[str, CustomSatelliteConfig] | None
+        Configuration for a specific dataset sources unsupported natively by `geefetch`.
     """
 
     data_dir: Path
@@ -249,6 +266,7 @@ class GeefetchConfig:
     landsat8: Landsat8Config | None
     palsar2: Palsar2Config | None
     nasadem: NASADEMConfig | None
+    customs: dict[str, CustomSatelliteConfig] | None
 
     def __post_init__(self):
         self.data_dir = self.data_dir.expanduser().absolute()
@@ -313,6 +331,21 @@ def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
         if "nasadem" in config
         else None
     )
+
+    if "customs" in config:
+        if not isinstance(config.customs, DictConfig):
+            raise ValueError(
+                "Invalid configuration for `customs`. "
+                f"Expected dict-like, got {type(config.customs)}."
+            )
+        config.customs = {
+            custom_name: OmegaConf.merge(
+                OmegaConf.structured(CustomSatelliteConfig), config.satellite_default, custom_config
+            )
+            for custom_name, custom_config in config.customs.items()
+        }
+    else:
+        config.customs = None
 
 
 def load(path: Path) -> GeefetchConfig:
