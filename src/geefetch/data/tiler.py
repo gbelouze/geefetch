@@ -22,7 +22,7 @@ class MaximumIterationError(Exception):
     pass
 
 
-MAX_TILE_LIMIT = 100_000_000
+MAX_TILE_LIMIT = 10_000
 
 
 class Tiler:
@@ -108,8 +108,8 @@ class Tiler:
             The CRS in which to download data. If None, AOI is split in UTM zones and
             data is downloaded in their local UTM zones. Defaults to None.
         filter_polygon : shapely.Geometry | None
-            If given, only yields tiles which WGS84 bounding boxes intersect the polygon.
-            Defaults to None.
+            Polygon expressed in WGS84. If given, only tiles which WGS84 bounding box intersects
+            the polygon are kept. Defaults to None.
 
         Yields
         ------
@@ -129,11 +129,17 @@ class Tiler:
                 else:
                     skip_count += 1
         else:
+            bbox_centers = set()
             for utm in aoi.to_utms():
                 log.debug(f"AOI intersects UTM zone {utm}.")
                 utm_bbox = GeoBoundingBox.from_utm(utm) & aoi.transform(WGS84)
                 for bbox in self._split_in_grid(utm_bbox.transform(utm.crs), shape):
                     bbox84 = bbox.transform(WGS84)
+                    if bbox84.center in bbox_centers:
+                        # this can happen at the border between two utm zones
+                        # with the same zone number
+                        continue
+                    bbox_centers.add(bbox84.center)
                     if bbox84.intersects(utm_bbox):
                         if filter_polygon is None or filter_polygon.intersects(
                             bbox84.to_shapely_polygon()
