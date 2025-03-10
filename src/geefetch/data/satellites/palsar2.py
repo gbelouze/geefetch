@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import ee
 from ee.filter import Filter
 from ee.image import Image
 from ee.imagecollection import ImageCollection
@@ -82,8 +83,7 @@ class Palsar2(SatelliteABC):
             .filterBounds(bounds)
             .filter(Filter.eq("PassDirection", orbit.value))
         )
-
-        return palsar2_col  # type: ignore[no-any-return]
+        return palsar2_col.map(convert_to_gamma0).map(refined_lee)  # type: ignore[no-any-return]
 
     def get_time_series(
         self,
@@ -201,3 +201,47 @@ class Palsar2(SatelliteABC):
     @property
     def full_name(self) -> str:
         return "Palsar-2"
+
+
+def convert_to_gamma0(image: Image) -> Image:
+    """
+    Convert PALSAR-2 DN values to Gamma-Naught in dB.
+
+    Parameters
+    ----------
+    image : Image
+        The input PALSAR-2 image with DN values.
+
+    Returns
+    -------
+    Image
+        The image with Gamma-Naught values in dB added as bands.
+    """
+    gamma0 = image.select(["HH", "HV"]).pow(2).log10().multiply(10).subtract(83)
+    return image.addBands(gamma0, overwrite=True)
+
+
+def refined_lee(image: Image) -> Image:
+    """
+    Apply the Refined Lee filter to reduce speckle noise.
+
+    Parameters
+    ----------
+    image : Image
+        The input image to be filtered.
+
+    Returns
+    -------
+    Image
+        The image with the Refined Lee filter applied.
+    """
+
+    def apply_filter(band: Image) -> Image:
+        mean = band.reduceNeighborhood(ee.Reducer.mean(), ee.Kernel.square(3))
+        variance = band.reduceNeighborhood(ee.Reducer.variance(), ee.Kernel.square(3))
+        weight = variance.divide(variance.add(mean.pow(2)))
+        return mean.add(weight.multiply(band.subtract(mean)))
+
+    bands = image.bandNames()
+    filtered_bands = bands.map(lambda b: apply_filter(image.select([b])).rename(b))
+    return image.addBands(Image.cat(filtered_bands), overwrite=True)
