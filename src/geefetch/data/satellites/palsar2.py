@@ -41,7 +41,8 @@ class Palsar2(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return 0, 8000
+        # return 0, 8000
+        return -100, 100
 
     @property
     def resolution(self):
@@ -83,7 +84,10 @@ class Palsar2(SatelliteABC):
             .filterBounds(bounds)
             .filter(Filter.eq("PassDirection", orbit.value))
         )
-        return palsar2_col.map(convert_to_gamma0).map(refined_lee)  # type: ignore[no-any-return]
+
+        palsar2_col = palsar2_col.map(convert_to_gamma0)
+        palsar2_col = palsar2_col.map(refined_lee)
+        return palsar2_col  # type: ignore[no-any-return]
 
     def get_time_series(
         self,
@@ -218,7 +222,7 @@ def convert_to_gamma0(image: Image) -> Image:
         The image with Gamma-Naught values in dB added as bands.
     """
     gamma0 = image.select(["HH", "HV"]).pow(2).log10().multiply(10).subtract(83)
-    return image.addBands(gamma0, overwrite=True)
+    return image.addBands(gamma0.rename(["HH", "HV"]), overwrite=True)
 
 
 def refined_lee(image: Image) -> Image:
@@ -236,12 +240,13 @@ def refined_lee(image: Image) -> Image:
         The image with the Refined Lee filter applied.
     """
 
-    def apply_filter(band: Image) -> Image:
+    def apply_filter(band_name: str) -> Image:
+        band = image.select(band_name)
         mean = band.reduceNeighborhood(ee.Reducer.mean(), ee.Kernel.square(3))
         variance = band.reduceNeighborhood(ee.Reducer.variance(), ee.Kernel.square(3))
         weight = variance.divide(variance.add(mean.pow(2)))
-        return mean.add(weight.multiply(band.subtract(mean)))
+        return mean.add(weight.multiply(band.subtract(mean))).rename(band_name)  # type: ignore[no-any-return]
 
-    bands = image.bandNames()
-    filtered_bands = bands.map(lambda b: apply_filter(image.select([b])).rename(b))
-    return image.addBands(Image.cat(filtered_bands), overwrite=True)
+    filtered_hh = apply_filter("HH")
+    filtered_hv = apply_filter("HV")
+    return image.addBands([filtered_hh, filtered_hv], overwrite=True)
