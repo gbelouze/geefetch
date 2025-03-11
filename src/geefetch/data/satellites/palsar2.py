@@ -42,7 +42,7 @@ class Palsar2(SatelliteABC):
     @property
     def pixel_range(self):
         # return 0, 8000
-        return -100, 100
+        return -84, 14
 
     @property
     def resolution(self):
