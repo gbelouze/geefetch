@@ -18,6 +18,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Added
 
+- PALSAR-2 pre-processing: conversion to gamma0 and refined lee filter as default
 - Support for [NASADEM](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001) [0d814d5](https://github.com/gbelouze/geefetch/commit/0d814d5b6c99578441356ef6e92ef6b15f055b96)
 - Accept multiple countries to filter the AOI [8e26b05](https://github.com/gbelouze/geefetch/commit/8e26b057059fca2a7e670eb1a873c19932baa0e9)
 - `AS_BANDS` option for Sentinel-1 orbit, to mosaic ascending and descending bands as different bands [72b396b](https://github.com/gbelouze/geefetch/commit/72b396b22f84051839b3a584d59b8ff1e95e5fd5)
