@@ -64,7 +64,28 @@ class S2(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return 0, 3000
+        return {
+            "B1": (0, 3000),  # Coastal aerosol
+            "B2": (0, 3000),  # Blue
+            "B3": (0, 3000),  # Green
+            "B4": (0, 3000),  # Red
+            "B5": (0, 3000),  # Red Edge 1
+            "B6": (0, 3000),  # Red Edge 2
+            "B7": (0, 3000),  # Red Edge 3
+            "B8": (0, 3000),  # NIR
+            "B8A": (0, 3000),  # Narrow NIR
+            "B9": (0, 3000),  # Water vapor
+            "B11": (0, 3000),  # SWIR 1
+            "B12": (0, 3000),  # SWIR 2
+            "QA60": (0, 1),  # Cloud mask (binary)
+            "AOT": (0, 3000),  # Aerosol Optical Thickness
+            "WVP": (0, 20000),  # Water Vapor Pressure (scaled)
+            "SCL": (0, 11),  # Scene Classification (discrete classes)
+            "TCI_R": (0, 255),  # True Color Red (RGB composite)
+            "TCI_G": (0, 255),  # True Color Green (RGB composite)
+            "TCI_B": (0, 255),  # True Color Blue (RGB composite)
+            "MSK_CLDPRB": (0, 100),  # Cloud Probability (percentage)
+        }
 
     @property
     def resolution(self):
