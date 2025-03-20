@@ -212,7 +212,6 @@ class S2(SatelliteABC):
         dtype: DType = DType.Float32,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
-        buffer: float = 100,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Sentinel-2 cloud free collection.
@@ -233,8 +232,6 @@ class S2(SatelliteABC):
             Images that do not fullfill the requirement are filtered out.
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
-        buffer : float
-            Kernel size to dilate cloud/shadow patches.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -285,7 +282,6 @@ class S2(SatelliteABC):
                 dtype,
                 new_cloudless_portion,
                 cloud_prb_thresh,
-                buffer,
             )
         log.debug(f"Sentinel-2 mosaicking with {n_images} images.")
         return DownloadableGeedimImage(s2_im)
