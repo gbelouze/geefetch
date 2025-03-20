@@ -13,6 +13,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 ### Fixed
 
 - Issue where the AOI would be split into tiles with duplicates [168fc75](https://github.com/gbelouze/geefetch/commit/168fc75df057c7e1decd273c9209fac7ec5bc5c9)
+- Issue where `parquet` that are recursively downloaded are in the wrong CRS [c12c2a5](https://github.com/gbelouze/geefetch/commit/c12c2a501062a25ed4d5d534a833494a98f98501)
 
 ## [0.5.1](https://github.com/gbelouze/geefetch/compare/v0.5.1...v0.5.0) (2025-02-26)
 
