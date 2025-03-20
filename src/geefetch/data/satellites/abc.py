@@ -106,21 +106,28 @@ class SatelliteABC(ABC):
                     case _:
                         raise ValueError(f"Unsupported {dtype=}.")
             case dict():
+                band_names: list[str] = im.bandNames().getInfo()  # type: ignore[assignment]
                 for band, (min_p, max_p) in pixel_range.items():
+                    if band not in band_names:
+                        continue
                     band_im = im.select(band).clamp(min_p, max_p)
                     match dtype:
                         case DType.Float32:
                             pass
                         case DType.UInt16:
-                            band_im = (
-                                band_im.add(-min_p)
-                                .multiply((2**16 - 1) / (max_p - min_p))
-                                .toUint16()
-                            )
+                            if not (0 <= min_p < max_p <= 2**16 - 1):
+                                band_im = (
+                                    band_im.add(-min_p)
+                                    .multiply((2**16 - 1) / (max_p - min_p))
+                                    .toUint16()
+                                )
                         case DType.UInt8:
-                            band_im = (
-                                band_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-                            )
+                            if not (0 <= min_p < max_p <= 2**8 - 1):
+                                band_im = (
+                                    band_im.add(-min_p)
+                                    .multiply((2**8 - 1) / (max_p - min_p))
+                                    .toUint8()
+                                )
                         case _:
                             raise ValueError(f"Unsupported {dtype=}.")
                     im = im.addBands(band_im, overwrite=True)
