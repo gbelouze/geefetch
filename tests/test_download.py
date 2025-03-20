@@ -7,6 +7,7 @@ import rasterio as rio
 from omegaconf import DictConfig, OmegaConf
 
 from geefetch.cli.download_implementation import (
+    download_custom,
     download_dynworld,
     download_gedi,
     download_landsat8,
@@ -209,3 +210,9 @@ class TestDownloadOtherSatellites:
     def test_download_timeseries_nasadem(self, paris_timeseriesconfig_path: Path):
         with pytest.raises(ValueError, match="Time series is not relevant for DEM."):
             download_nasadem(paris_timeseriesconfig_path)
+
+    def test_download_custom_chm_pauls(self, paris_config_path):
+        download_custom(paris_config_path, "chm_pauls")
+        conf = load(paris_config_path)
+        downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+        assert len(downloaded_files) == 1
