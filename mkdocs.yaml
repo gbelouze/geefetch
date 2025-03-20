@@ -56,7 +56,11 @@ plugins:
             show_signature_annotations: false
             docstring_section_style: table
             show_symbol_type_toc: true
+            filters:
+            - "!^_"
+            - "^__"
   - git-revision-date-localized
+  - include-markdown
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
@@ -66,23 +70,25 @@ nav:
       - Sentinel-1: satellites/sentinel1.md
       - Sentinel-2: satellites/sentinel2.md
       - GEDI: satellites/gedi.md
-      - Dynamic World: satellites/dynamicworld.md
       - Landsat-8: satellites/landsat8.md
       - Palsar-2: satellites/palsar2.md
+      - Dynamic World: satellites/dynworld.md
       - NASADEM: satellites/nasadem.md
-  - Advanced Usage: advanced-usage.md
-  - Command Line Interface: cli.md
+      - Custom: satellites/custom.md
+  # - Advanced Usage: advanced-usage.md
+  # - Command Line Interface: cli.md
   - API Reference:
       - Overview: api/index.md
-      - Core: api/core.md
+      - Core: api/core/index.md
+      - Downloadables: api/downloadables.md
       - Satellites: api/satellites.md
-      - Utilities: api/utils.md
-  - Troubleshooting & FAQ: troubleshooting.md
+      - CLI configuration: api/cli/configuration.md
+  # - Troubleshooting & FAQ: troubleshooting.md
   - Examples & Tutorials:
       - Overview: examples/index.md
-      - Basic Download: examples/basic-download.md
-      - Time Series Analysis: examples/time-series.md
-      - Country-Level Data: examples/country-data.md
+  #     - Basic Download: examples/basic-download.md
+  #     - Time Series Analysis: examples/time-series.md
+  #     - Country-Level Data: examples/country-data.md
   - Changelog: changelog.md
   - Contributing: contributing.md
 extra:

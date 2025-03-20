@@ -60,4 +60,4 @@ s2:
 ```
 
 !!! note
-    GeeFetch is currently under active development. New satellite datasets and features are being added regularly.
+    GeeFetch is currently under active development. New satellite datasets and features may be added in the near future.

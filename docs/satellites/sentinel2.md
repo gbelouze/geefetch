@@ -9,7 +9,7 @@ In GeeFetch, Sentinel-2 data is accessed via the Google Earth Engine collection 
 ## Processing
 
 1. Filtering by date range and area of interest
-2. Cloud masking using the [`COPERNICUS/S2_CLOUD_PROBABILITY`](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_CLOUD_PROBABILITY) product (see [configuration options](<#Configuration Options>))  
+2. Cloud masking using the [`COPERNICUS/S2_CLOUD_PROBABILITY`](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_CLOUD_PROBABILITY) product (see [configuration options](#configuration-options))  
    a. Remove images where `CLOUDY_PIXEL_PERCENTAGE > 100 - cloudless_portion`  
    b. Remove images where `HIGH_PROBA_CLOUDS_PERCENTAGE > 50 - cloudless_portion/2`  
    c. Mask pixels which have a probability of being a cloud `> cloud_prb_threshold`  

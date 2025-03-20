@@ -73,4 +73,3 @@ See the dedicated page for each satellite for detailed information on specific p
 - Review detailed specifications for specific satellites like [Sentinel-2](sentinel2.md)
 - Learn about [configuration options](../configuration.md) to customize your downloads
 - Explore [examples](../examples/index.md) showing how to use different satellite data
-- Check the [CLI documentation](../cli.md) for command-line usage
