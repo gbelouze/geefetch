@@ -24,7 +24,22 @@ __all__: list[str] = []
 
 
 class DownloadableGEECollection(DownloadableABC):
-    lock = threading.Lock()
+    """Downloads feature collections from Google Earth Engine.
+
+    This class handles downloading Earth Engine FeatureCollections to local files
+    in either GeoJSON or Parquet format. It implements automatic splitting of large
+    collection requests to handle Earth Engine compute limits, with recursive retries
+    when a download fails.
+
+    It is thread safe.
+
+    Parameters
+    ----------
+    collection : FeatureCollection
+        The Earth Engine FeatureCollection to download.
+    """
+
+    _lock = threading.Lock()
 
     def __init__(self, collection: FeatureCollection):
         self.collection = collection
@@ -33,7 +48,7 @@ class DownloadableGEECollection(DownloadableABC):
         self, collection: FeatureCollection, format: Format
     ) -> tuple[requests.Response, str]:
         """Get tile download url and response."""
-        with self.lock:
+        with self._lock:
             url = collection.getDownloadURL(filetype=format.to_str())
             return requests.get(url, stream=True), url
 

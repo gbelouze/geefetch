@@ -11,33 +11,40 @@
 </p>
 
 
-`geefetch` is a Python library and CLI designed to download large-scale satellite data from [Google Earth Engine](https://earthengine.google.com/) (GEE). It provides sensible defaults for various datasets available in GEE’s data catalog and is easily extensible to support additional satellites.
+**GeeFetch** is a Python library and command-line tool for downloading large-scale satellite data from Google Earth Engine directly to your computer. Built as a higher-level wrapper around [geedim](https://geedim.readthedocs.io/en/latest/), GeeFetch focuses on reproducibility, scalability, and ease of use, especially for those who want to use satellite data without being remote sensing experts.
 
-- **Simplified Data Access**: Retrieve satellite imagery directly to your local machine without extensive setup. Even over very large areas.
-- **Command-Line Interface**: Convenient CLI for quick data downloads.
-- **Python API**: Integrate geefetch functionalities into your Python applications.
+## Why GeeFetch?
+
+- **Reproducible data acquisition** through a declarative configuration approach
+- **Scalable downloads** for national or international coverage
+- **Robust execution** resume your download after your internet went down
+- **Pre-configured defaults** for popular satellite sources
+- **Simple CLI** for straightforward data access without programming expertise
+
+GeeFetch doesn't aim to be a general-purpose tool for crafting custom algorithms on Earth Engine data. Instead, it provides a streamlined way to get standardized satellite data that you can then use for your own applications, such as machine learning, deep learning, or other analytical workflows.
 
 ## Supported Datasets
 
 Currently, geefetch supports the following datasets:
 
-- [Sentinel-1](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD)
-- [Sentinel-2](https://developers.google.com/earth-engine/datasets/catalog/sentinel-2)
-- [GEDI](https://developers.google.com/earth-engine/datasets/catalog/LARSE_GEDI_GEDI02_A_002_MONTHLY)
-- [Dynamic World](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_DYNAMICWORLD_V1)
-- [Landsat-8](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T2_L2)
-- [Palsar-2](https://developers.google.com/earth-engine/datasets/catalog/JAXA_ALOS_PALSAR-2_Level2_2_ScanSAR)
-- [NASADEM](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001)
+- [Sentinel-1](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD) (SAR imagery)
+- [Sentinel-2](https://developers.google.com/earth-engine/datasets/catalog/sentinel-2) (multispectral imagery)
+- [GEDI](https://developers.google.com/earth-engine/datasets/catalog/LARSE_GEDI_GEDI02_A_002_MONTHLY) (forest structure)
+- [Dynamic World](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_DYNAMICWORLD_V1) (land use/land cover)
+- [Landsat-8](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T2_L2) (multispectral imagery)
+- [Palsar-2](https://developers.google.com/earth-engine/datasets/catalog/JAXA_ALOS_PALSAR-2_Level2_2_ScanSAR) (SAR imagery)
+- [NASADEM](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001) (elevation data)
 
 ## Installation
 
-`geefetch` requires Python 3.9 or higher. To install the library, ensure that [GDAL](https://gdal.org/) is available on your system. You can install GDAL using [conda](https://docs.conda.io/en/latest/):
+`geefetch` requires Python 3.9 or higher. To install the library, ensure that [GDAL](https://gdal.org/) is available on your system.
+The simplest is to install GDAL using [conda](https://docs.conda.io/en/latest/):
 
 ```bash
 conda install gdal
 ```
 
-After installing GDAL, install `geefetch` via [PyPI](https://pypi.org/project/geefetch/):
+Once GDAL is available, install `geefetch` via [PyPI](https://pypi.org/project/geefetch/):
 
 ```bash
 pip install geefetch
@@ -70,6 +77,7 @@ Options:
 
 Commands:
   all       Download all satellites given in the config.
+  custom    Download Custom images.
   dynworld  Download Dynamic World images.
   gedi      Download GEDI images.
   landsat8  Download Landsat 8 images.
