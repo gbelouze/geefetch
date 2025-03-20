@@ -184,8 +184,9 @@ class S2Config(SatelliteDefaultConfig):
     cloudless_portion : int
         Threshold for the portion of filled pixels that must be cloud/shadow free (%).
         Images that do not fullfill the requirement are filtered out before mosaicking.
+        Default is 40.
     cloud_prb_threshold : int
-        Threshold for cloud probability above which a pixel is filtered out (%).
+        Threshold for cloud probability above which a pixel is filtered out (%). Default is 40.
     """
 
     cloudless_portion: int = 40
@@ -239,34 +240,34 @@ class GeefetchConfig:
         The path to store downloaded data.
     satellite_default : SatelliteDefaultConfig
         Default satellite configuration.
-    gedi : GediConfig | None
+    gedi : GediConfig
         GEDI specific configuration / variation to the default.
-    s1 : S1Config | None
+    s1 : S1Config
         Sentinel-1 specific configuration / variation to the default.
-    s2 : S2Config | None
+    s2 : S2Config
         Sentinel-2 specific configuration / variation to the default.
-    dynworld : DynWorldConfig | None
+    dynworld : DynWorldConfig
         Dynamic world specific configuration / variation to the default.
-    landsat8 : Landsat8Config | None
+    landsat8 : Landsat8Config
         Landsat 8 specific configuration / variation to the default.
-    palsar2 : Palsar2Config | None
+    palsar2 : Palsar2Config
         Palsar 2 specific configuration / variation to the default.
-    nasadem : NASADEMConfig | None
+    nasadem : NASADEMConfig
         NASA-DEM specific configuration / variation to the default.
-    customs : dict[str, CustomSatelliteConfig] | None
+    customs : dict[str, CustomSatelliteConfig]
         Configuration for a specific dataset sources unsupported natively by `geefetch`.
     """
 
     data_dir: Path
     satellite_default: SatelliteDefaultConfig
-    gedi: GediConfig | None
-    s1: S1Config | None
-    s2: S2Config | None
-    dynworld: DynWorldConfig | None
-    landsat8: Landsat8Config | None
-    palsar2: Palsar2Config | None
-    nasadem: NASADEMConfig | None
-    customs: dict[str, CustomSatelliteConfig] | None
+    gedi: GediConfig
+    s1: S1Config
+    s2: S2Config
+    dynworld: DynWorldConfig
+    landsat8: Landsat8Config
+    palsar2: Palsar2Config
+    nasadem: NASADEMConfig
+    customs: dict[str, CustomSatelliteConfig]
 
     def __post_init__(self):
         self.data_dir = self.data_dir.expanduser().absolute()
@@ -281,55 +282,42 @@ def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
         The config loaded by OmegaConf.
     """
     OmegaConf.resolve(config)
-    config.gedi = (
-        OmegaConf.merge(OmegaConf.structured(GediConfig), config.satellite_default, config.gedi)
-        if "gedi" in config
-        else None
+
+    config.gedi = OmegaConf.merge(
+        OmegaConf.structured(GediConfig),
+        config.satellite_default,
+        config.gedi if "gedi" in config else {},
     )
-    config.s1 = (
-        OmegaConf.merge(OmegaConf.structured(S1Config), config.satellite_default, config.s1)
-        if "s1" in config
-        else None
+    config.s1 = OmegaConf.merge(
+        OmegaConf.structured(S1Config),
+        config.satellite_default,
+        config.s1 if "s1" in config else {},
     )
-    config.s2 = (
-        OmegaConf.merge(OmegaConf.structured(S2Config), config.satellite_default, config.s2)
-        if "s2" in config
-        else None
+    config.s2 = OmegaConf.merge(
+        OmegaConf.structured(S2Config),
+        config.satellite_default,
+        config.s2 if "s2" in config else {},
     )
-    config.dynworld = (
-        OmegaConf.merge(
-            OmegaConf.structured(DynWorldConfig),
-            config.satellite_default,
-            config.dynworld,
-        )
-        if "dynworld" in config
-        else None
+    config.dynworld = OmegaConf.merge(
+        OmegaConf.structured(DynWorldConfig),
+        config.satellite_default,
+        config.dynworld if "dynworld" in config else {},
     )
-    config.landsat8 = (
-        OmegaConf.merge(
-            OmegaConf.structured(Landsat8Config),
-            config.satellite_default,
-            config.landsat8,
-        )
-        if "landsat8" in config
-        else None
+    config.landsat8 = OmegaConf.merge(
+        OmegaConf.structured(Landsat8Config),
+        config.satellite_default,
+        config.landsat8 if "landsat8" in config else {},
     )
-    config.palsar2 = (
-        OmegaConf.merge(
-            OmegaConf.structured(Palsar2Config),
-            config.satellite_default,
-            config.palsar2,
-        )
-        if "palsar2" in config
-        else None
+    config.palsar2 = OmegaConf.merge(
+        OmegaConf.structured(Palsar2Config),
+        config.satellite_default,
+        config.palsar2 if "palsar2" in config else {},
     )
 
-    config.nasadem = (
-        OmegaConf.merge(
-            OmegaConf.structured(NASADEMConfig), config.satellite_default, config.nasadem
-        )
-        if "nasadem" in config
-        else None
+    config.nasadem = OmegaConf.merge(
+        OmegaConf.structured(NASADEMConfig),
+        config.satellite_default,
+        config.nasadem if "nasadem" in config else {},
     )
 
     if "customs" in config:
@@ -345,7 +333,7 @@ def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
             for custom_name, custom_config in config.customs.items()
         }
     else:
-        config.customs = None
+        config.customs = {}
 
 
 def load(path: Path) -> GeefetchConfig:

@@ -52,8 +52,12 @@ def paris_config_selected_bands_path(
 ) -> Path:
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
-    raw_paris_config.s1.selected_bands = ["VV", "VH", "angle"]
-    raw_paris_config.gedi.selected_bands = ["rh95", "rh98"]
+    raw_paris_config["s1"] = {"selected_bands": ["VV", "VH", "angle"]} | dict(
+        raw_paris_config.get("s1", {})
+    )
+    raw_paris_config["gedi"] = {"selected_bands": ["rh95", "rh98"]} | dict(
+        raw_paris_config.get("gedi", {})
+    )
 
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
@@ -64,7 +68,7 @@ class TestDownloadSentinel1:
     @pytest.fixture(params=list(S1Orbit), ids=lambda x: f"s1_orbit={x.value}")
     def paris_config_path_all_s1_orbits(self, request, paris_config_path: Path):
         config = OmegaConf.load(paris_config_path)
-        config.s1.orbit = request.param
+        config["s1"] = {"orbit": request.param} | dict(config.get("s1", {}))
         paris_config_path.write_text(OmegaConf.to_yaml(config))
         return paris_config_path
 

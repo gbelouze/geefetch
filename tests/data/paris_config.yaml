@@ -18,19 +18,14 @@ satellite_default:
   gee:
     ee_project_id: ffb-pipeline
     max_tile_size: 5
-dynworld: {}
 gedi:
   aoi:
     temporal:
       start_date: 2020-07-01
       end_date: 2020-07-31
-landsat8: {}
 palsar2:
   aoi:
     temporal:
       start_date: 2024-08-01
       end_date: 2024-08-31
   orbit: DESCENDING
-s1: {}
-s2: {}
-nasadem: {}
