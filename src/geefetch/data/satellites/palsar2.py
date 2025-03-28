@@ -41,8 +41,10 @@ class Palsar2(SatelliteABC):
 
     @property
     def pixel_range(self):
-        # return 0, 8000
-        return -35, 14
+        # convert from dn to gamma0 using: gamma0 = 10 * log10(dn ** 2) - 83
+        # so the full range is -83, 13.4
+        # according to test over gabon, -25 to -5 is sufficient to cover trees, grass and bare
+        return -25, -5
 
     @property
     def resolution(self):
