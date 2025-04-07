@@ -13,7 +13,7 @@ import numpy as np
 import rasterio as rio
 import rasterio.windows as riow
 from geedim.download import BaseImage
-from geedim.enums import ExportType
+from geedim.enums import ExportType, ResamplingMethod
 from geedim.tile import Tile
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
@@ -58,6 +58,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         max_tile_size: float | None = None,
         max_tile_dim: int | None = None,
         progress: Progress | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
@@ -71,7 +72,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                 raise FileExistsError(f"{filename} exists")
 
         # prepare (resample, convert, reproject) the image for download
-        exp_image, profile = self._prepare_for_download(**kwargs)
+        exp_image, profile = self._prepare_for_download(resampling=resampling, **kwargs)
 
         # get the dimensions of an image tile that will satisfy GEE download limits
         tile_shape, num_tiles = exp_image._get_tile_shape(
