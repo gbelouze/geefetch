@@ -134,6 +134,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
                 if config.gedi.aoi.country is None
                 else load_country_filter_polygon(config.gedi.aoi.country)
             ),
+            resampling=config.gedi.resampling,
         )
 
 
@@ -174,6 +175,7 @@ def download_s1(config_path: Path) -> None:
             else load_country_filter_polygon(config.s1.aoi.country)
         ),
         orbit=config.s1.orbit,
+        resampling=config.s1.resampling,
     )
 
 
@@ -215,6 +217,7 @@ def download_s2(config_path: Path) -> None:
         ),
         cloudless_portion=config.s2.cloudless_portion,
         cloud_prb_thresh=config.s2.cloud_prb_threshold,
+        resampling=config.s2.resampling,
     )
 
 
@@ -254,6 +257,7 @@ def download_dynworld(config_path: Path) -> None:
             if config.dynworld.aoi.country is None
             else load_country_filter_polygon(config.dynworld.aoi.country)
         ),
+        resampling=config.dynworld.resampling,
     )
 
 
@@ -293,6 +297,7 @@ def download_landsat8(config_path: Path) -> None:
             if config.landsat8.aoi.country is None
             else load_country_filter_polygon(config.landsat8.aoi.country)
         ),
+        resampling=config.landsat8.resampling,
     )
 
 
@@ -333,6 +338,7 @@ def download_palsar2(config_path: Path) -> None:
             else load_country_filter_polygon(config.palsar2.aoi.country)
         ),
         orbit=config.palsar2.orbit,
+        resampling=config.palsar2.resampling,
     )
 
 
@@ -371,6 +377,7 @@ def download_nasadem(config_path: Path) -> None:
             if config.nasadem.aoi.country is None
             else load_country_filter_polygon(config.nasadem.aoi.country)
         ),
+        resampling=config.nasadem.resampling,
     )
 
 

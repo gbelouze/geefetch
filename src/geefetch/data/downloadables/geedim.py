@@ -13,7 +13,7 @@ import numpy as np
 import rasterio as rio
 import rasterio.windows as riow
 from geedim.download import BaseImage
-from geedim.enums import ExportType
+from geedim.enums import ExportType, ResamplingMethod
 from geedim.tile import Tile
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
@@ -40,13 +40,21 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         max_tile_size: float | None = None,
         max_tile_dim: int | None = None,
         progress: Progress | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         filename = Path(filename)
         tmp_filename = filename.with_suffix(f".tmp.{filename.suffix}")
         tmp_filename.unlink(missing_ok=True)
         self._download(
-            tmp_filename, overwrite, num_threads, max_tile_size, max_tile_dim, progress, **kwargs
+            tmp_filename,
+            overwrite,
+            num_threads,
+            max_tile_size,
+            max_tile_dim,
+            progress,
+            resampling,
+            **kwargs,
         )
         tmp_filename.replace(filename)
 
@@ -58,6 +66,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         max_tile_size: float | None = None,
         max_tile_dim: int | None = None,
         progress: Progress | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
@@ -71,7 +80,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                 raise FileExistsError(f"{filename} exists")
 
         # prepare (resample, convert, reproject) the image for download
-        exp_image, profile = self._prepare_for_download(**kwargs)
+        exp_image, profile = self._prepare_for_download(resampling=resampling, **kwargs)
 
         # get the dimensions of an image tile that will satisfy GEE download limits
         tile_shape, num_tiles = exp_image._get_tile_shape(
@@ -199,6 +208,7 @@ class ExportableGeedimImage(DownloadableABC):
         bands: list[str],
         scale: int | None = None,
         dtype: str = "float32",
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
@@ -212,6 +222,7 @@ class ExportableGeedimImage(DownloadableABC):
             scale=scale,
             bands=bands,
             crs=f"EPSG:{crs.to_epsg()}",
+            resampling=resampling,
         )
 
 
@@ -233,6 +244,7 @@ class DownloadableGeedimImage(DownloadableABC):
         scale: int | None = None,
         dtype: str = "float32",
         progress: Progress | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
@@ -247,6 +259,7 @@ class DownloadableGeedimImage(DownloadableABC):
             scale=scale,
             dtype=dtype,
             progress=progress,
+            resampling=resampling,
         )
 
 
@@ -269,6 +282,7 @@ class DownloadableGeedimImageCollection(DownloadableABC):
         scale: int | None = None,
         dtype: str = "float32",
         progress: Progress | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
@@ -307,6 +321,7 @@ class DownloadableGeedimImageCollection(DownloadableABC):
                     scale=scale,
                     dtype=dtype,
                     progress=progress,
+                    resampling=resampling,
                 )
                 log.debug(f"Downloaded image to {dst_path}.")
                 progress.advance(task)

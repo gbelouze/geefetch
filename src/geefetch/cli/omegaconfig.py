@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from geedim.enums import ResamplingMethod
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
@@ -143,6 +144,10 @@ class SatelliteDefaultConfig:
     selected_bands : list[str] | None
         The bands to download. If None, will use the satellite
         default bands. Defaults to None.
+    resampling : ResamplingMethod
+        The resampling method to use when reprojecting images.
+        Can be one of: 'near', 'bilinear', 'bicubic',
+        'average'. Defaults to 'bilinear'.
     """
 
     aoi: AOIConfig
@@ -152,6 +157,7 @@ class SatelliteDefaultConfig:
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
     selected_bands: list[str] | None = None
+    resampling: ResamplingMethod = ResamplingMethod.bilinear
 
 
 @dataclass

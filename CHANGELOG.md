@@ -10,6 +10,14 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ## pre-release
 
+### Added
+
+- Allow choice of resampling method for downloaded images
+
+### Changed
+
+- By default, all satellite data except for dynamic world will be resampled using bilinear interpolation (previously it was nearest neighbour)
+
 ### Fixed
 
 - Issue where the AOI would be split into tiles with duplicates [168fc75](https://github.com/gbelouze/geefetch/commit/168fc75df057c7e1decd273c9209fac7ec5bc5c9)
