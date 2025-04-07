@@ -40,13 +40,21 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         max_tile_size: float | None = None,
         max_tile_dim: int | None = None,
         progress: Progress | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         filename = Path(filename)
         tmp_filename = filename.with_suffix(f".tmp.{filename.suffix}")
         tmp_filename.unlink(missing_ok=True)
         self._download(
-            tmp_filename, overwrite, num_threads, max_tile_size, max_tile_dim, progress, **kwargs
+            tmp_filename,
+            overwrite,
+            num_threads,
+            max_tile_size,
+            max_tile_dim,
+            progress,
+            resampling,
+            **kwargs,
         )
         tmp_filename.replace(filename)
 
@@ -200,6 +208,7 @@ class ExportableGeedimImage(DownloadableABC):
         bands: list[str],
         scale: int | None = None,
         dtype: str = "float32",
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
@@ -213,6 +222,7 @@ class ExportableGeedimImage(DownloadableABC):
             scale=scale,
             bands=bands,
             crs=f"EPSG:{crs.to_epsg()}",
+            resampling=resampling,
         )
 
 
@@ -234,6 +244,7 @@ class DownloadableGeedimImage(DownloadableABC):
         scale: int | None = None,
         dtype: str = "float32",
         progress: Progress | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
@@ -248,6 +259,7 @@ class DownloadableGeedimImage(DownloadableABC):
             scale=scale,
             dtype=dtype,
             progress=progress,
+            resampling=resampling,
         )
 
 
@@ -270,6 +282,7 @@ class DownloadableGeedimImageCollection(DownloadableABC):
         scale: int | None = None,
         dtype: str = "float32",
         progress: Progress | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.bilinear,
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
@@ -308,6 +321,7 @@ class DownloadableGeedimImageCollection(DownloadableABC):
                     scale=scale,
                     dtype=dtype,
                     progress=progress,
+                    resampling=resampling,
                 )
                 log.debug(f"Downloaded image to {dst_path}.")
                 progress.advance(task)
