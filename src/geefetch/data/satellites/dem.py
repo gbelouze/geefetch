@@ -22,7 +22,7 @@ def compute_slope(data: Image) -> Image:
 
 
 class NASADEM(SatelliteABC):
-    _bands = ["elevation", "num", "slope", "swb"]
+    _bands = ["elevation", "slope", "swb"]
     _default_selected_bands = ["elevation", "slope"]
 
     @property
@@ -35,7 +35,7 @@ class NASADEM(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return {"elevation": (-512, 8768), "slope": (0, 90), "num": (0, 255), "swb": (0, 255)}
+        return {"elevation": (-512, 8768), "slope": (0, 90), "swb": (0, 255)}
 
     @property
     def is_raster(self):
@@ -75,7 +75,7 @@ class NASADEM(SatelliteABC):
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get NASADEM composite image.
+        """Get a downloadable NASADEM composite image.
 
         Parameters
         ----------
