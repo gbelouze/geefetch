@@ -10,6 +10,7 @@ GeeFetch is organized into several key modules:
 - [Satellite Sources](satellites.md): Available satellite data sources and how to implement custom ones
 - [Downloadable Classes](downloadables.md): Different classes that handle downloading from Google Earth Engine
 - [Data Download Core](core/index.md): Main downloading functions
+- [Geefetch Utils and Enums](utils.md): Utilities and useful enum types
 
 ## Getting Started with the API
 

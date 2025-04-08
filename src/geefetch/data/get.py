@@ -1032,7 +1032,7 @@ def download_custom(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
 ) -> None:
-    """Download NASADEM images. Images are written in several .tif chips
+    """Download images from a custom data source. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
 
     Parameters
