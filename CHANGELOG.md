@@ -19,6 +19,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Per-band Sentinel-2 range [3355e57](https://github.com/gbelouze/geefetch/commit/3355e57b2fd627fc93ee735480cad264c47fe350)
 - Don't scale bands if the range of value fits within the dtype-representable range [ac2321e](https://github.com/gbelouze/geefetch/commit/ac2321ed7bfad78ea9ddb40fd589b903d8b4af5a)
 - Remove the necessity to write `satellite: {}` in the config [803c13e](https://github.com/gbelouze/geefetch/commit/803c13e9d59adde54ffab52abeebe573dd6d9a58)
+- Migrated the docs to `mkdocs` [607050c](https://github.com/gbelouze/geefetch/commit/607050ca244cdd3865de967e67d2d20d6fb56d47)
 
 ### Fixed
 
