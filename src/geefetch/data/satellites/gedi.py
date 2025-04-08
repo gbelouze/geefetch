@@ -160,15 +160,19 @@ class GEDIvector(SatelliteABC):
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         raise NotImplementedError
 
     def get(
-        self, aoi: GeoBoundingBox, start_date: str, end_date: str, **kwargs: Any
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        **kwargs: Any,
     ) -> DownloadableGEECollection:
         """Get GEDI collection.
 
@@ -176,9 +180,9 @@ class GEDIvector(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         **kwargs : Any
             Accepted but ignored additional arguments.
@@ -242,16 +246,18 @@ class GEDIraster(SatelliteABC):
     def pixel_range(self):
         return 0, 100
 
-    def get_col(self, aoi: GeoBoundingBox, start_date: str, end_date: str) -> ImageCollection:
+    def get_col(
+        self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
+    ) -> ImageCollection:
         """Get GEDI collection.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
 
         Returns
@@ -259,19 +265,20 @@ class GEDIraster(SatelliteABC):
         gedi_col : ImageCollection
             A GEDI collection of the specified AOI and time range.
         """
+        col = ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY").filterBounds(
+            aoi.buffer(10_000).to_ee_geometry()
+        )
+        if start_date is not None and end_date is not None:
+            col = col.filterDate(start_date, end_date)
         return (  # type: ignore[no-any-return]
-            ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY")
-            .filterBounds(aoi.buffer(10_000).to_ee_geometry())
-            .filterDate(start_date, end_date)
-            .map(qualityMask)
-            .select(self.default_selected_bands)
+            col.map(qualityMask).select(self.default_selected_bands)
         )
 
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
@@ -281,9 +288,9 @@ class GEDIraster(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         dtype: DType
             The data type for the image.
@@ -317,8 +324,8 @@ class GEDIraster(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
@@ -328,9 +335,9 @@ class GEDIraster(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
             Percentage of cloud above which the whole image is filtered out.
         dtype: DType

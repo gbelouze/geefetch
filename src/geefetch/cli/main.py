@@ -98,3 +98,28 @@ def palsar2(config):
     from .download_implementation import download_palsar2
 
     download_palsar2(config)
+
+
+@main.command()
+@config_option
+def nasadem(config):
+    """Download NASA-DEM images."""
+    from .download_implementation import download_nasadem
+
+    download_nasadem(config)
+
+
+@main.command()
+@config_option
+@click.argument(
+    "custom_name",
+)
+def custom(config, custom_name):
+    """Download Custom images.
+
+    CUSTOM_NAME: Name of the custom satellite to download.
+    Must match a name given in the custom section of the config file.
+    """
+    from .download_implementation import download_custom
+
+    download_custom(config, custom_name)

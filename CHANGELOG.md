@@ -10,9 +10,20 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ## pre-release
 
+### Added
+
+- Option to download satellites from unsupported ImageCollection, with minimal processing [d61bca3](https://github.com/gbelouze/geefetch/commit/d61bca35122914923166551433dd9bb960b0e8cf)
+
+### Changed
+
+- Per-band Sentinel-2 range [3355e57](https://github.com/gbelouze/geefetch/commit/3355e57b2fd627fc93ee735480cad264c47fe350)
+- Don't scale bands if the range of value fits within the dtype-representable range [ac2321e](https://github.com/gbelouze/geefetch/commit/ac2321ed7bfad78ea9ddb40fd589b903d8b4af5a)
+- Remove the necessity to write `satellite: {}` in the config [803c13e](https://github.com/gbelouze/geefetch/commit/803c13e9d59adde54ffab52abeebe573dd6d9a58)
+
 ### Fixed
 
 - Issue where the AOI would be split into tiles with duplicates [168fc75](https://github.com/gbelouze/geefetch/commit/168fc75df057c7e1decd273c9209fac7ec5bc5c9)
+- Issue where vector tiles that are split because they are too heavy are downloaded in the wrong CRS [cc00bbc](https://github.com/gbelouze/geefetch/commit/cc00bbca03a9837a19b221f84ac5df0634534ed8)
 
 ## [0.5.1](https://github.com/gbelouze/geefetch/compare/v0.5.1...v0.5.0) (2025-02-26)
 
