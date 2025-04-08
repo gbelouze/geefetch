@@ -22,7 +22,6 @@ theme:
         name: Switch to light mode
   favicon: assets/logo.png
   features:
-    - navigation.instant
     - navigation.tracking
     - navigation.indexes
     - navigation.top
@@ -97,5 +96,5 @@ extra:
       link: https://github.com/gbelouze/geefetch
     - icon: fontawesome/brands/python
 extra_javascript:
-  - javascripts/mathjax.js
+  # - javascripts/mathjax.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
