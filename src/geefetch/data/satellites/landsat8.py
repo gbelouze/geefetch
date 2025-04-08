@@ -182,9 +182,6 @@ def zenith(footprint: List) -> Image:
 
 
 def _applyL8(image: Image, kvol: Image, kvol0: Image) -> Image:
-    # f_iso = 0
-    # f_geo = 0
-    # f_vol = 0
     blue = _correct_band(image, "SR_B2", kvol, kvol0, f_iso=0.0774, f_geo=0.0079, f_vol=0.0372)
     green = _correct_band(image, "SR_B3", kvol, kvol0, f_iso=0.1306, f_geo=0.0178, f_vol=0.0580)
     red = _correct_band(image, "SR_B4", kvol, kvol0, f_iso=0.1690, f_geo=0.0227, f_vol=0.0574)
@@ -336,7 +333,7 @@ class Landsat8(SatelliteABC):
         dtype: DType = DType.UInt16,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Landsat 8 collection.
+        """Get a downloadable time series of Landsat 8 images.
 
         Parameters
         ----------
@@ -386,7 +383,7 @@ class Landsat8(SatelliteABC):
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Landsat 8 collection.
+        """Get a downloadable mosaic of Landsat 8 images.
 
         Parameters
         ----------

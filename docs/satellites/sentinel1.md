@@ -10,7 +10,7 @@ In GeeFetch, Sentinel-1 data is accessed via the Google Earth Engine collection 
 
 1. Filtering by date range and area of interest
 2. Filtering by orbit availability (see [configuration options](#configuration-options))
-3. Mosaicking of multiple images
+3. Mosaicking of overlapping acquisitions
 4. Resampling to target resolution
 5. Scaling to maximize precision within the requested data type. Pixels outside of the range $(-30, 0)$ saturate. For instance, if the requested datatype is `uint8`, the image is scaled by $x \mapsto (x + 30) \cdot 255/30$.
 
@@ -25,7 +25,7 @@ In GeeFetch, Sentinel-1 data is accessed via the Google Earth Engine collection 
 
 ## Configuration Options
 
-See [common configuration options](/api/config#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-1-specific configuration. Additionnally, you may provide the following options.
+See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-1-specific configuration. Additionnally, you may provide the following options.
 
 ::: geefetch.cli.omegaconfig.S1Config
 
@@ -57,10 +57,10 @@ satellite_default:
       start_date: "2023-06-01"
       end_date: "2023-06-30"
   gee:
-    ee_project_id: "ffb-pipeline" # Your GEE project ID
+    ee_project_id: "your-gee-id"
   tile_size: 2000
   resolution: 10
-s1: # more scrict cloud filtering than the defaults
+s1:
   orbit: ASCENDING
 ```
 

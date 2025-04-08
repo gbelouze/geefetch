@@ -169,10 +169,19 @@ class GediConfig(SatelliteDefaultConfig):
 
 @dataclass
 class S1Config(SatelliteDefaultConfig):
-    """The structured type for configuring Sentinel-1."""
+    """The structured type for configuring Sentinel-1.
+
+    Attributes
+    ----------
+    orbit : S1Orbit
+        Orbit direction to filter Sentinel-1 acquisitions.
+        Can be ASCENDING, DESCENDING, BOTH, or AS_BANDS
+        to download ascending and descending composites as separate bands.
+        Defaults to BOTH.
+    """
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
-    orbit: S1Orbit = S1Orbit.ASCENDING
+    orbit: S1Orbit = S1Orbit.BOTH
 
 
 @dataclass
@@ -204,7 +213,14 @@ class Landsat8Config(SatelliteDefaultConfig):
 
 @dataclass
 class Palsar2Config(SatelliteDefaultConfig):
-    """The structured type for configuring Palsar 2."""
+    """The structured type for configuring Palsar 2.
+
+    Attributes
+    ----------
+    orbit : P2Orbit
+        Orbit direction to filter PALSAR-2 acquisitions.
+        Can be ASCENDING or DESCENDING. Defaults to DESCENDING.
+    """
 
     orbit: P2Orbit = P2Orbit.DESCENDING
 

@@ -151,7 +151,7 @@ class S2(SatelliteABC):
         cloud_prb_thresh: int = 40,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Sentinel-2 collection.
+        """Get a downloadable time series of Sentinel-2 images.
 
         Parameters
         ----------
@@ -215,7 +215,7 @@ class S2(SatelliteABC):
         buffer: float = 100,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Sentinel-2 cloud free collection.
+        """Get a downloadable mosaic of Sentinel-2 images.
 
         Parameters
         ----------

@@ -45,7 +45,7 @@ In GeeFetch, Sentinel-2 data is accessed via the Google Earth Engine collection 
 
 ## Configuration Options
 
-See [common configuration options](/api/config#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-2-specific configuration. Additionnally, you may provide the following options.
+See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-2-specific configuration. Additionnally, you may provide the following options.
 
 ::: geefetch.cli.omegaconfig.S2Config
 
@@ -77,7 +77,7 @@ satellite_default:
       start_date: "2023-06-01"
       end_date: "2023-06-30"
   gee:
-    ee_project_id: "ffb-pipeline" # Your GEE project ID
+    ee_project_id: "your-gee-id"
   tile_size: 2000
   resolution: 10
 s2: # more scrict cloud filtering than the defaults
