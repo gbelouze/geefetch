@@ -146,8 +146,8 @@ class SatelliteDefaultConfig:
         default bands. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be one of: 'near', 'bilinear', 'bicubic',
-        'average'. Defaults to 'bilinear'.
+        Can be nearest neighbour, bilinear, bicubic or average resampling.
+        Defaults to bilinear.
     """
 
     aoi: AOIConfig

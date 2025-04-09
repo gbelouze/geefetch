@@ -473,8 +473,8 @@ def download_gedi(
         More fine-grained AOI than `bbox`. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be one of: 'near', 'bilinear', 'bicubic', 'average'.
-        Defaults to 'bilinear'.
+        Can be nearest neighbour, bilinear, bicubic or average resampling.
+        Defaults to bilinear.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -611,8 +611,8 @@ def download_s1(
         The orbit used to filter Sentinel-1 images. Defaults to S1Orbit.ASCENDING.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be one of: 'near', 'bilinear', 'bicubic', 'average'.
-        Defaults to 'bilinear'.
+        Can be nearest neighbour, bilinear, bicubic or average resampling.
+        Defaults to bilinear.
     """
     download_func = (
         download_time_series if (composite_method == CompositeMethod.TIMESERIES) else download
@@ -710,8 +710,8 @@ def download_s2(
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be one of: 'near', 'bilinear', 'bicubic', 'average'.
-        Defaults to 'bilinear'.
+        Can be nearest neighbour, bilinear, bicubic or average resampling.
+        Defaults to bilinear.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -790,8 +790,8 @@ def download_dynworld(
         More fine-grained AOI than `bbox`. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be one of: 'near', 'bilinear', 'bicubic', 'average'.
-        Defaults to 'bilinear'.
+        Can be nearest neighbour, bilinear, bicubic or average resampling.
+        Defaults to bilinear.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -868,8 +868,8 @@ def download_landsat8(
         More fine-grained AOI than `bbox`. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be one of: 'near', 'bilinear', 'bicubic', 'average'.
-        Defaults to 'bilinear'.
+        Can be nearest neighbour, bilinear, bicubic or average resampling.
+        Defaults to bilinear.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -947,8 +947,8 @@ def download_palsar2(
         The orbit used to filter Palsar-2 images. Defaults to P2Orbit.ASCENDING.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be one of: 'near', 'bilinear', 'bicubic', 'average'.
-        Defaults to 'bilinear'.
+        Can be nearest neighbour, bilinear, bicubic or average resampling.
+        Defaults to bilinear.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -1024,8 +1024,8 @@ def download_nasadem(
         More fine-grained AOI than `bbox`. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be one of: 'near', 'bilinear', 'bicubic', 'average'.
-        Defaults to 'bilinear'.
+        Can be nearest neighbour, bilinear, bicubic or average resampling.
+        Defaults to bilinear.
     """
     if composite_method == CompositeMethod.TIMESERIES:
         raise ValueError("Time series is not relevant for DEM.")
