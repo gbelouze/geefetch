@@ -753,7 +753,7 @@ def download_dynworld(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
-    resampling: ResamplingMethod = ResamplingMethod.near,
+    resampling: ResamplingMethod = ResamplingMethod.bilinear,
 ) -> None:
     """Download Dynamic World images. Images are written in several .tif chips
     to `data_dir`. Additionnally a file `dynworld.vrt` is written to combine all the chips.
@@ -791,7 +791,7 @@ def download_dynworld(
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
         Can be one of: 'near', 'bilinear', 'bicubic', 'average'.
-        Defaults to 'near'.
+        Defaults to 'bilinear'.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download

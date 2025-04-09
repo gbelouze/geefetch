@@ -16,7 +16,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Changed
 
-- By default, all satellite data except for dynamic world will be resampled using bilinear interpolation (previously it was nearest neighbour)
+- By default, all satellite data will be resampled using bilinear interpolation (previously it was nearest neighbour)
 
 ### Fixed
 
