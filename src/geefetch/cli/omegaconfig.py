@@ -289,13 +289,19 @@ class GeefetchConfig:
         self.data_dir = self.data_dir.expanduser().absolute()
 
 
-def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
-    """Updates in place the missing satellites config with the default.
+def _post_omegaconf_load(config: DictConfig | ListConfig) -> None:
+    """Post-processes a loaded OmegaConf config by merging satellite defaults.
+
+    This function updates the configuration in place by merging default satellite
+    parameters into each satellite-specific configuration (GEDI, Sentinel-1, Sentinel-2, etc.).
+    If custom satellites are defined, they are also merged with the default template.
 
     Parameters
     ----------
     config : DictConfig | ListConfig
-        The config loaded by OmegaConf.
+        A configuration object loaded using OmegaConf, expected to include
+        a `satellite_default` section and optionally sections for each known
+        satellite or user-defined `customs`.
     """
     OmegaConf.resolve(config)
 
@@ -353,14 +359,28 @@ def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
 
 
 def load(path: Path) -> GeefetchConfig:
-    """Load a config file."""
+    """Loads and validates a geefetch configuration from a YAML file or directory.
+
+    If a directory is provided, all `.yaml` files within it are merged. The function
+    then injects missing satellite configurations with defaults.
+
+    Parameters
+    ----------
+    path : Path
+        Path to a YAML file or a directory containing YAML files to load.
+
+    Returns
+    -------
+    GeefetchConfig
+        The fully merged and validated configuration object.
+    """
     if path.is_dir():
         from_yaml = OmegaConf.merge(
             *[OmegaConf.load(file) for file in path.iterdir() if file.suffix == ".yaml"]
         )
     else:
         from_yaml = OmegaConf.load(path)
-    post_omegaconf_load(from_yaml)
+    _post_omegaconf_load(from_yaml)
     from_structured = OmegaConf.structured(GeefetchConfig)
     merged = OmegaConf.merge(from_structured, from_yaml)
     if merged.satellite_default.selected_bands is not None:
