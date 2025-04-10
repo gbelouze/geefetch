@@ -29,6 +29,8 @@ palsar2:
       start_date: 2024-08-01
       end_date: 2024-08-31
   orbit: DESCENDING
+s1:
+  orbit: ASCENDING
 customs:
   chm_pauls:
     url: projects/worldwidemap/assets/canopyheight2020

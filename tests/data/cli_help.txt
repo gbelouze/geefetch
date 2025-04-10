@@ -1,6 +1,6 @@
 Usage: main [OPTIONS] COMMAND [ARGS]...
 
-  Download satellites from Google Earth Engine.
+  Download satellite data from Google Earth Engine.
 
 Options:
   -v, --verbose
