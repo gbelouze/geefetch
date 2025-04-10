@@ -2,32 +2,6 @@
 
 This guide will help you set up GeeFetch and run your first satellite data download.
 
-## Installation
-
-Install GeeFetch using `pip`, `conda` or with your prefered package manager:
-
-
-=== "pip"
-    ```bash
-    pip install geefetch
-    ```
-
-=== "conda"
-    ```bash
-    git clone https://github.com/gbelouze/geefetch.git
-    cd geefetch
-    conda env create -f environment.yaml
-    conda activate geefetch-env
-    pip install -e .
-    ```
-
-=== "dev"
-    For development or the latest features, you can install directly from GitHub:
-
-    ```bash
-    pip install git+https://github.com/gbelouze/geefetch.git
-    ```
-
 ## Prerequisites
 
 ### Python Environment
@@ -53,6 +27,33 @@ earthengine authenticate
 
 This will open a browser window and guide you through the authentication process.
 
+## Installation
+
+Install GeeFetch using `pip`, `conda` or with your prefered package manager:
+
+=== "pip"
+
+    ```bash
+    pip install geefetch
+    ```
+
+=== "conda"
+
+    If you have trouble with `gdal` or `rasterio`, you can use `conda` for a more out of the box install
+
+    ```bash
+    conda install "rasterio>=1.3" "gdal>=3.6"
+    pip install geefetch
+    ```
+
+=== "dev"
+
+    For development or the latest features, you can install directly from GitHub:
+
+    ```bash
+    pip install git+https://github.com/gbelouze/geefetch.git
+    ```
+
 ## Basic Configuration
 
 GeeFetch uses YAML configuration files to specify what data to download and how. Create a basic configuration file (e.g., `config.yaml`):
@@ -71,7 +72,7 @@ satellite_default:
       start_date: "2023-06-01"
       end_date: "2023-06-30"
   gee:
-    ee_project_id: "my-ee-project"  # Your GEE project ID
+    ee_project_id: "my-ee-project" # Your GEE project ID
   tile_size: 2000
   resolution: 10
 ```
@@ -103,7 +104,7 @@ This command will:
 
 After the download completes, you'll find the data in the directory specified in your configuration (`~/satellite_data` in our example):
 
-```
+```bash
 ~/satellite_data/
 └── s2
     ├── config.yaml
