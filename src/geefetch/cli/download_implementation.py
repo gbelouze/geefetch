@@ -408,8 +408,7 @@ def download_custom(config_path: Path, custom_name: str) -> None:
         end_date,
         crs=(
             CRS.from_epsg(custom_config.aoi.spatial.epsg)
-            if custom_config.aoi.spatial.epsg
-            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
+            if custom_config.aoi.spatial.epsg != 4326
             else None
         ),
         composite_method=custom_config.composite_method,
