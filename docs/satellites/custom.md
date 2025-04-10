@@ -37,29 +37,25 @@ As an example, we show how to get a roughly similar behaviour as the builtin `ge
 Write the following `config.yaml`
 
 ```yaml
-data_dir: ~/satellite_data
+data_dir: geefetch_data
 satellite_default:
   aoi:
     spatial:
-      left: -0.7
-      right: -0.2
-      top: 44.2
-      bottom: 43.8
+      left: 2.2
+      bottom: 48.7
+      right: 2.5
+      top: 49
       epsg: 4326
-    temporal:
-      start_date: "2023-06-01"
-      end_date: "2023-06-30"
   gee:
     ee_project_id: "your-gee-id"
   tile_size: 2000
   resolution: 10
+
 customs:
   nasadem:
     url: NASA/NASADEM_HGT/001
     pixel_range: [-512, 8768]
     selected_bands: [elevation]
-    aoi:
-      temporal: null # nasadem doesn't have a temporal dimension
     composite_method: MOSAIC
 ```
 
@@ -75,25 +71,35 @@ Though this is not `geefetch` main intended use, you can bypass the configuratio
 For instance, the CLI command is roughly equivalent
 
 ```python
+import logging
 from pathlib import Path
 
-from gefetch.utils.enums import CompositeMethod
 from geobbox import GeoBoundingBox
 
 from geefetch.data.get import download_custom
 from geefetch.data.satellites import CustomSatellite
+from geefetch.utils.enums import CompositeMethod
+from geefetch.utils.gee import auth
+from geefetch.utils.log import setup
+
+setup(level=logging.INFO)
 
 nasadem_custom = CustomSatellite(
     url="NASA/NASADEM_HGT/001", pixel_range=(-512, 8768), name="nasadem"
 )
 
+data_dir = Path("geefetch_data/")
+data_dir.mkdir(exist_ok=True)
+
+auth("your-gee-id")
+
 download_custom(
     nasadem_custom,
-    Path("geefetch_data/"),
-    bbox=GeoBoundingBox(-0.7, -0.2, 44.2, 43.8),
+    data_dir,
+    bbox=GeoBoundingBox(2.2, 48.7, 2.5, 49),
     start_date=None,
     end_date=None,
-    selected_bands="elevation",
+    selected_bands=["elevation"],
     composite_method=CompositeMethod.MOSAIC,
 )
 ```
