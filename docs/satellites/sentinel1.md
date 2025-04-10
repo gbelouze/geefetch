@@ -23,6 +23,8 @@ In GeeFetch, Sentinel-1 data is accessed via the Google Earth Engine collection 
 | HH   | Horizontal transmit, horizontal receive | 10m               | no                  |
 | HV   | Horizontal transmit, vertical receive   | 10m               | no                  |
 
+Refer to [`COPERNICUS/S1_GRD`](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD) for more details.
+
 ## Configuration Options
 
 See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-1-specific configuration. Additionnally, you may provide the following options.

@@ -23,6 +23,8 @@ In GeeFetch, PALSAR-2 data is accessed via the Google Earth Engine collection [`
 | LIN  | Local incidence angle (between radar direction and slope normal) | 0.01 deg          | no                  |
 | MSK  | Data quality bitmask                                             | 25m               | no                  |
 
+Refer to [`JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR`](https://developers.google.com/earth-engine/datasets/catalog/JAXA_ALOS_PALSAR-2_Level2_2_ScanSAR) for more details.
+
 ## Configuration Options
 
 See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non PALSAR-2-specific configuration.

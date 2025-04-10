@@ -27,6 +27,8 @@ In GeeFetch, Landsat-8 data is accessed via the Google Earth Engine collection [
 | SR_B6 | Band 6 (Shortwave Infrared 1, 1.566–1.651 µm)        | 30m               | yes                 |
 | SR_B7 | Band 7 (Shortwave Infrared 2, 2.107–2.294 µm)        | 30m               | yes                 |
 
+Refer to [`LANDSAT/LC08/C02/T1_L2`](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_L2) for more details.
+
 ## Configuration Options
 
 See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig).

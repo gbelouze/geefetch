@@ -43,6 +43,8 @@ In GeeFetch, Sentinel-2 data is accessed via the Google Earth Engine collection 
 | TCI_B      | True Color Blue           | 10m               | no                  |
 | MSK_CLDPRB | Cloud Probability         | 20m               | no                  |
 
+Refer to [`COPERNICUS/S2_SR`](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED) for more details.
+
 ## Configuration Options
 
 See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-2-specific configuration. Additionnally, you may provide the following options.

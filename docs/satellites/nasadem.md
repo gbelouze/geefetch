@@ -20,6 +20,8 @@ In GeeFetch, NASADEM data is accessed via the Google Earth Engine collection [`N
 | slope     | Terrain slope in degrees                      | 30m               | 0 to 90      | yes                 |
 | swb       | Surface water body mask (0: land, 255: water) | 30m               | 0 to 255     | no                  |
 
+Refer to [`NASA/NASADEM_HGT/001`](https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001) for more details.
+
 ## Configuration Options
 
 See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig)
