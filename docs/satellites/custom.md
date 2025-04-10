@@ -76,26 +76,25 @@ For instance, the CLI command is roughly equivalent
 
 ```python
 from pathlib import Path
-from geobbox import GeoBoundingBox
-from geefetch.data.satellites import CustomSatellite
-from geefetch.data.get import download_custom
+
 from gefetch.utils.enums import CompositeMethod
+from geobbox import GeoBoundingBox
+
+from geefetch.data.get import download_custom
+from geefetch.data.satellites import CustomSatellite
 
 nasadem_custom = CustomSatellite(
-    url = "NASA/NASADEM_HGT/001",
-    pixel_range = (-512, 8768),
-    name = "nasadem"
+    url="NASA/NASADEM_HGT/001", pixel_range=(-512, 8768), name="nasadem"
 )
 
 download_custom(
     nasadem_custom,
     Path("geefetch_data/"),
     bbox=GeoBoundingBox(-0.7, -0.2, 44.2, 43.8),
-    start_date = None,
-    end_date = None,
-    selected_bands = "elevation",
-    composite_method = CompositeMethod.MOSAIC
-
+    start_date=None,
+    end_date=None,
+    selected_bands="elevation",
+    composite_method=CompositeMethod.MOSAIC,
 )
 ```
 
@@ -108,8 +107,6 @@ download_custom(
         show_source: false
         heading_level: 5
         show_root_toc_entry: false
-
-
 
 ## Relevant library code
 

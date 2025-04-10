@@ -50,10 +50,11 @@ plugins:
         python:
           paths: [src]
           options:
+            docstring_section_style: table
             docstring_style: numpy # Changed from google to numpy
             heading_level: 4
+            members_order: source
             show_signature_annotations: false
-            docstring_section_style: table
             show_symbol_type_toc: true
             filters:
             - "!^_"

@@ -11,7 +11,7 @@ Every satellite must conform to the following blueprint.
     options:
         show_root_heading: true
         show_source: false
-        heading_level: 4
+        heading_level: 3
 
 ## Available Satellite Sources
 
@@ -39,7 +39,6 @@ For data sources that are not built-in into `geefetch`, we have the following mo
 ::: geefetch.data.satellites.CustomSatellite
 
     options:
-        members:
         show_root_heading: true
         show_source: false
         heading_level: 4

@@ -51,10 +51,15 @@ The `custom` command provides access to any image collection available in Google
 ```yaml
 # Example custom configuration
 custom:
-  collection_name: "COPERNICUS/S5P/NRTI/L3_NO2"
-  bands: ["NO2_column_number_density", "cloud_fraction"]
-  scale_factor: 0.0001
+  nrti:
+    url: "COPERNICUS/S5P/NRTI/L3_NO2"
+    selected_bands: ["NO2_column_number_density", "cloud_fraction"]
+    pixel_range:
+      NO2_column_number_density: [-0.0006, 0.0096]
+      cloud_fraction: [0, 1]
 ```
+
+See [Custom download](custom.md) for more details.
 
 ## Processing Overview
 
