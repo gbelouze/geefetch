@@ -5,13 +5,12 @@ from pathlib import Path
 from typing import Any
 
 import shapely
-from geedim.enums import ResamplingMethod
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 from retry import retry
 from rich.progress import Progress
 
-from ..utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
+from ..utils.enums import CompositeMethod, DType, Format, P2Orbit, ResamplingMethod, S1Orbit
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
 from .downloadables import DownloadableABC
@@ -80,7 +79,6 @@ def download_chip_ts(
     out: Path,
     selected_bands: list[str] | None = None,
     progress: Progress | None = None,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
@@ -96,7 +94,6 @@ def download_chip_ts(
             bands=bands,
             scale=scale,
             progress=progress,
-            resampling=resampling,
             **kwargs,
         )
         log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
@@ -116,7 +113,6 @@ def download_chip(
     out: Path,
     selected_bands: list[str] | None = None,
     check_clean: bool = True,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
@@ -138,7 +134,6 @@ def download_chip(
             region=bbox,
             bands=bands,
             scale=scale,
-            resampling=resampling,
             **kwargs,
         )
         log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
@@ -436,7 +431,6 @@ def download_gedi(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
 ) -> None:
     """Download GEDI images fused as rasters. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `gedi.vrt` is written to combine all the chips.
@@ -471,10 +465,6 @@ def download_gedi(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    resampling : ResamplingMethod
-        The resampling method to use when reprojecting images.
-        Can be nearest neighbour, bilinear, bicubic or average resampling.
-        Defaults to bilinear.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -498,7 +488,7 @@ def download_gedi(
             "composite_method": composite_method,
             "dtype": dtype,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str(), "resampling": resampling},
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
 
@@ -572,7 +562,7 @@ def download_s1(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
+    resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.
@@ -611,8 +601,8 @@ def download_s1(
         The orbit used to filter Sentinel-1 images. Defaults to S1Orbit.ASCENDING.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be nearest neighbour, bilinear, bicubic or average resampling.
-        Defaults to bilinear.
+        Can be BILINEAR, BICUBIC or NEAREST.
+        Defaults to ResamplingMethod.BILINEAR.
     """
     download_func = (
         download_time_series if (composite_method == CompositeMethod.TIMESERIES) else download
@@ -648,8 +638,9 @@ def download_s1(
             "dtype": dtype,
             "orbit": orbit,
             "selected_bands": selected_bands,
+            "resampling": resampling,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str(), "resampling": resampling},
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
 
@@ -668,7 +659,7 @@ def download_s2(
     filter_polygon: shapely.Geometry | None = None,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
+    resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
 ) -> None:
     """Download Sentinel-2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s2.vrt` is written to combine all the chips.
@@ -710,8 +701,8 @@ def download_s2(
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be nearest neighbour, bilinear, bicubic or average resampling.
-        Defaults to bilinear.
+        Can be BILINEAR, BICUBIC or NEAREST.
+        Defaults to ResamplingMethod.BILINEAR.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -735,8 +726,9 @@ def download_s2(
             "cloudless_portion": cloudless_portion,
             "cloud_prb_thresh": cloud_prb_thresh,
             "dtype": dtype,
+            "resampling": resampling,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str(), "resampling": resampling},
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
 
@@ -753,7 +745,7 @@ def download_dynworld(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
+    resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
 ) -> None:
     """Download Dynamic World images. Images are written in several .tif chips
     to `data_dir`. Additionnally a file `dynworld.vrt` is written to combine all the chips.
@@ -790,8 +782,8 @@ def download_dynworld(
         More fine-grained AOI than `bbox`. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be nearest neighbour, bilinear, bicubic or average resampling.
-        Defaults to bilinear.
+        Can be BILINEAR, BICUBIC or NEAREST.
+        Defaults to ResamplingMethod.BILINEAR.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -813,8 +805,9 @@ def download_dynworld(
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
+            "resampling": resampling,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str(), "resampling": resampling},
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
 
@@ -831,7 +824,7 @@ def download_landsat8(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
+    resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
 ) -> None:
     """Download Landsat 8 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `landsat8.vrt` is written to combine all the chips.
@@ -868,8 +861,8 @@ def download_landsat8(
         More fine-grained AOI than `bbox`. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be nearest neighbour, bilinear, bicubic or average resampling.
-        Defaults to bilinear.
+        Can be BILINEAR, BICUBIC or NEAREST.
+        Defaults to ResamplingMethod.BILINEAR.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -889,8 +882,9 @@ def download_landsat8(
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
+            "resampling": resampling,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str(), "resampling": resampling},
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
 
@@ -908,7 +902,7 @@ def download_palsar2(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     orbit: P2Orbit = P2Orbit.DESCENDING,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
+    resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
@@ -947,8 +941,8 @@ def download_palsar2(
         The orbit used to filter Palsar-2 images. Defaults to P2Orbit.ASCENDING.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be nearest neighbour, bilinear, bicubic or average resampling.
-        Defaults to bilinear.
+        Can be BILINEAR, BICUBIC or NEAREST.
+        Defaults to ResamplingMethod.BILINEAR.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -969,8 +963,9 @@ def download_palsar2(
             "composite_method": composite_method,
             "dtype": dtype,
             "orbit": orbit,
+            "resampling": resampling,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str(), "resampling": resampling},
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
 
@@ -987,7 +982,7 @@ def download_nasadem(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
-    resampling: ResamplingMethod = ResamplingMethod.bilinear,
+    resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
 ) -> None:
     """Download NASADEM images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
@@ -1024,8 +1019,8 @@ def download_nasadem(
         More fine-grained AOI than `bbox`. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be nearest neighbour, bilinear, bicubic or average resampling.
-        Defaults to bilinear.
+        Can be BILINEAR, BICUBIC or NEAREST.
+        Defaults to ResamplingMethod.BILINEAR.
     """
     if composite_method == CompositeMethod.TIMESERIES:
         raise ValueError("Time series is not relevant for DEM.")
@@ -1046,6 +1041,7 @@ def download_nasadem(
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
+            "resampling": resampling,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str(), "resampling": resampling},
+        satellite_download_kwargs={"dtype": dtype.to_str()},
     )

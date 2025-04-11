@@ -7,7 +7,7 @@ from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...utils.enums import CompositeMethod, DType, P2Orbit
+from ...utils.enums import CompositeMethod, DType, P2Orbit, ResamplingMethod
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
@@ -91,6 +91,7 @@ class Palsar2(SatelliteABC):
         start_date: str,
         end_date: str,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         orbit: P2Orbit = P2Orbit.DESCENDING,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
@@ -106,6 +107,8 @@ class Palsar2(SatelliteABC):
             End date in "YYYY-MM-DD" format.
         dtype : DType
             The data type for the image
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
         orbit : P2Orbit
             The orbit used to filter the collection before mosaicking.
         **kwargs : Any
@@ -131,7 +134,7 @@ class Palsar2(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype)
+                im = self.convert_image(im, dtype, resampling)
                 images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = PatchedBaseImage(
                     im
                 )
@@ -144,6 +147,7 @@ class Palsar2(SatelliteABC):
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         orbit: P2Orbit = P2Orbit.DESCENDING,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
@@ -161,6 +165,8 @@ class Palsar2(SatelliteABC):
             The method use to do mosaicking.
         dtype : DType
             The data type for the image
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
         orbit : P2Orbit
             The orbit used to filter the collection before mosaicking
         **kwargs : Any
@@ -176,6 +182,8 @@ class Palsar2(SatelliteABC):
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
         p2_col = self.get_col(aoi, start_date, end_date, orbit)
+        # Apply resampling to each image in the collection before compositing
+        p2_col = p2_col.map(lambda img: self.convert_image(img, dtype, resampling))
 
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
@@ -190,7 +198,6 @@ class Palsar2(SatelliteABC):
 
         log.debug(f"Palsar-2 mosaicking with {n_images} images.")
         p2_im = composite_method.transform(p2_col).clip(bounds)
-        p2_im = self.convert_image(p2_im, dtype)
         p2_im = PatchedBaseImage(p2_im)
         return DownloadableGeedimImage(p2_im)
 

@@ -134,7 +134,6 @@ def download_gedi(config_path: Path, vector: bool) -> None:
                 if config.gedi.aoi.country is None
                 else load_country_filter_polygon(config.gedi.aoi.country)
             ),
-            resampling=config.gedi.resampling,
         )
 
 

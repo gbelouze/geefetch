@@ -7,7 +7,7 @@ from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...utils.enums import CompositeMethod, DType, S1Orbit
+from ...utils.enums import CompositeMethod, DType, ResamplingMethod, S1Orbit
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
@@ -123,6 +123,7 @@ class S1(SatelliteABC):
         dtype: DType = DType.Float32,
         orbit: S1Orbit = S1Orbit.ASCENDING,
         selected_bands: list[str] | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Sentinel-1 collection.
@@ -141,6 +142,8 @@ class S1(SatelliteABC):
             The orbit used to filter the collection before mosaicking
         selected_bands : list[str] | None
             The bands to be downloaded.
+        resampling : ResamplingMethod
+            The resampling method to use when compositing images.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -166,7 +169,7 @@ class S1(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype)
+                im = self.convert_image(im, dtype, resampling)
                 images[id_.removeprefix("COPERNICUS/S1_GRD/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -179,6 +182,7 @@ class S1(SatelliteABC):
         dtype: DType = DType.Float32,
         orbit: S1Orbit = S1Orbit.ASCENDING,
         selected_bands: list[str] | None = None,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Sentinel-1 collection.
@@ -199,6 +203,8 @@ class S1(SatelliteABC):
             The orbit used to filter the collection before mosaicking
         selected_bands : list[str] | None
             The bands to be downloaded.
+        resampling : ResamplingMethod
+            The resampling method to use when compositing images.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -226,8 +232,10 @@ class S1(SatelliteABC):
 
             log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
             bounds = aoi.transform(WGS84).to_ee_geometry()
+
+            # Apply resampling to each image in the collection before compositing
+            s1_col = s1_col.map(lambda img: self.convert_image(img, dtype, resampling))
             s1_im = composite_method.transform(s1_col).clip(bounds)
-            s1_im = self.convert_image(s1_im, dtype)
             return s1_im
 
         match orbit:

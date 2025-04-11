@@ -2,12 +2,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from geedim.enums import ResamplingMethod
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
 
-from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
+from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, ResamplingMethod, S1Orbit
 
 __all__ = [
     "GeefetchConfig",
@@ -146,8 +145,8 @@ class SatelliteDefaultConfig:
         default bands. Defaults to None.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
-        Can be nearest neighbour, bilinear, bicubic or average resampling.
-        Defaults to bilinear.
+        Can be BILINEAR, BICUBIC or NEAREST.
+        Defaults to ResamplingMethod.BILINEAR.
     """
 
     aoi: AOIConfig
@@ -157,7 +156,7 @@ class SatelliteDefaultConfig:
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
     selected_bands: list[str] | None = None
-    resampling: ResamplingMethod = ResamplingMethod.bilinear
+    resampling: ResamplingMethod = ResamplingMethod.BILINEAR
 
 
 @dataclass

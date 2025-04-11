@@ -5,7 +5,7 @@ from ee.image import Image
 from ee.terrain import Terrain
 from geobbox import GeoBoundingBox
 
-from ...utils.enums import CompositeMethod, DType
+from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
@@ -73,6 +73,7 @@ class NASADEM(SatelliteABC):
         end_date: str,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get NASADEM composite image.
@@ -89,6 +90,8 @@ class NASADEM(SatelliteABC):
             (Unused) NASADEM is a single static dataset.
         dtype : DType
             The data type for the image.
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -102,7 +105,7 @@ class NASADEM(SatelliteABC):
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
         dem_im = self.get_im().clip(bounds)
-        dem_im = self.convert_image(dem_im, dtype)
+        dem_im = self.convert_image(dem_im, dtype, resampling)
         return DownloadableGeedimImage(PatchedBaseImage(dem_im))
 
     @property
