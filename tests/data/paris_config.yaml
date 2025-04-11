@@ -16,7 +16,7 @@ satellite_default:
       end_date: 2020-01-31
     country: France
   gee:
-    ee_project_id: ffb-pipeline
+    ee_project_id: your-gee-id
     max_tile_size: 5
 gedi:
   aoi:
@@ -29,6 +29,8 @@ palsar2:
       start_date: 2024-08-01
       end_date: 2024-08-31
   orbit: DESCENDING
+s1:
+  orbit: ASCENDING
 customs:
   chm_pauls:
     url: projects/worldwidemap/assets/canopyheight2020

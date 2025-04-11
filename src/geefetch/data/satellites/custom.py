@@ -2,6 +2,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from ee.ee_exception import EEException
+from ee.image import Image
 from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 
@@ -23,7 +25,7 @@ class CustomSatellite(SatelliteABC):
     ----------
     url : str
         Google Earth Engine image collection id
-    pixel_range : tuple[float, float]
+    pixel_range : tuple[float, float] | dict[str, tuple[float, float]]
         The range of pixels in all bands. Defaults to (0, 1).
     name : str | None
         The name for the custom satellite. If None, one is crafted from `url`. Defaults to None.
@@ -32,7 +34,10 @@ class CustomSatellite(SatelliteABC):
     """
 
     def __init__(
-        self, url: str, pixel_range: tuple[float, float] = (0, 1), name: str | None = None
+        self,
+        url: str,
+        pixel_range: tuple[float, float] | dict[str, tuple[float, float]] = (0, 1),
+        name: str | None = None,
     ):
         self.url = url
         self._pixel_range = pixel_range
@@ -58,6 +63,27 @@ class CustomSatellite(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
+
+    def get_im(
+        self,
+        aoi: GeoBoundingBox,
+    ) -> Image:
+        """Get collection.
+
+        Parameters
+        ----------
+        aoi : GeoBoundingBox
+            Area of interest.
+
+        Returns
+        -------
+        col : ImageCollection
+        """
+        bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
+        im = Image(self.url)
+        return (  # type: ignore[no-any-return]
+            im.clip(bounds)
+        )
 
     def get_col(
         self,
@@ -132,21 +158,27 @@ class CustomSatellite(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
-        col = self.get_col(
-            aoi,
-            start_date,
-            end_date,
-        )
-        im = composite_method.transform(col).clip(bounds)
+        try:
+            col = self.get_col(
+                aoi,
+                start_date,
+                end_date,
+            )
+            n_images = len(col.getInfo()["features"])  # type: ignore[index]
+            if n_images > 500:
+                log.warning(
+                    f"Mosaicking with a large amount of images (n={n_images}). "
+                    "Expect slower download time."
+                )
+            log.debug(f"Mosaicking with {n_images} images.")
+            im = composite_method.transform(col).clip(bounds)
+        except EEException:
+            # kinda ugly but there is no easy way to know whether the URL is
+            # an Image or an ImageCollection
+            im = self.get_im(aoi)
+
         im = self.convert_image(im, dtype)
         im = PatchedBaseImage(im)
-        n_images = len(col.getInfo()["features"])  # type: ignore[index]
-        if n_images > 500:
-            log.warning(
-                f"Mosaicking with a large amount of images (n={n_images}). "
-                "Expect slower download time."
-            )
-        log.debug(f"Mosaicking with {n_images} images.")
         return DownloadableGeedimImage(im)
 
     @property

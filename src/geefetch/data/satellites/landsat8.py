@@ -372,7 +372,7 @@ class Landsat8(SatelliteABC):
         dtype: DType = DType.UInt16,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Landsat 8 collection.
+        """Get a downloadable time series of Landsat 8 images.
 
         Parameters
         ----------
@@ -422,7 +422,7 @@ class Landsat8(SatelliteABC):
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Landsat 8 collection.
+        """Get a downloadable mosaic of Landsat 8 images.
 
         Parameters
         ----------

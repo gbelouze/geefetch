@@ -94,7 +94,7 @@ class Palsar2(SatelliteABC):
         orbit: P2Orbit = P2Orbit.DESCENDING,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Palsar-2 collection.
+        """Get a downloadable time series of Palsar-2 images.
 
         Parameters
         ----------
@@ -147,7 +147,7 @@ class Palsar2(SatelliteABC):
         orbit: P2Orbit = P2Orbit.DESCENDING,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Palsar-2 collection.
+        """Get a downloadable mosaic of Palsar-2 images.
 
         Parameters
         ----------

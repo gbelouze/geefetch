@@ -174,7 +174,7 @@ class GEDIvector(SatelliteABC):
         end_date: str | None = None,
         **kwargs: Any,
     ) -> DownloadableGEECollection:
-        """Get GEDI collection.
+        """Get a downloadable collection of GEDI points.
 
         Parameters
         ----------

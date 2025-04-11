@@ -41,10 +41,13 @@ __all__ = [
     "UserMemoryLimitExceeded",
     "DownloadError",
     "BadDataError",
+    "download_custom",
     "download_dynworld",
     "download_gedi",
     "download_gedi_vector",
+    "download_landsat8",
     "download_nasadem",
+    "download_palsar2",
     "download_s1",
     "download_s2",
 ]
@@ -173,8 +176,9 @@ def download_time_series(
     filter_polygon: shapely.Geometry | None = None,
     **kwargs: Any,
 ) -> None:
-    """Download images from a specific satellite. Images are written in several .tif chips
-    to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
+    """Download time series of images from a specific satellite. Images are written in several .tif
+    chips grouped in subdirectories in `dir`. Each subdirectory contains the time series of images
+    of a single spatial tile.
 
     Parameters
     ----------
@@ -1028,7 +1032,7 @@ def download_custom(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
 ) -> None:
-    """Download NASADEM images. Images are written in several .tif chips
+    """Download images from a custom data source. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
 
     Parameters

@@ -122,7 +122,7 @@ class S1(SatelliteABC):
         selected_bands: list[str] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Sentinel-1 collection.
+        """Get a downloadable time series of Sentinel-1 images.
 
         Parameters
         ----------
@@ -178,7 +178,7 @@ class S1(SatelliteABC):
         selected_bands: list[str] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Sentinel-1 collection.
+        """Get a downloadable mosaic of Sentinel-1 images.
 
         Parameters
         ----------

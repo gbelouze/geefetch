@@ -100,7 +100,7 @@ class DynWorld(SatelliteABC):
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Dynamic World collection.
+        """Get a downloabable time series of Dynamic World images.
 
         Parameters
         ----------
@@ -148,7 +148,7 @@ class DynWorld(SatelliteABC):
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Dynamic World cloud free collection.
+        """Get a downloadable mosaic of Dynamic World images.
 
         Parameters
         ----------
