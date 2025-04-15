@@ -1,7 +1,7 @@
 <!-- Do not remove the surrounding blank lines. See https://stackoverflow.com/questions/70292850/centre-align-shield-io-in-github-readme-file -->
 <div align="center">
 
-<a href="https://github.com/psf/black">![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)</a>
+<a href="https://docs.astral.sh/ruff/">![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-D7FF63.svg)</a>
 <a href="https://geefetch.readthedocs.io/en/latest/?badge=latest">![Documentation Status](https://readthedocs.org/projects/geefetch/badge/?version=latest)</a>
 
 </div>

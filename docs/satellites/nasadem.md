@@ -37,10 +37,10 @@ data_dir: ~/satellite_data
 satellite_default:
   aoi:
     spatial:
-      left: -0.7
-      right: -0.2
-      top: 44.2
-      bottom: 43.8
+      left: 2.2
+      bottom: 48.7
+      right: 2.5
+      top: 49
       epsg: 4326
     temporal:
       start_date: "2023-06-01"
@@ -49,6 +49,9 @@ satellite_default:
     ee_project_id: "your-gee-id"
   tile_size: 2000
   resolution: 10
+nasadem:
+  aoi:
+    temporal: null
 ```
 
 then download with
@@ -59,19 +62,38 @@ geefetch nasadem -c config.yaml
 
 ### Python API
 
-Though this is not `geefetch` main intended use, you can bypass the configuration and directly download NASA-DEM data with the following function.
+Though this is not `geefetch` main intended use, you can bypass the configuration and directly download NASA-DEM data with the `geefetch.data.get.download_nasadem` function.
+For instance, the CLI command above is roughly equivalent to
 
-::: geefetch.data.get.download_nasadem
+```python
 
-    options:
-        show_root_heading: true
-        show_source: false
-        heading_level: 5
-        show_root_toc_entry: false
+import logging
+from pathlib import Path
+
+from geobbox import GeoBoundingBox
+
+from geefetch.data.get import download_nasadem
+from geefetch.utils.gee import auth
+from geefetch.utils.log import setup
+
+setup(level=logging.INFO)
+
+data_dir = Path("geefetch_data/")
+data_dir.mkdir(exist_ok=True)
+
+auth("your-gee-id")
+
+download_nasadem(
+    data_dir,
+    bbox=GeoBoundingBox(2.2, 48.7, 2.5, 49),
+    tile_shape=2000,
+)
+
+```
+
+See the API reference of [`geefetch.data.get.download_nasadem`](../api/core/get.md#geefetch.data.get.download_nasadem) for more details.
 
 ## Relevant library code
 
-::: geefetch.data.satellites.NASADEM
-
-    options:
-        show_root_heading: true
+[`NASADEM`](../api/satellites.md#geefetch.data.satellites.NASADEM)  
+[`geefetch.data.get.download_nasadem`](../api/core/get.md#geefetch.data.get.download_nasadem)

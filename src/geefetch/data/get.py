@@ -948,8 +948,6 @@ def download_palsar2(
 def download_nasadem(
     data_dir: Path,
     bbox: GeoBoundingBox,
-    start_date: str | None,
-    end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -968,10 +966,6 @@ def download_nasadem(
         Directory to write the downloaded files to.
     bbox : GeoBoundingBox
         The box defining the region of interest.
-    start_date : str | None
-        The start date of the time period of interest.
-    end_date : str | None
-        The end date of the time period of interest.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -999,8 +993,8 @@ def download_nasadem(
         data_dir=data_dir,
         bbox=bbox,
         satellite=NASADEM(),
-        start_date=start_date,
-        end_date=end_date,
+        start_date=None,
+        end_date=None,
         selected_bands=selected_bands,
         crs=crs,
         resolution=resolution,

@@ -34,7 +34,7 @@ pip install geefetch
 geefetch s2 -c my_config.yaml
 ```
 
-Configuration example (`my_config.yaml`):
+Configuration example (`my_config.yaml`), targetting an area around Les Landes, France:
 
 ```yaml
 data_dir: ~/satellite_data
@@ -43,8 +43,8 @@ satellite_default:
     spatial:
       left: -0.7
       right: -0.2
-      top: 44.2
       bottom: 43.8
+      top: 44.2
       epsg: 4326
     temporal:
       start_date: "2023-06-01"
@@ -52,7 +52,7 @@ satellite_default:
   gee:
     ee_project_id: "my-ee-project"
     max_tile_size: 10
-  tile_size: 5000
+  tile_size: 1000
   resolution: 10
 s2:
   cloudless_portion: 40
