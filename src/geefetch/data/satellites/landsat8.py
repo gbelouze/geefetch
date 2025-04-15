@@ -375,7 +375,11 @@ class Landsat8(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype, resampling)
+                # resample
+                if resampling.value is not None:
+                    im = im.resample(resampling.value)
+                # apply dtype
+                im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("LANDSAT/LC08/C02/T1_L2/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -417,8 +421,12 @@ class Landsat8(SatelliteABC):
             log.warning(f"Argument {key} is ignored.")
         bounds = aoi.transform(WGS84).to_ee_geometry()
         landsat_col = self.get_col(aoi, start_date, end_date)
-        landsat_col = landsat_col.map(lambda img: self.convert_image(img, dtype, resampling))
+        # Apply resampling
+        if resampling.value is not None:
+            landsat_col = landsat_col.map(lambda img: img.resample(resampling.value))
         landsat_im = composite_method.transform(landsat_col).clip(bounds)
+        # Apply dtype
+        landsat_im = self.convert_dtype(landsat_im, dtype)
         landsat_im = PatchedBaseImage(landsat_im)
         n_images = len(landsat_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:

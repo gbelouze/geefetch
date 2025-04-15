@@ -105,7 +105,11 @@ class NASADEM(SatelliteABC):
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
         dem_im = self.get_im().clip(bounds)
-        dem_im = self.convert_image(dem_im, dtype, resampling)
+        # resample
+        if resampling.value is not None:
+            dem_im = dem_im.resample(resampling.value)
+        # apply dtype
+        dem_im = self.convert_dtype(dem_im, dtype)
         return DownloadableGeedimImage(PatchedBaseImage(dem_im))
 
     @property

@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import ee
 from ee.filter import Filter
 from ee.image import Image
 from ee.imagecollection import ImageCollection
@@ -169,7 +170,10 @@ class S1(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype, resampling)
+                # convert to power and resample
+                im = self.before_composite(im, resampling)
+                # Apply pixel range and dtype
+                im = self.after_composite(im, dtype)
                 images[id_.removeprefix("COPERNICUS/S1_GRD/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -233,9 +237,12 @@ class S1(SatelliteABC):
             log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
             bounds = aoi.transform(WGS84).to_ee_geometry()
 
-            # Apply resampling to each image in the collection before compositing
-            s1_col = s1_col.map(lambda img: self.convert_image(img, dtype, resampling))
+            # Process all images in the collection
+            s1_col = s1_col.map(lambda im: self.before_composite(im, resampling))
+            # Create composite
             s1_im = composite_method.transform(s1_col).clip(bounds)
+            # Process composite
+            s1_im = self.after_composite(s1_im, dtype)
             return s1_im
 
         match orbit:
@@ -252,6 +259,22 @@ class S1(SatelliteABC):
 
         s1_im = PatchedBaseImage(s1_im)
         return DownloadableGeedimImage(s1_im)
+
+    @staticmethod
+    def before_composite(im: Image, resampling: ResamplingMethod) -> Image:
+        # Convert from db to power: 10^(im/10)
+        im = ee.Image(10).pow(im.divide(10))
+        # Apply resampling if specified
+        if resampling.value is not None:
+            im = im.resample(resampling.value)
+        return im
+
+    def after_composite(self, im: Image, dtype: DType) -> Image:
+        # Convert from power to db
+        im = im.log10().multiply(10)
+        # Apply pixel range and dtype
+        im = self.convert_dtype(im, dtype)
+        return im
 
     @property
     def name(self) -> str:

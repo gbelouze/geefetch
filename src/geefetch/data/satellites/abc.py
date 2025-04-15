@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from ee.image import Image
-from geedim.enums import ResamplingMethod
 from geobbox import GeoBoundingBox
 
 from ...utils.enums import DType
@@ -91,8 +90,8 @@ class SatelliteABC(ABC):
     def __str__(self) -> str:
         return self.name
 
-    def convert_image(self, im: Image, dtype: DType, resampling: ResamplingMethod) -> Image:
-        """Convert an image to the specified data type and optionally resample it.
+    def convert_dtype(self, im: Image, dtype: DType) -> Image:
+        """Convert the image to the specified data type, applying the pixel range.
 
         Parameters
         ----------
@@ -100,16 +99,12 @@ class SatelliteABC(ABC):
             The image to convert.
         dtype : DType
             The target data type.
-        resampling : ResamplingMethod
-            The resampling method to use.
 
         Returns
         -------
         Image
             The converted (and optionally resampled) image.
         """
-        if resampling.value is not None:
-            im = im.resample(resampling.value)
 
         pixel_range = self.pixel_range
         match pixel_range:

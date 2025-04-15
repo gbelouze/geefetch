@@ -137,7 +137,11 @@ class DynWorld(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype, resampling)
+                # resample
+                if resampling.value is not None:
+                    im = im.resample(resampling.value)
+                # apply dtype
+                im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -184,9 +188,13 @@ class DynWorld(SatelliteABC):
             start_date,
             end_date,
         )
-        # Apply resampling to each image in the collection before compositing
-        dynworld_col = dynworld_col.map(lambda img: self.convert_image(img, dtype, resampling))
+        # Apply resampling
+        if resampling.value is not None:
+            dynworld_col = dynworld_col.map(lambda img: img.resample(resampling.value))
+        # create composite
         dynworld_im = composite_method.transform(dynworld_col).clip(bounds)
+        # Apply dtype
+        dynworld_im = self.convert_dtype(dynworld_im, dtype)
         dynworld_im = PatchedBaseImage(dynworld_im)
         n_images = len(dynworld_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:

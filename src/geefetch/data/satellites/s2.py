@@ -203,7 +203,11 @@ class S2(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype, resampling)
+                # resample
+                if resampling.value is not None:
+                    im = im.resample(resampling.value)
+                # apply dtype
+                im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -262,9 +266,12 @@ class S2(SatelliteABC):
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
         )
-        # Apply resampling to each image in the collection before compositing
-        s2_cloudless = s2_cloudless.map(lambda img: self.convert_image(img, dtype, resampling))
+        # Apply resampling
+        if resampling.value is not None:
+            s2_cloudless = s2_cloudless.map(lambda img: img.resample(resampling.value))
         s2_im = composite_method.transform(s2_cloudless).clip(bounds)
+        # Apply dtype
+        s2_im = self.convert_dtype(s2_im, dtype)
         s2_im = PatchedBaseImage(s2_im)
         n_images = len(s2_cloudless.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:

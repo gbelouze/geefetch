@@ -310,7 +310,8 @@ class GEDIraster(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype, None)
+                # apply dtype
+                im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("LARSE/GEDI/GEDI02_A_002_MONTHLY/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -358,7 +359,7 @@ class GEDIraster(SatelliteABC):
             )
         gedi_col = self.get_col(aoi, start_date, end_date)
         gedi_im = gedi_col.mosaic()
-        gedi_im = self.convert_image(gedi_im, dtype, None)
+        gedi_im = self.convert_dtype(gedi_im, dtype)
         return DownloadableGeedimImage(PatchedBaseImage(gedi_im))
 
     @property

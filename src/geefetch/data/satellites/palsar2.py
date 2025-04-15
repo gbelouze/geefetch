@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import ee
 from ee.filter import Filter
 from ee.image import Image
 from ee.imagecollection import ImageCollection
@@ -40,7 +41,7 @@ class Palsar2(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return 0, 8000
+        return -30, 0
 
     @property
     def resolution(self):
@@ -134,7 +135,8 @@ class Palsar2(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype, resampling)
+                im = self.before_composite(im, resampling, apply_rl=False)
+                im = self.after_composite(im, dtype)
                 images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = PatchedBaseImage(
                     im
                 )
@@ -182,9 +184,6 @@ class Palsar2(SatelliteABC):
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
         p2_col = self.get_col(aoi, start_date, end_date, orbit)
-        # Apply resampling to each image in the collection before compositing
-        p2_col = p2_col.map(lambda img: self.convert_image(img, dtype, resampling))
-
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
         if n_images > 500:
@@ -195,9 +194,10 @@ class Palsar2(SatelliteABC):
         if n_images == 0:
             log.error(f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
-
         log.debug(f"Palsar-2 mosaicking with {n_images} images.")
+        p2_col = p2_col.map(lambda img: self.before_composite(img, resampling, apply_rl=True))
         p2_im = composite_method.transform(p2_col).clip(bounds)
+        p2_im = self.after_composite(p2_im, dtype)
         p2_im = PatchedBaseImage(p2_im)
         return DownloadableGeedimImage(p2_im)
 
@@ -208,3 +208,47 @@ class Palsar2(SatelliteABC):
     @property
     def full_name(self) -> str:
         return "Palsar-2"
+
+    @staticmethod
+    def before_composite(im: Image, resampling: ResamplingMethod, apply_rl: bool = False) -> Image:
+        # Convert from DN to power
+        im = im.pow(2)
+        # Optionally apply a refined lee filter
+        if apply_rl:
+            im = refined_lee(im)
+        # Apply resampling if specified
+        if resampling.value is not None:
+            im = im.resample(resampling.value)
+        return im
+
+    def after_composite(self, im: Image, dtype: DType) -> Image:
+        # Convert from power to gamma0:
+        im = im.log10().multiply(10).subtract(83)
+        # Apply pixel range and dtype
+        im = self.convert_dtype(im, dtype)
+        return im
+
+
+def refined_lee(image: Image) -> Image:
+    """
+    Apply the Refined Lee filter to reduce speckle noise.
+    Parameters
+    ----------
+    image : Image
+        The input image to be filtered.
+    Returns
+    -------
+    Image
+        The image with the Refined Lee filter applied.
+    """
+
+    def apply_filter(band_name: str) -> Image:
+        band = image.select(band_name)
+        mean = band.reduceNeighborhood(ee.Reducer.mean(), ee.Kernel.square(3))
+        variance = band.reduceNeighborhood(ee.Reducer.variance(), ee.Kernel.square(3))
+        weight = variance.divide(variance.add(mean.pow(2)))
+        return mean.add(weight.multiply(band.subtract(mean))).rename(band_name)  # type: ignore[no-any-return]
+
+    filtered_hh = apply_filter("HH")
+    filtered_hv = apply_filter("HV")
+    return image.addBands([filtered_hh, filtered_hv], overwrite=True)
