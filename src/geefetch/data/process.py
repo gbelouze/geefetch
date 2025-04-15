@@ -2,8 +2,6 @@
 
 import json
 import logging
-from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import geopandas as gpd
@@ -12,7 +10,6 @@ import rasterio as rio
 from rasterio.windows import Window
 
 from ..utils.geopandas import merge_geojson, merge_parquet
-from ..utils.progress import default_bar
 from .tiler import TileTracker
 
 log = logging.getLogger(__name__)
@@ -24,7 +21,6 @@ __all__ = [
     "vector_is_clean",
     "merge_geojson",
     "merge_parquet",
-    "clean",
 ]
 
 
@@ -90,61 +86,6 @@ def geofile_is_clean(fpath: Path) -> bool:
         case _ as suffix:
             log.warning(f"Don't know how to check {suffix} file {fpath}")
             return True
-
-
-def clean(tracker: TileTracker, is_clean: Callable[[Path], bool], max_threads: int = 8) -> int:
-    """Remove ill-formed and empty data files.
-
-    Parameters
-    ----------
-    tracker : TileTracker
-    is_clean: Callable[[Path], bool]
-        The filtering function, called on every registered tile to determined
-        whether it should be kept.
-    max_threads: int
-        Number of threads to use for processing the tiler.
-
-    Returns
-    -------
-    int
-        The number of removed files.
-
-    .. deprecated:: 0.4.0
-          `clean` will be removed in GeeFetch 0.5.0.
-
-    """
-    remove_count = 0
-    paths = [path for path in iter(tracker)]
-    with default_bar() as progress:
-        task = progress.add_task("Finding corrupted tiles...", total=len(paths))
-        with ThreadPoolExecutor(max_workers=max_threads) as executor:
-            futures = [executor.submit(is_clean, path) for path in paths]
-            log.debug("Futures submitted.")
-            try:
-                while (n_finished := sum([future.done() for future in futures])) < len(futures):
-                    progress.update(task, completed=n_finished, total=len(futures))
-            except KeyboardInterrupt:
-                log.error(
-                    "Keyboard interrupt while cleaning data. "
-                    "[red]Please wait[/] while current processes finish "
-                    "(this may take up to a few minutes)."
-                )
-                executor.shutdown(wait=False, cancel_futures=True)
-                raise
-            except Exception as e:
-                log.error(f"Exception while cleaning tiler: {str(e)}\nCancelling...")
-                executor.shutdown(wait=True, cancel_futures=True)
-                raise e
-        is_clean_results = [future.result() for future in as_completed(futures)]
-
-    with default_bar() as progress:
-        for path, tile_is_clean in zip(paths, is_clean_results, strict=False):
-            if not tile_is_clean:
-                path.unlink()
-                log.debug(f"Ill formed or empty .tif file [cyan]{path}[/]. Removed.")
-                remove_count += 1
-    log.info(f"Removed {remove_count} ill formed or empty.tif files in [cyan]{tracker.root}[/]")
-    return remove_count
 
 
 def merge_tracked_parquet(tracker: TileTracker) -> None:
