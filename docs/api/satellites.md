@@ -26,7 +26,7 @@ Every satellite must conform to the following blueprint.
             - NASADEM
             - Palsar2
             - S1
-            - S2,
+            - S2
         show_root_heading: false
         show_source: false
         heading_level: 3

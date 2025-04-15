@@ -44,10 +44,10 @@ data_dir: ~/satellite_data
 satellite_default:
   aoi:
     spatial:
-      left: -0.7
-      right: -0.2
-      top: 44.2
-      bottom: 43.8
+      left: 2.2
+      bottom: 48.7
+      right: 2.5
+      top: 49
       epsg: 4326
     temporal:
       start_date: "2023-06-01"
@@ -66,19 +66,40 @@ geefetch landsat8 -c config.yaml
 
 ### Python API
 
-Though this is not `geefetch` main intended use, you can bypass the configuration and directly download Landsat-8 data with the following function.
+Though this is not `geefetch` main intended use, you can bypass the configuration and directly download Landsat-8 data with the `geefetch.data.get.download_landsat8` function.
+For instance, the CLI command above is roughly equivalent to
 
-::: geefetch.data.get.download_landsat8
+```python
 
-    options:
-        show_root_heading: true
-        show_source: false
-        heading_level: 5
-        show_root_toc_entry: false
+import logging
+from pathlib import Path
+
+from geobbox import GeoBoundingBox
+
+from geefetch.data.get import download_landsat8
+from geefetch.utils.gee import auth
+from geefetch.utils.log import setup
+
+setup(level=logging.INFO)
+
+data_dir = Path("geefetch_data/")
+data_dir.mkdir(exist_ok=True)
+
+auth("your-gee-id")
+
+download_landsat8(
+    data_dir,
+    bbox=GeoBoundingBox(2.2, 48.7, 2.5, 49),
+    start_date="2023-06-01",
+    end_date="2023-06-30",
+    tile_shape=2000,
+)
+
+```
+
+See the API reference of [`geefetch.data.get.download_landsat8`](../api/core/get.md#geefetch.data.get.download_landsat8) for more details.
 
 ## Relevant library code
 
-::: geefetch.data.satellites.Landsat8
-
-    options:
-        show_root_heading: true
+[`Landsat8`](../api/satellites.md#geefetch.data.satellites.Landsat8)  
+[`geefetch.data.get.download_landsat8`](../api/core/get.md#geefetch.data.get.download_landsat8)

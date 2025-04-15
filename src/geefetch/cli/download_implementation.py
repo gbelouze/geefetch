@@ -354,11 +354,14 @@ def download_nasadem(config_path: Path) -> None:
     data_dir = Path(config.data_dir)
     auth(config.nasadem.gee.ee_project_id)
     bounds = config.nasadem.aoi.spatial.as_bbox()
+    if config.nasadem.aoi.temporal is not None:
+        log.warning(
+            f"Temporal config {config.nasadem.aoi.temporal.start_date} "
+            f"→ {config.nasadem.aoi.temporal.end_date} is ignored."
+        )
     data.get.download_nasadem(
         data_dir,
         bounds,
-        config.nasadem.aoi.temporal.start_date if config.nasadem.aoi.temporal is not None else None,
-        config.nasadem.aoi.temporal.end_date if config.nasadem.aoi.temporal is not None else None,
         crs=(
             CRS.from_epsg(config.nasadem.aoi.spatial.epsg)
             if config.nasadem.aoi.spatial.epsg

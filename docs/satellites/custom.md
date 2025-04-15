@@ -67,8 +67,8 @@ geefetch custom nasadem -c config.yaml
 
 ### Using the Python API
 
-Though this is not `geefetch` main intended use, you can bypass the configuration and directly download custom data with the `geefetch.data.get.download_custom` function (see [later below](#api-reference)).
-For instance, the CLI command is roughly equivalent
+Though this is not `geefetch` main intended use, you can bypass the configuration and directly download custom data with the `geefetch.data.get.download_custom` function.
+For instance, the CLI command above is roughly equivalent to
 
 ```python
 import logging
@@ -101,22 +101,13 @@ download_custom(
     end_date=None,
     selected_bands=["elevation"],
     composite_method=CompositeMethod.MOSAIC,
+    tile_shape=2000,
 )
 ```
 
-#### API reference
-
-::: geefetch.data.get.download_custom
-
-    options:
-        show_root_heading: true
-        show_source: false
-        heading_level: 5
-        show_root_toc_entry: false
+See the API reference of [`geefetch.data.get.download_custom`](../api/core/get.md#geefetch.data.get.download_custom) for more details.
 
 ## Relevant library code
 
-::: geefetch.data.satellites.CustomSatellite
-
-    options:
-        show_root_heading: true
+[`CustomSatellite`](../api/satellites.md#geefetch.data.satellites.CustomSatellite)  
+[`geefetch.data.get.download_custom`](../api/core/get.md#geefetch.data.get.download_custom)
