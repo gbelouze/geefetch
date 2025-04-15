@@ -7,22 +7,21 @@ build:
   jobs:
     post_checkout:
       # Create temp dir for git-lfs
-      - export GIT_LFS_DIR="/tmp/git-lfs" && echo git_lfs_dir=$GIT_LFS_DIR
-      - mkdir -p $GIT_LFS_DIR
+      - mkdir -p /tmp/git-lfs
 
       # Download and uncompress the binary
       # https://git-lfs.github.com/
-      - wget -qO- https://github.com/git-lfs/git-lfs/releases/download/v3.1.4/git-lfs-linux-amd64-v3.1.4.tar.gz | tar xz -C $GIT_LFS_DIR
+      - wget -qO- https://github.com/git-lfs/git-lfs/releases/download/v3.1.4/git-lfs-linux-amd64-v3.1.4.tar.gz | tar xz -C /tmp/git-lfs
 
       # Set custom git-lfs binary
-      - git config filter.lfs.process "$GIT_LFS_DIR/git-lfs filter-process"
-      - git config filter.lfs.smudge  "$GIT_LFS_DIR/git-lfs smudge -- %f"
-      - git config filter.lfs.clean "$GIT_LFS_DIR/git-lfs clean -- %f"
+      - git config filter.lfs.process "/tmp/git-lfs/git-lfs filter-process"
+      - git config filter.lfs.smudge  "/tmp/git-lfs/git-lfs smudge -- %f"
+      - git config filter.lfs.clean "/tmp/git-lfs/git-lfs clean -- %f"
 
       # Use it to fetch large files
-      - $GIT_LFS_DIR/git-lfs install
-      - $GIT_LFS_DIR/git-lfs fetch
-      - $GIT_LFS_DIR/git-lfs checkout
+      - /tmp/git-lfs/git-lfs install
+      - /tmp/git-lfs/git-lfs fetch
+      - /tmp/git-lfs/git-lfs checkout
 mkdocs:
   configuration: mkdocs.yaml
   fail_on_warning: true
