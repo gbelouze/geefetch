@@ -27,7 +27,7 @@ mkdocs:
 formats: all
 
 conda:
-  environment: docs/workflow-environment.yml
+  environment: docs/environment.yml
 
 python:
   install:
