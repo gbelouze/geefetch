@@ -8,7 +8,7 @@ build:
     post_checkout:
       # Create temp dir for git-lfs
       - export GIT_LFS_DIR=/tmp/git-lfs
-      - echo $GIT_LFS_DIR
+      - echo ${GIT_LFS_DIR}
       - mkdir -p $GIT_LFS_DIR
 
       # Download and uncompress the binary
