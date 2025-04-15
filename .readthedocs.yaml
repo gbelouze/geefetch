@@ -20,14 +20,14 @@ build:
       - ./git-lfs fetch
       # Make local files to have the real content on them
       - ./git-lfs checkout
-sphinx:
-  configuration: docs/source/conf.py
+mkdocs:
+  configuration: mkdocs.yaml
   fail_on_warning: true
 
 formats: all
 
 conda:
-  environment: docs/environment.yml
+  environment: docs/workflow-environment.yml
 
 python:
   install:
