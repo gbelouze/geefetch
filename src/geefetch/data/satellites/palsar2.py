@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import ee
 from ee.filter import Filter
 from ee.image import Image
 from ee.imagecollection import ImageCollection
@@ -40,7 +41,11 @@ class Palsar2(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return 0, 8000
+        # return 0, 8000
+        # convert from dn to gamma0 using: gamma0 = 10 * log10(dn ** 2) - 83
+        # so the full range is -83, 13.4
+        # according to test over gabon, -25 to -5 is sufficient to cover trees, grass and bare
+        return -30, 0
 
     @property
     def resolution(self):
@@ -83,6 +88,8 @@ class Palsar2(SatelliteABC):
             Filter.eq("PassDirection", orbit.value)
         )
 
+        palsar2_col = palsar2_col.map(convert_to_gamma0)
+        palsar2_col = palsar2_col.map(refined_lee)
         return palsar2_col  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -131,6 +138,8 @@ class Palsar2(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
+                # Convert to gamma0 here for time series
+                im = convert_to_gamma0(im)
                 im = self.convert_image(im, dtype)
                 images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = PatchedBaseImage(
                     im
@@ -201,3 +210,48 @@ class Palsar2(SatelliteABC):
     @property
     def full_name(self) -> str:
         return "Palsar-2"
+
+
+def convert_to_gamma0(image: Image) -> Image:
+    """
+    Convert PALSAR-2 DN values to Gamma-Naught in dB.
+
+    Parameters
+    ----------
+    image : Image
+        The input PALSAR-2 image with DN values.
+
+    Returns
+    -------
+    Image
+        The image with Gamma-Naught values in dB added as bands.
+    """
+    gamma0 = image.select(["HH", "HV"]).pow(2).log10().multiply(10).subtract(83)
+    return image.addBands(gamma0.rename(["HH", "HV"]), overwrite=True)
+
+
+def refined_lee(image: Image) -> Image:
+    """
+    Apply the Refined Lee filter to reduce speckle noise.
+
+    Parameters
+    ----------
+    image : Image
+        The input image to be filtered.
+
+    Returns
+    -------
+    Image
+        The image with the Refined Lee filter applied.
+    """
+
+    def apply_filter(band_name: str) -> Image:
+        band = image.select(band_name)
+        mean = band.reduceNeighborhood(ee.Reducer.mean(), ee.Kernel.square(3))
+        variance = band.reduceNeighborhood(ee.Reducer.variance(), ee.Kernel.square(3))
+        weight = variance.divide(variance.add(mean.pow(2)))
+        return mean.add(weight.multiply(band.subtract(mean))).rename(band_name)  # type: ignore[no-any-return]
+
+    filtered_hh = apply_filter("HH")
+    filtered_hv = apply_filter("HV")
+    return image.addBands([filtered_hh, filtered_hv], overwrite=True)
