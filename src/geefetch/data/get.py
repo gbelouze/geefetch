@@ -1,8 +1,8 @@
 import logging
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any
+from typing import Any, Generic, TypeVar, cast
 
 import shapely
 from geobbox import GeoBoundingBox
@@ -157,6 +157,25 @@ def download_chip(
         else:
             log.warning(f"Vector file {out} contains no data.")
     return out
+
+
+_T = TypeVar("_T")
+
+
+class _result(Generic[_T]):
+    _sentinel = object()  # a unique sentinel value
+
+    def __init__(self, closure: Callable[..., _T], *args: Any, **kwargs: Any):
+        self._closure = closure
+        self._args = args
+        self._kwargs = kwargs
+        self._result = self._sentinel
+
+    def result(self) -> _T:
+        if self._result is self._sentinel:
+            self._result = self._closure(*self._args, **self._kwargs)
+        self._result = cast(_T, self._result)
+        return self._result
 
 
 def download_time_series(
@@ -349,6 +368,7 @@ def download(
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = []
+            download_submission = executor.submit if in_parallel else _result
             for tile in tiles:
                 data_get_kwargs = (
                     dict(
@@ -361,48 +381,45 @@ def download(
                 tile_path = tracker.get_path(
                     tile, format=satellite_download_kwargs.get("format", None)
                 )
-                if not in_parallel:
-                    download_chip(
-                        satellite.get,
-                        data_get_kwargs,
-                        tile,
-                        satellite,
-                        resolution,
-                        tile_path,
-                        progress=progress,
-                        selected_bands=selected_bands,
-                        max_tile_size=max_tile_size,
-                        check_clean=check_clean,
-                        **satellite_download_kwargs,
-                    )
-                    progress.update(overall_task, advance=1)
-                else:
-                    future = executor.submit(
-                        download_chip,
-                        satellite.get,
-                        data_get_kwargs,
-                        tile,
-                        satellite,
-                        resolution,
-                        tile_path,
-                        progress=progress,
-                        selected_bands=selected_bands,
-                        max_tile_size=max_tile_size,
-                        check_clean=check_clean,
-                        **satellite_download_kwargs,
-                    )
-                    futures.append(future)
-            if in_parallel:
-                try:
-                    for _ in as_completed(futures):
+
+                future = download_submission(
+                    download_chip,
+                    satellite.get,
+                    data_get_kwargs,
+                    tile,
+                    satellite,
+                    resolution,
+                    tile_path,
+                    progress=progress,
+                    selected_bands=selected_bands,
+                    max_tile_size=max_tile_size,
+                    check_clean=check_clean,
+                    **satellite_download_kwargs,
+                )
+                futures.append(future)
+
+            downloads = as_completed(cast(list[Future[Path]], futures)) if in_parallel else futures
+            failed = []
+            try:
+                for tile, download in zip(tiles, downloads, strict=True):
+                    try:
+                        download.result()  # raise any exception that occurred
+                    except Exception as e:
+                        log.error(f"Detected error for tile {tile} : {e}")
+                        failed.append(tile)
+                    finally:
                         progress.update(overall_task, advance=1)
-                except KeyboardInterrupt:
-                    executor.shutdown(wait=False, cancel_futures=True)
-                    log.error(
-                        "Keyboard interrupt. "
-                        "Please wait while current download finish (up to a few minutes)."
-                    )
-                    raise
+
+            except KeyboardInterrupt:
+                executor.shutdown(wait=False, cancel_futures=True)
+                log.error("Keyboard interrupt detected. Shutting down")
+                raise
+    if len(failed) > 0:
+        succeeded = len(tiles) - len(failed)
+        log.info(f"Download summary: ✅ {succeeded} succeeded, ❌ {len(failed)} failed")
+        log.error("[red]Failure[/] Not all tiles were downloaded successfully")
+        return
+
     if satellite.is_raster:
         _create_vrts(tracker)
     if satellite.is_vector and "format" in satellite_download_kwargs:
