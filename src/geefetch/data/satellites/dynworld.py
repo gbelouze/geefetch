@@ -98,6 +98,7 @@ class DynWorld(SatelliteABC):
         end_date: str,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Dynamic World collection.
@@ -114,6 +115,8 @@ class DynWorld(SatelliteABC):
             The data type for the image
         resampling : ResamplingMethod
             The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -138,8 +141,7 @@ class DynWorld(SatelliteABC):
                 # aoi intersects im
                 im = Image(id_)
                 # resample
-                if resampling.value is not None:
-                    im = im.resample(resampling.value)
+                im = self.resample_reproject_clip(im, aoi, resampling, resolution)
                 # apply dtype
                 im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(im)
@@ -153,6 +155,7 @@ class DynWorld(SatelliteABC):
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Dynamic World cloud free collection.
@@ -171,6 +174,8 @@ class DynWorld(SatelliteABC):
             The data type for the image
         resampling : ResamplingMethod
             The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -182,17 +187,17 @@ class DynWorld(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         dynworld_col = self.get_col(
             aoi,
             start_date,
             end_date,
         )
         # Apply resampling
-        if resampling.value is not None:
-            dynworld_col = dynworld_col.map(lambda img: img.resample(resampling.value))
+        dynworld_col = dynworld_col.map(
+            lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
+        )
         # create composite
-        dynworld_im = composite_method.transform(dynworld_col).clip(bounds)
+        dynworld_im = composite_method.transform(dynworld_col)
         # Apply dtype
         dynworld_im = self.convert_dtype(dynworld_im, dtype)
         dynworld_im = PatchedBaseImage(dynworld_im)

@@ -125,6 +125,7 @@ class S1(SatelliteABC):
         orbit: S1Orbit = S1Orbit.ASCENDING,
         selected_bands: list[str] | None = None,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Sentinel-1 collection.
@@ -145,6 +146,8 @@ class S1(SatelliteABC):
             The bands to be downloaded.
         resampling : ResamplingMethod
             The resampling method to use when compositing images.
+        resolution: float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -171,7 +174,7 @@ class S1(SatelliteABC):
                 # aoi intersects im
                 im = Image(id_)
                 # convert to power and resample
-                im = self.before_composite(im, resampling)
+                im = self.before_composite(im, resampling, aoi, resolution)
                 # Apply pixel range and dtype
                 im = self.after_composite(im, dtype)
                 images[id_.removeprefix("COPERNICUS/S1_GRD/")] = PatchedBaseImage(im)
@@ -187,6 +190,7 @@ class S1(SatelliteABC):
         orbit: S1Orbit = S1Orbit.ASCENDING,
         selected_bands: list[str] | None = None,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Sentinel-1 collection.
@@ -209,6 +213,8 @@ class S1(SatelliteABC):
             The bands to be downloaded.
         resampling : ResamplingMethod
             The resampling method to use when compositing images.
+        resolution: float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -235,12 +241,11 @@ class S1(SatelliteABC):
                 raise RuntimeError("Collection of 0 Sentinel-1 image.")
 
             log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
-            bounds = aoi.transform(WGS84).to_ee_geometry()
 
             # Process all images in the collection
-            s1_col = s1_col.map(lambda im: self.before_composite(im, resampling))
+            s1_col = s1_col.map(lambda im: self.before_composite(im, resampling, aoi, resolution))
             # Create composite
-            s1_im = composite_method.transform(s1_col).clip(bounds)
+            s1_im = composite_method.transform(s1_col)
             # Process composite
             s1_im = self.after_composite(s1_im, dtype)
             return s1_im
@@ -260,13 +265,17 @@ class S1(SatelliteABC):
         s1_im = PatchedBaseImage(s1_im)
         return DownloadableGeedimImage(s1_im)
 
-    @staticmethod
-    def before_composite(im: Image, resampling: ResamplingMethod) -> Image:
+    def before_composite(
+        self,
+        im: Image,
+        resampling: ResamplingMethod,
+        aoi: GeoBoundingBox,
+        scale: float,
+    ) -> Image:
         # Convert from db to power: 10^(im/10)
         im = ee.Image(10).pow(im.divide(10))
         # Apply resampling if specified
-        if resampling.value is not None:
-            im = im.resample(resampling.value)
+        im = self.resample_reproject_clip(im, aoi, resampling, scale)
         return im
 
     def after_composite(self, im: Image, dtype: DType) -> Image:

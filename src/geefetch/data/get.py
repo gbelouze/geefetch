@@ -639,6 +639,7 @@ def download_s1(
             "orbit": orbit,
             "selected_bands": selected_bands,
             "resampling": resampling,
+            "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
@@ -727,6 +728,7 @@ def download_s2(
             "cloud_prb_thresh": cloud_prb_thresh,
             "dtype": dtype,
             "resampling": resampling,
+            "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
@@ -806,6 +808,7 @@ def download_dynworld(
             "composite_method": composite_method,
             "dtype": dtype,
             "resampling": resampling,
+            "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
@@ -883,6 +886,7 @@ def download_landsat8(
             "composite_method": composite_method,
             "dtype": dtype,
             "resampling": resampling,
+            "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
@@ -964,6 +968,7 @@ def download_palsar2(
             "dtype": dtype,
             "orbit": orbit,
             "resampling": resampling,
+            "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
@@ -1042,6 +1047,7 @@ def download_nasadem(
             "composite_method": composite_method,
             "dtype": dtype,
             "resampling": resampling,
+            "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )

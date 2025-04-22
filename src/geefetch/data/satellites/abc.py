@@ -4,7 +4,8 @@ from typing import Any
 from ee.image import Image
 from geobbox import GeoBoundingBox
 
-from ...utils.enums import DType
+from ...utils.enums import DType, ResamplingMethod
+from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableABC
 
 __all__ = ["SatelliteABC"]
@@ -148,3 +149,16 @@ class SatelliteABC(ABC):
         unknown_bands = set(bands) - set(self.bands)
         if len(unknown_bands) > 0:
             raise ValueError(f"Unknown bands {unknown_bands} for satellite {self.full_name}.")
+
+    @staticmethod
+    def resample_reproject_clip(
+        im: Image,
+        aoi: GeoBoundingBox,
+        resampling: ResamplingMethod | None,
+        scale: float,
+    ) -> Image:
+        if resampling is not None:
+            im = im.resample(resampling.value)
+        im = im.reproject(crs=aoi.crs.to_string(), scale=scale)
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        return im.clip(bounds)

@@ -151,6 +151,7 @@ class S2(SatelliteABC):
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Sentinel-2 collection.
@@ -172,6 +173,8 @@ class S2(SatelliteABC):
             Images that do not fullfill the requirement are filtered out.
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
+        resolution: float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -204,8 +207,7 @@ class S2(SatelliteABC):
                 # aoi intersects im
                 im = Image(id_)
                 # resample
-                if resampling.value is not None:
-                    im = im.resample(resampling.value)
+                im = self.resample_reproject_clip(im, aoi, resampling, resolution)
                 # apply dtype
                 im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(im)
@@ -222,6 +224,7 @@ class S2(SatelliteABC):
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
         buffer: float = 100,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Sentinel-2 cloud free collection.
@@ -247,6 +250,8 @@ class S2(SatelliteABC):
             Threshold for cloud probability above which a pixel is filtered out (%).
         buffer : float
             Kernel size to dilate cloud/shadow patches.
+        resolution: float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -258,7 +263,6 @@ class S2(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         s2_cloudless = self.get_col(
             aoi,
             start_date,
@@ -267,9 +271,10 @@ class S2(SatelliteABC):
             cloud_prb_thresh=cloud_prb_thresh,
         )
         # Apply resampling
-        if resampling.value is not None:
-            s2_cloudless = s2_cloudless.map(lambda img: img.resample(resampling.value))
-        s2_im = composite_method.transform(s2_cloudless).clip(bounds)
+        s2_cloudless = s2_cloudless.map(
+            lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
+        )
+        s2_im = composite_method.transform(s2_cloudless)
         # Apply dtype
         s2_im = self.convert_dtype(s2_im, dtype)
         s2_im = PatchedBaseImage(s2_im)

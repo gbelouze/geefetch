@@ -95,6 +95,7 @@ class Palsar2(SatelliteABC):
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         orbit: P2Orbit = P2Orbit.DESCENDING,
+        resolution: float = 25,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Palsar-2 collection.
@@ -113,6 +114,8 @@ class Palsar2(SatelliteABC):
             The resampling method to use when processing the image.
         orbit : P2Orbit
             The orbit used to filter the collection before mosaicking.
+        resolution: float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -122,7 +125,6 @@ class Palsar2(SatelliteABC):
             A Palsar-2 time series collection of the specified AOI and time range.
         """
         p2_col = self.get_col(aoi, start_date, end_date, orbit)
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         images = {}
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
@@ -136,9 +138,7 @@ class Palsar2(SatelliteABC):
             # Check if the intersection of image and AOI is exactly the AOI
             if Polygon(footprint["coordinates"][0]).contains(aoi.to_shapely_polygon()):
                 im = Image(id_)
-                im = self.before_composite(
-                    im, resampling, bounds, self.resolution, aoi.crs.to_string(), apply_rl=False
-                )
+                im = self.before_composite(im, resampling, aoi, resolution, apply_rl=False)
                 im = self.after_composite(im, dtype, log_scale=False)
                 images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = PatchedBaseImage(
                     im
@@ -154,6 +154,7 @@ class Palsar2(SatelliteABC):
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         orbit: P2Orbit = P2Orbit.DESCENDING,
+        resolution: float = 25,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Palsar-2 collection.
@@ -174,6 +175,8 @@ class Palsar2(SatelliteABC):
             The resampling method to use when processing the image.
         orbit : P2Orbit
             The orbit used to filter the collection before mosaicking
+        resolution: float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -185,7 +188,6 @@ class Palsar2(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         p2_col = self.get_col(aoi, start_date, end_date, orbit)
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
@@ -199,11 +201,9 @@ class Palsar2(SatelliteABC):
             raise RuntimeError("Collection of 0 Palsar-2 image.")
         log.debug(f"Palsar-2 mosaicking with {n_images} images.")
         p2_col = p2_col.map(
-            lambda img: self.before_composite(
-                img, resampling, bounds, self.resolution, aoi.crs.to_string(), apply_rl=True
-            )
+            lambda img: self.before_composite(img, resampling, aoi, resolution, apply_rl=True)
         )
-        p2_im = composite_method.transform(p2_col).clip(bounds)
+        p2_im = composite_method.transform(p2_col)
         p2_im = self.after_composite(p2_im, dtype, log_scale=False)
         p2_im = PatchedBaseImage(p2_im)
         return DownloadableGeedimImage(p2_im)
@@ -216,13 +216,12 @@ class Palsar2(SatelliteABC):
     def full_name(self) -> str:
         return "Palsar-2"
 
-    @staticmethod
     def before_composite(
+        self,
         im: Image,
         resampling: ResamplingMethod,
-        bounds: ee.Geometry,
-        resolution: int,
-        crs_str: str,
+        aoi: GeoBoundingBox,
+        scale: float,
         apply_rl: bool = False,
     ) -> Image:
         # Convert from DN to power
@@ -231,9 +230,7 @@ class Palsar2(SatelliteABC):
         if apply_rl:
             im = refined_lee(im)
         # Apply resampling if specified
-        if resampling.value is not None:
-            im = im.resample(resampling.value)
-        im = im.reproject(crs=crs_str, scale=resolution).clip(bounds)
+        im = self.resample_reproject_clip(im, aoi, resampling, scale)
         return im
 
     def after_composite(self, im: Image, dtype: DType, log_scale: bool = False) -> Image:

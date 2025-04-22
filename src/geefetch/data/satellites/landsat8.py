@@ -334,6 +334,7 @@ class Landsat8(SatelliteABC):
         end_date: str,
         dtype: DType = DType.UInt16,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Landsat 8 collection.
@@ -350,6 +351,8 @@ class Landsat8(SatelliteABC):
             The data type for the image
         resampling : ResamplingMethod
             The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -376,8 +379,7 @@ class Landsat8(SatelliteABC):
                 # aoi intersects im
                 im = Image(id_)
                 # resample
-                if resampling.value is not None:
-                    im = im.resample(resampling.value)
+                im = self.resample_reproject_clip(im, aoi, resampling, resolution)
                 # apply dtype
                 im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("LANDSAT/LC08/C02/T1_L2/")] = PatchedBaseImage(im)
@@ -391,6 +393,7 @@ class Landsat8(SatelliteABC):
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Landsat 8 collection.
@@ -409,6 +412,8 @@ class Landsat8(SatelliteABC):
             The data type for the image
         resampling : ResamplingMethod
             The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -419,12 +424,12 @@ class Landsat8(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         landsat_col = self.get_col(aoi, start_date, end_date)
         # Apply resampling
-        if resampling.value is not None:
-            landsat_col = landsat_col.map(lambda img: img.resample(resampling.value))
-        landsat_im = composite_method.transform(landsat_col).clip(bounds)
+        landsat_col = landsat_col.map(
+            lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
+        )
+        landsat_im = composite_method.transform(landsat_col)
         # Apply dtype
         landsat_im = self.convert_dtype(landsat_im, dtype)
         landsat_im = PatchedBaseImage(landsat_im)

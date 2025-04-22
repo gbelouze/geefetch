@@ -333,7 +333,6 @@ class GEDIraster(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str
             End date in "YYYY-MM-DD" format.
-            Percentage of cloud above which the whole image is filtered out.
         dtype: DType
             The data type for the image.
         **kwargs : Any

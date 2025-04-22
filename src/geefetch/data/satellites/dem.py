@@ -6,7 +6,6 @@ from ee.terrain import Terrain
 from geobbox import GeoBoundingBox
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod
-from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -74,6 +73,7 @@ class NASADEM(SatelliteABC):
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get NASADEM composite image.
@@ -92,6 +92,8 @@ class NASADEM(SatelliteABC):
             The data type for the image.
         resampling : ResamplingMethod
             The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -103,11 +105,9 @@ class NASADEM(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        bounds = aoi.transform(WGS84).to_ee_geometry()
-        dem_im = self.get_im().clip(bounds)
         # resample
-        if resampling.value is not None:
-            dem_im = dem_im.resample(resampling.value)
+        dem_im = self.get_im()
+        dem_im = self.resample_reproject_clip(dem_im, aoi, resampling, resolution)
         # apply dtype
         dem_im = self.convert_dtype(dem_im, dtype)
         return DownloadableGeedimImage(PatchedBaseImage(dem_im))
