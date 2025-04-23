@@ -203,7 +203,8 @@ class Palsar2(SatelliteABC):
         p2_col = p2_col.map(
             lambda img: self.before_composite(img, resampling, aoi, resolution, apply_rl=True)
         )
-        p2_im = composite_method.transform(p2_col)
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        p2_im = composite_method.transform(p2_col).clip(bounds)
         p2_im = self.after_composite(p2_im, dtype, log_scale=False)
         p2_im = PatchedBaseImage(p2_im)
         return DownloadableGeedimImage(p2_im)

@@ -197,7 +197,8 @@ class DynWorld(SatelliteABC):
             lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
         )
         # create composite
-        dynworld_im = composite_method.transform(dynworld_col)
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        dynworld_im = composite_method.transform(dynworld_col).clip(bounds)
         # Apply dtype
         dynworld_im = self.convert_dtype(dynworld_im, dtype)
         dynworld_im = PatchedBaseImage(dynworld_im)

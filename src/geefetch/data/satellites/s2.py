@@ -274,7 +274,8 @@ class S2(SatelliteABC):
         s2_cloudless = s2_cloudless.map(
             lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
         )
-        s2_im = composite_method.transform(s2_cloudless)
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        s2_im = composite_method.transform(s2_cloudless).clip(bounds)
         # Apply dtype
         s2_im = self.convert_dtype(s2_im, dtype)
         s2_im = PatchedBaseImage(s2_im)

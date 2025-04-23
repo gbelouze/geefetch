@@ -429,7 +429,8 @@ class Landsat8(SatelliteABC):
         landsat_col = landsat_col.map(
             lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
         )
-        landsat_im = composite_method.transform(landsat_col)
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        landsat_im = composite_method.transform(landsat_col).clip(bounds)
         # Apply dtype
         landsat_im = self.convert_dtype(landsat_im, dtype)
         landsat_im = PatchedBaseImage(landsat_im)

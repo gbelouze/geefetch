@@ -245,7 +245,8 @@ class S1(SatelliteABC):
             # Process all images in the collection
             s1_col = s1_col.map(lambda im: self.before_composite(im, resampling, aoi, resolution))
             # Create composite
-            s1_im = composite_method.transform(s1_col)
+            bounds = aoi.transform(WGS84).to_ee_geometry()
+            s1_im = composite_method.transform(s1_col).clip(bounds)
             # Process composite
             s1_im = self.after_composite(s1_im, dtype)
             return s1_im
