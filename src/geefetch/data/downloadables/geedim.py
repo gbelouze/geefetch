@@ -36,7 +36,7 @@ def tif_is_clean(path: Path) -> bool:
     try:
         with rio.open(path) as x:
             valid_data = (x.read_masks() > 0).sum() / x.read().size
-            if valid_data < 0.95:
+            if valid_data < 0.97:
                 # less than 10% valid data
                 return False
     except rio.RasterioIOError:
