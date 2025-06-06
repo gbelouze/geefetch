@@ -125,12 +125,26 @@ class Palsar2(SatelliteABC):
             A Palsar-2 time series collection of the specified AOI and time range.
         """
         p2_col = self.get_col(aoi, start_date, end_date, orbit)
-        images = {}
+        # filter so that must contain the AoI
+        bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
+        p2_col = p2_col.filter(ee.Filter.contains(leftField=".geo", rightValue=bounds))
+
+        # add year and month to the image
+
+        def add_ym(image):
+            date = image.date()
+            return image.set({"year": date.get("year"), "month": date.get("month")})
+
+        p2_col = p2_col.map(add_ym)
+        # distinct so that we only get one image per year and month
+        p2_col = p2_col.distinct(["year", "month"])  # type: ignore[assignment]
+        # get the info of the collection
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
             log.error(f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
+        images = {}
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
             footprint = PatchedBaseImage.from_id(id_).footprint

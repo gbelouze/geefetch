@@ -31,19 +31,6 @@ geedim_log = logging.getLogger("patched_geedim")
 __all__: list[str] = []
 
 
-def tif_is_clean(path: Path) -> bool:
-    """Check that a 'tif' file is valid and not full of NODATA."""
-    try:
-        with rio.open(path) as x:
-            valid_data = (x.read_masks() > 0).sum() / x.read().size
-            if valid_data < 0.97:
-                # less than 10% valid data
-                return False
-    except rio.RasterioIOError:
-        return False
-    return True
-
-
 class PatchedBaseImage(BaseImage):  # type: ignore[misc]
     def download(
         self,
@@ -67,11 +54,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
             progress,
             **kwargs,
         )
-        if not tif_is_clean(tmp_filename):
-            log.info(f"Tif file {tmp_filename} contains too much missing data.")
-            tmp_filename.unlink()
-        else:
-            tmp_filename.replace(filename)
+        tmp_filename.replace(filename)
 
     def _download(
         self,
