@@ -57,6 +57,7 @@ class Palsar2(SatelliteABC):
         start_date: str | None = None,
         end_date: str | None = None,
         orbit: P2Orbit = P2Orbit.ASCENDING,
+        selected_bands: list[str] | None = None,
     ) -> ImageCollection:
         """Get Palsar 2 collection.
 
@@ -70,18 +71,34 @@ class Palsar2(SatelliteABC):
             End date in "YYYY-MM-DD" format.
         orbit : P2Orbit
             The orbit used to filter the collection before mosaicking.
+        selected_bands : list[str] | None
+            The bands to be downloaded.
 
         Returns
         -------
         palsar2_col : ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
+        selected_bands = self.default_selected_bands if selected_bands is None else selected_bands
+
+        def has_selected_band(img):
+            band_names = img.bandNames()
+            has_all = ee.List(
+                [band_names.contains(b) for b in set(selected_bands) & {"HH", "HV"}]
+            ).reduce(ee.Reducer.min())
+            return img.set("has_band", has_all)
 
         palsar2_col = ImageCollection("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")
         if start_date is not None and end_date is not None:
             palsar2_col = palsar2_col.filterDate(start_date, end_date)
         palsar2_col = palsar2_col.filterBounds(bounds).filter(
             Filter.eq("PassDirection", orbit.value)
+        )
+        palsar2_col = (
+            palsar2_col.map(has_selected_band)
+            .filter(ee.Filter.eq("has_band", True))
+            .map(lambda img: img.set("has_band", None))
+            .select(selected_bands)
         )
 
         return palsar2_col  # type: ignore[no-any-return]
@@ -96,6 +113,7 @@ class Palsar2(SatelliteABC):
         orbit: P2Orbit = P2Orbit.DESCENDING,
         resolution: float = 25,
         refined_lee: bool = True,
+        selected_bands: list[str] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Palsar-2 images.
@@ -118,6 +136,8 @@ class Palsar2(SatelliteABC):
             The resolution for the image.
         refined_lee : bool
             Whether to apply the Refined Lee filter to reduce speckle noise.
+        selected_bands : list[str] | None
+            The bands to be downloaded.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -126,7 +146,7 @@ class Palsar2(SatelliteABC):
         p2_im: DownloadableGeedimImageCollection
             A Palsar-2 time series collection of the specified AOI and time range.
         """
-        p2_col = self.get_col(aoi, start_date, end_date, orbit)
+        p2_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
 
         # get the info of the collection
         info = p2_col.getInfo()
@@ -159,6 +179,7 @@ class Palsar2(SatelliteABC):
         orbit: P2Orbit = P2Orbit.DESCENDING,
         resolution: float = 25,
         refined_lee: bool = True,
+        selected_bands: list[str] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Palsar-2 images.
@@ -183,6 +204,8 @@ class Palsar2(SatelliteABC):
             The resolution for the image.
         refined_lee : bool
             Whether to apply the Refined Lee filter to reduce speckle noise.
+        selected_bands : list[str] | None
+            The bands to be downloaded.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -194,7 +217,9 @@ class Palsar2(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        p2_col = self.get_col(aoi, start_date, end_date, orbit)
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        p2_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
+
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
         if n_images > 500:
