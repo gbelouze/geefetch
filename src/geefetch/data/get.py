@@ -940,6 +940,7 @@ def download_palsar2(
             "composite_method": composite_method,
             "dtype": dtype,
             "orbit": orbit,
+            "selected_bands": selected_bands,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
