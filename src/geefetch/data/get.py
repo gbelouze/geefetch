@@ -905,6 +905,7 @@ def download_palsar2(
             "resampling": resampling,
             "resolution": resolution,
             "refined_lee": refined_lee,
+            "selected_bands": selected_bands,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
