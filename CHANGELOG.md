@@ -16,6 +16,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Changed
 
+- Landsat pixel range to 5000-15000 [32c510d](https://github.com/gbelouze/geefetch/commit/32c510d06d7f9ba128a3556a4c34d3c3f31fad9a)
 - Config must provide `gee_project_ids` instead of `gee_project_id` [922d335](https://github.com/gbelouze/geefetch/commit/922d33518f1a9d6a2d4cf6f79317125261002900)
 
 ## [0.5.3](https://github.com/gbelouze/geefetch/compare/v0.5.3...v0.5.2) (2025-10-10)
