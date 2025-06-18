@@ -61,6 +61,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         **kwargs: Any,
     ) -> None:
         max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
+        max_threads = 40
         geedim_log.debug(f"Using {max_threads} threads for download.")
         out_lock = threading.Lock()
         filename = Path(filename)
