@@ -143,6 +143,9 @@ class SatelliteDefaultConfig:
     selected_bands : list[str] | None
         The bands to download. If None, will use the satellite
         default bands. Defaults to None.
+    tile_range : tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
 
     aoi: AOIConfig
@@ -152,6 +155,7 @@ class SatelliteDefaultConfig:
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
     selected_bands: list[str] | None = None
+    tile_range: tuple[int, int] | None = None
 
 
 @dataclass

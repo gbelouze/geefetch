@@ -54,12 +54,12 @@ def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.Multi
     return shapely.ops.unary_union(polygons)
 
 
-def save_config(config: Any, dir: Path) -> None:
+def save_config(config: Any, dir: Path, suffix: str = "") -> None:
     """When `geefetch` is called with a specified configuration file,
     save it to the tracker root."""
     if not dir.exists():
         dir.mkdir()
-    config_path = Path(dir / "config.yaml")
+    config_path = Path(dir / f"config{suffix}.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
     config["geefetch_version"] = geefetch.__version__
     config_yaml = OmegaConf.to_yaml(config)
@@ -89,7 +89,9 @@ def download_gedi(config_path: Path, vector: bool) -> None:
     if vector:
         if config.gedi.selected_bands is None:
             config.gedi.selected_bands = satellites.GEDIvector().default_selected_bands
-        save_config(config.gedi, config.data_dir / "gedi_vector")
+
+        suffix = f"_tiles_{config.gedi.tile_range[0]}" if config.gedi.tile_range is not None else ""
+        save_config(config.gedi, config.data_dir / "gedi_vector", suffix=suffix)
         data.get.download_gedi_vector(
             data_dir,
             bounds,
@@ -109,6 +111,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
                 else load_country_filter_polygon(config.gedi.aoi.country)
             ),
             format=config.gedi.format,
+            tile_range=config.gedi.tile_range,
         )
     else:
         if config.gedi.selected_bands is None:
@@ -147,7 +150,8 @@ def download_s1(config_path: Path) -> None:
         )
     if config.s1.selected_bands is None:
         config.s1.selected_bands = satellites.S1().default_selected_bands
-    save_config(config.s1, config.data_dir / "s1")
+    suffix = f"_tiles_{config.s1.tile_range[0]}" if config.s1.tile_range is not None else ""
+    save_config(config.gedi, config.data_dir / "s1", suffix=suffix)
 
     data_dir = Path(config.data_dir)
     auth(config.s1.gee.ee_project_id)
@@ -174,6 +178,7 @@ def download_s1(config_path: Path) -> None:
             else load_country_filter_polygon(config.s1.aoi.country)
         ),
         orbit=config.s1.orbit,
+        tile_range=config.s1.tile_range,
     )
 
 

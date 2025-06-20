@@ -169,11 +169,12 @@ def download_time_series(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
     filter_polygon: shapely.Geometry | None = None,
+    tile_range: tuple[int, int] | None = None,
     **kwargs: Any,
 ) -> None:
     """Download time series of images from a specific satellite. Images are written in several .tif
@@ -214,6 +215,9 @@ def download_time_series(
         Whether to check if the data is clean. Defaults to True.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     **kwargs : Any
         Accepted but ignored additional arguments.
     """
@@ -231,7 +235,15 @@ def download_time_series(
         tiles = list(
             tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
         )
-
+        if tile_range is not None:
+            if tile_range[0] < 0 or tile_range[1] > len(tiles):
+                raise ValueError(
+                    f"Invalid tile range {tile_range}. Expected a range within 0 and {len(tiles)}."
+                )
+            log.info(f"Downloading tiles {tile_range[0]} to {tile_range[1]}")
+            tiles = tiles[tile_range[0] : tile_range[1]]
+        else:
+            log.info("Downloading all tiles")
         overall_task = progress.add_task(
             f"[magenta]Downloading {satellite.full_name} chips...[/]",
             total=len(tiles),
@@ -277,13 +289,14 @@ def download(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
     filter_polygon: shapely.Geometry | None = None,
     in_parallel: bool = False,
-    max_workers: int = 10,
+    max_workers: int = 1,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
     to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
@@ -328,6 +341,9 @@ def download(
         is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
     max_workers : int
         How many parallel workers are used in case `in_parallel` is True. Defaults to 10.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     if not data_dir.is_dir():
         raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
@@ -341,6 +357,15 @@ def download(
         tiles = list(
             tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
         )
+        if tile_range is not None:
+            if tile_range[0] < 0 or tile_range[1] > len(tiles):
+                raise ValueError(
+                    f"Invalid tile range {tile_range}. Expected a range within 0 and {len(tiles)}."
+                )
+            log.info(f"Downloading tiles {tile_range[0]} to {tile_range[1]}")
+            tiles = tiles[tile_range[0] : tile_range[1]]
+        else:
+            log.info("Downloading all tiles")
 
         overall_task = progress.add_task(
             f"[magenta]Downloading {satellite.full_name} chips...[/]",
@@ -432,7 +457,7 @@ def download_gedi(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -486,7 +511,7 @@ def download_gedi(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         check_clean=False,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
@@ -508,6 +533,7 @@ def download_gedi_vector(
     resolution: int = 10,
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download GEDI vector points. Points are written in several .geojson files
     to `data_dir`.
@@ -535,6 +561,9 @@ def download_gedi_vector(
         More fine-grained AOI than `bbox`. Defaults to None.
     format : Format
         Format in which to save the vector points. Defaults to Format.CSV.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download(
         data_dir=data_dir,
@@ -550,6 +579,7 @@ def download_gedi_vector(
         in_parallel=False,
         check_clean=False,
         satellite_download_kwargs={"format": format},
+        tile_range=tile_range,
     )
 
 
@@ -562,11 +592,12 @@ def download_s1(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.
@@ -603,6 +634,9 @@ def download_s1(
         More fine-grained AOI than `bbox`. Defaults to None.
     orbit : S1Orbit
         The orbit used to filter Sentinel-1 images. Defaults to S1Orbit.ASCENDING.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if (composite_method == CompositeMethod.TIMESERIES) else download
@@ -632,7 +666,7 @@ def download_s1(
         max_tile_size=max_tile_size,
         filter_polygon=filter_polygon,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
@@ -640,6 +674,7 @@ def download_s1(
             "selected_bands": selected_bands,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -652,7 +687,7 @@ def download_s2(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -713,7 +748,7 @@ def download_s2(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -734,7 +769,7 @@ def download_dynworld(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -788,7 +823,7 @@ def download_dynworld(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -807,7 +842,7 @@ def download_landsat8(
     crs: CRS | None = None,
     resolution: int = 30,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -878,7 +913,7 @@ def download_palsar2(
     crs: CRS | None = None,
     resolution: int = 30,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -952,7 +987,7 @@ def download_nasadem(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
@@ -1075,7 +1110,7 @@ def download_custom(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
