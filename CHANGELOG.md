@@ -12,6 +12,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Added
 
+- Option to download a range of tiles in order to support manual parallelization [f2169ce](https://github.com/gbelouze/geefetch/commit/f2169cebac559dd5bd0c7ef883b485f465f38ab1)
 - Option to download satellites from unsupported ImageCollection, with minimal processing [d61bca3](https://github.com/gbelouze/geefetch/commit/d61bca35122914923166551433dd9bb960b0e8cf)
 
 ### Changed

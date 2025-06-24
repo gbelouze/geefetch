@@ -461,6 +461,7 @@ def download_gedi(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download GEDI images fused as rasters. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `gedi.vrt` is written to combine all the chips.
@@ -495,6 +496,9 @@ def download_gedi(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -519,6 +523,7 @@ def download_gedi(
             "dtype": dtype,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -693,6 +698,7 @@ def download_s2(
     filter_polygon: shapely.Geometry | None = None,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download Sentinel-2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s2.vrt` is written to combine all the chips.
@@ -732,6 +738,9 @@ def download_s2(
         See :meth:`geefetch.data.s2.get`. Defaults to 60.
     cloud_prb_thresh : int
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -757,6 +766,7 @@ def download_s2(
             "dtype": dtype,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -773,6 +783,7 @@ def download_dynworld(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download Dynamic World images. Images are written in several .tif chips
     to `data_dir`. Additionnally a file `dynworld.vrt` is written to combine all the chips.
@@ -807,6 +818,9 @@ def download_dynworld(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -830,6 +844,7 @@ def download_dynworld(
             "dtype": dtype,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -846,6 +861,7 @@ def download_landsat8(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download Landsat 8 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `landsat8.vrt` is written to combine all the chips.
@@ -880,6 +896,9 @@ def download_landsat8(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -901,6 +920,7 @@ def download_landsat8(
             "dtype": dtype,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -918,6 +938,7 @@ def download_palsar2(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     orbit: P2Orbit = P2Orbit.DESCENDING,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
@@ -954,7 +975,9 @@ def download_palsar2(
         More fine-grained AOI than `bbox`. Defaults to None.
     orbit : P2Orbit
         The orbit used to filter Palsar-2 images. Defaults to P2Orbit.ASCENDING.
-
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -977,6 +1000,7 @@ def download_palsar2(
             "orbit": orbit,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -991,6 +1015,7 @@ def download_nasadem(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download NASADEM images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
@@ -1021,6 +1046,9 @@ def download_nasadem(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     if composite_method == CompositeMethod.TIMESERIES:
         raise ValueError("Time series is not relevant for DEM.")
@@ -1043,6 +1071,7 @@ def download_nasadem(
             "dtype": dtype,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -1060,6 +1089,7 @@ def download_custom(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
+    tile_range: tuple[int, int] | None = None,
 ) -> None:
     """Download images from a custom data source. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
@@ -1095,6 +1125,9 @@ def download_custom(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    tile_range: tuple[int, int] | None
+        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+        If None, all tiles are downloaded. Defaults to None.
     """
     if composite_method == CompositeMethod.TIMESERIES:
         raise ValueError("Time series is not relevant for Custom Satellites.")
@@ -1117,4 +1150,5 @@ def download_custom(
             "dtype": dtype,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )

@@ -65,6 +65,19 @@ def paris_config_selected_bands_path(
     return conf_path
 
 
+@pytest.fixture
+def paris_config_tile_range_path(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+) -> Path:
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.aoi.spatial.right = 660001
+    raw_paris_config["s1"] = {"tile_range": [1, 2]} | dict(raw_paris_config.get("s1", {}))
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
 class TestDownloadSentinel1:
     @pytest.fixture(params=list(S1Orbit), ids=lambda x: f"s1_orbit={x.value}")
     def paris_config_path_all_s1_orbits(self, request, paris_config_path: Path):
@@ -138,6 +151,13 @@ class TestDownloadSentinel1:
         else:
             assert len(downloaded_files) == 1
             assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
+
+    def test_download_s1_tile_range(self, paris_config_tile_range_path: Path):
+        download_s1(paris_config_tile_range_path)
+        conf = load(paris_config_tile_range_path)
+        downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+        assert len(downloaded_files) == 1
+        assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_660000_6860000.tif")
 
 
 class TestDownloadGedi:
