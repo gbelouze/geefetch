@@ -151,7 +151,7 @@ def download_s1(config_path: Path) -> None:
     if config.s1.selected_bands is None:
         config.s1.selected_bands = satellites.S1().default_selected_bands
     suffix = f"_tiles_{config.s1.tile_range[0]}" if config.s1.tile_range is not None else ""
-    save_config(config.gedi, config.data_dir / "s1", suffix=suffix)
+    save_config(config.s1, config.data_dir / "s1", suffix=suffix)
 
     data_dir = Path(config.data_dir)
     auth(config.s1.gee.ee_project_id)
