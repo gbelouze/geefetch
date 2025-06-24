@@ -1064,7 +1064,7 @@ def download_nasadem(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
