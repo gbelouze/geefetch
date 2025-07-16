@@ -454,28 +454,38 @@ def download_custom(config_path: Path, custom_name: str) -> None:
 def download_all(config_path: Path) -> None:
     """Download all configured satellites."""
     config = load(config_path)
-    if config.s1 is not None:
+
+    # Load the original YAML to check which satellites were actually configured
+    if config_path.is_dir():
+        from_yaml = OmegaConf.merge(
+            *[OmegaConf.load(file) for file in config_path.iterdir() if file.suffix == ".yaml"]
+        )
+    else:
+        from_yaml = OmegaConf.load(config_path)
+
+    # Check which satellites were actually configured by the user
+    if "s1" in from_yaml:
         log.info("Downloading Sentinel-1 data.")
         download_s1(config_path)
-    if config.s2 is not None:
+    if "s2" in from_yaml:
         log.info("Downloading Sentinel-2 data.")
         download_s2(config_path)
-    if config.gedi is not None:
+    if "gedi" in from_yaml:
         log.info("Downloading GEDI data.")
         download_gedi(config_path, vector=True)
-    if config.dynworld is not None:
+    if "dynworld" in from_yaml:
         log.info("Downloading Dynamic World data.")
         download_dynworld(config_path)
-    if config.palsar2 is not None:
+    if "palsar2" in from_yaml:
         log.info("Downloading Palsar-2 data.")
         download_palsar2(config_path)
-    if config.landsat8 is not None:
+    if "landsat8" in from_yaml:
         log.info("Downloading Landsat-8 data.")
         download_landsat8(config_path)
-    if config.nasadem is not None:
+    if "nasadem" in from_yaml:
         log.info("Downloading NASADEM")
         download_nasadem(config_path)
-    if config.customs is not None:
+    if "customs" in from_yaml:
         for custom_name in config.customs:
             log.info(f"Downloading CustomSatellite({custom_name}).")
             download_custom(config_path, custom_name)
