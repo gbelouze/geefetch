@@ -10,18 +10,18 @@ In GeeFetch, Sentinel-1 data is accessed via the Google Earth Engine collection 
 
 1. Filtering by date range and area of interest
 2. Filtering by orbit availability (see [configuration options](#configuration-options))
-3. Mosaicking of overlapping acquisitions
-4. Resampling to target resolution
+3. Resampling to target resolution
+4. Mosaicking of overlapping acquisitions
 5. Scaling to maximize precision within the requested data type. Pixels outside of the range $(-30, 0)$ saturate. For instance, if the requested datatype is `uint8`, the image is scaled by $x \mapsto (x + 30) \cdot 255/30$.
 
 ## Available Bands for download
 
-| Band | Description                             | Native resolution | Download by default |
-| ---- | --------------------------------------- | ----------------- | ------------------- |
-| VV   | Vertical transmit, vertical receive     | 10m               | yes                 |
-| VH   | Vertical transmit, horizontal receive   | 10m               | yes                 |
-| HH   | Horizontal transmit, horizontal receive | 10m               | no                  |
-| HV   | Horizontal transmit, vertical receive   | 10m               | no                  |
+| Band | Description                                  | Native resolution | Download by default |
+| ---- | -------------------------------------------- | ----------------- | ------------------- |
+| VV   | Vertical transmit, vertical receive (dB)     | 10m               | yes                 |
+| VH   | Vertical transmit, horizontal receive (dB)   | 10m               | yes                 |
+| HH   | Horizontal transmit, horizontal receive (dB) | 10m               | no                  |
+| HV   | Horizontal transmit, vertical receive (dB)   | 10m               | no                  |
 
 Refer to [`COPERNICUS/S1_GRD`](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD) for more details.
 

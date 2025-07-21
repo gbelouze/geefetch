@@ -11,7 +11,7 @@ from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...utils.enums import CompositeMethod, DType
+from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
@@ -370,6 +370,8 @@ class Landsat8(SatelliteABC):
         start_date: str | None = None,
         end_date: str | None = None,
         dtype: DType = DType.UInt16,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Landsat 8 images.
@@ -384,6 +386,10 @@ class Landsat8(SatelliteABC):
             End date in "YYYY-MM-DD" format.
         dtype : DType
             The data type for the image
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -409,7 +415,10 @@ class Landsat8(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype)
+                # resample
+                im = self.resample_reproject_clip(im, aoi, resampling, resolution)
+                # apply dtype
+                im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("LANDSAT/LC08/C02/T1_L2/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -420,6 +429,8 @@ class Landsat8(SatelliteABC):
         end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Landsat 8 images.
@@ -432,9 +443,14 @@ class Landsat8(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str | None
             End date in "YYYY-MM-DD" format.
-        composite_method: CompositeMethod
-        dtype: DType
-            The data type for the image.
+        composite_method : CompositeMethod
+            The method to use for compositing the images.
+        dtype : DType
+            The data type for the image
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -445,15 +461,20 @@ class Landsat8(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         landsat_col = self.get_col(aoi, start_date, end_date)
+        # Apply resampling
+        landsat_col = landsat_col.map(
+            lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
+        )
+        bounds = aoi.transform(WGS84).to_ee_geometry()
         landsat_im = composite_method.transform(landsat_col).clip(bounds)
-        landsat_im = self.convert_image(landsat_im, dtype)
+        # Apply dtype
+        landsat_im = self.convert_dtype(landsat_im, dtype)
         landsat_im = PatchedBaseImage(landsat_im)
         n_images = len(landsat_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
             log.warning(
-                f"Landsat 8 mosaicking with a large amount of images (n={n_images})."
+                f"Landsat 8 mosaicking with a large amount of images (n={n_images}). "
                 "Expect slower download time."
             )
             log.info("Change cloud masking parameters to lower the amount of images.")

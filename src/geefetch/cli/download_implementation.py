@@ -174,6 +174,7 @@ def download_s1(config_path: Path) -> None:
             else load_country_filter_polygon(config.s1.aoi.country)
         ),
         orbit=config.s1.orbit,
+        resampling=config.s1.resampling,
     )
 
 
@@ -215,6 +216,7 @@ def download_s2(config_path: Path) -> None:
         ),
         cloudless_portion=config.s2.cloudless_portion,
         cloud_prb_thresh=config.s2.cloud_prb_threshold,
+        resampling=config.s2.resampling,
     )
 
 
@@ -256,6 +258,7 @@ def download_dynworld(config_path: Path) -> None:
             if config.dynworld.aoi.country is None
             else load_country_filter_polygon(config.dynworld.aoi.country)
         ),
+        resampling=config.dynworld.resampling,
     )
 
 
@@ -297,6 +300,7 @@ def download_landsat8(config_path: Path) -> None:
             if config.landsat8.aoi.country is None
             else load_country_filter_polygon(config.landsat8.aoi.country)
         ),
+        resampling=config.landsat8.resampling,
     )
 
 
@@ -337,6 +341,8 @@ def download_palsar2(config_path: Path) -> None:
             else load_country_filter_polygon(config.palsar2.aoi.country)
         ),
         orbit=config.palsar2.orbit,
+        resampling=config.palsar2.resampling,
+        refined_lee=config.palsar2.refined_lee,
     )
 
 
@@ -378,6 +384,7 @@ def download_nasadem(config_path: Path) -> None:
             if config.nasadem.aoi.country is None
             else load_country_filter_polygon(config.nasadem.aoi.country)
         ),
+        resampling=config.nasadem.resampling,
     )
 
 
@@ -425,6 +432,7 @@ def download_custom(config_path: Path, custom_name: str) -> None:
             if custom_config.aoi.country is None
             else load_country_filter_polygon(custom_config.aoi.country)
         ),
+        resampling=custom_config.resampling,
     )
 
 

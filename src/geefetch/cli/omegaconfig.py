@@ -6,7 +6,7 @@ from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
 
-from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, S1Orbit
+from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, ResamplingMethod, S1Orbit
 
 __all__ = [
     "GeefetchConfig",
@@ -143,6 +143,10 @@ class SatelliteDefaultConfig:
     selected_bands : list[str] | None
         The bands to download. If None, will use the satellite
         default bands. Defaults to None.
+    resampling : ResamplingMethod
+        The resampling method to use when reprojecting images.
+        Can be BILINEAR, BICUBIC or NEAREST.
+        Defaults to ResamplingMethod.BILINEAR.
     """
 
     aoi: AOIConfig
@@ -152,6 +156,7 @@ class SatelliteDefaultConfig:
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
     selected_bands: list[str] | None = None
+    resampling: ResamplingMethod = ResamplingMethod.BILINEAR
 
 
 @dataclass
@@ -221,9 +226,13 @@ class Palsar2Config(SatelliteDefaultConfig):
     orbit : P2Orbit
         Orbit direction to filter PALSAR-2 acquisitions.
         Can be ASCENDING or DESCENDING. Defaults to DESCENDING.
+    refined_lee : bool
+        Whether to apply the Refined Lee filter to reduce speckle noise.
+        Defaults to True.
     """
 
     orbit: P2Orbit = P2Orbit.DESCENDING
+    refined_lee: bool = True
 
 
 @dataclass

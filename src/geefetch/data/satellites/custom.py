@@ -7,7 +7,7 @@ from ee.image import Image
 from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 
-from ...utils.enums import CompositeMethod, DType
+from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
@@ -132,6 +132,8 @@ class CustomSatellite(SatelliteABC):
         end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get an image from a custom dataset.
@@ -148,6 +150,10 @@ class CustomSatellite(SatelliteABC):
             The method use to do mosaicking.
         dtype : DType
             The data type for the image
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -164,6 +170,10 @@ class CustomSatellite(SatelliteABC):
                 start_date,
                 end_date,
             )
+            # Apply resampling
+            col = col.map(
+                lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
+            )
             n_images = len(col.getInfo()["features"])  # type: ignore[index]
             if n_images > 500:
                 log.warning(
@@ -177,7 +187,7 @@ class CustomSatellite(SatelliteABC):
             # an Image or an ImageCollection
             im = self.get_im(aoi)
 
-        im = self.convert_image(im, dtype)
+        im = self.convert_dtype(im, dtype)
         im = PatchedBaseImage(im)
         return DownloadableGeedimImage(im)
 

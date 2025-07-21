@@ -6,7 +6,7 @@ from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...utils.enums import CompositeMethod, DType
+from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
@@ -98,6 +98,8 @@ class DynWorld(SatelliteABC):
         start_date: str | None = None,
         end_date: str | None = None,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloabable time series of Dynamic World images.
@@ -112,6 +114,10 @@ class DynWorld(SatelliteABC):
             End date in "YYYY-MM-DD" format.
         dtype : DType
             The data type for the image
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -135,7 +141,10 @@ class DynWorld(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype)
+                # resample
+                im = self.resample_reproject_clip(im, aoi, resampling, resolution)
+                # apply dtype
+                im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("GOOGLE/DYNAMICWORLD/V1/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -146,6 +155,8 @@ class DynWorld(SatelliteABC):
         end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Dynamic World images.
@@ -159,8 +170,13 @@ class DynWorld(SatelliteABC):
         end_date : str | None
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
+            The method to use for compositing.
         dtype : DType
             The data type for the image
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
+        resolution : float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -172,14 +188,20 @@ class DynWorld(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         dynworld_col = self.get_col(
             aoi,
             start_date,
             end_date,
         )
+        # Apply resampling
+        dynworld_col = dynworld_col.map(
+            lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
+        )
+        # create composite
+        bounds = aoi.transform(WGS84).to_ee_geometry()
         dynworld_im = composite_method.transform(dynworld_col).clip(bounds)
-        dynworld_im = self.convert_image(dynworld_im, dtype)
+        # Apply dtype
+        dynworld_im = self.convert_dtype(dynworld_im, dtype)
         dynworld_im = PatchedBaseImage(dynworld_im)
         n_images = len(dynworld_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:

@@ -14,8 +14,8 @@ In GeeFetch, Sentinel-2 data is accessed via the Google Earth Engine collection 
    b. Remove images where `HIGH_PROBA_CLOUDS_PERCENTAGE > 50 - cloudless_portion/2`  
    c. Mask pixels which have a probability of being a cloud `> cloud_prb_threshold`  
    d. Mask pixels based on the `QA60` band
-3. Mosaicking of multiple images
-4. Resampling to target resolution
+3. Resampling to target resolution
+4. Mosaicking of multiple images
 5. Scaling to maximize precision within the requested data type. Pixels outside of the range $(0, 3000)$ saturate. For instance, if the requested datatype is `uint8`, the image is scaled by $255/3000$.
 
 ## Available Bands for download

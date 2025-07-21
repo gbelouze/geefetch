@@ -24,7 +24,7 @@ def test_api_consistency():
 
 
 def test_fail_on_missing_config():
-    runner = CliRunner(mix_stderr=False)
+    runner = CliRunner()
     results = [
         runner.invoke(main, [satellite, "--config", "fakeconfig.yaml"])
         for satellite in ["s1", "s2", "palsar2", "gedi", "dynworld", "landsat8"]

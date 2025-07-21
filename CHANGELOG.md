@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fixed" and "Security".
 
+## pre-release
+
+### Added
+
+- Generic `resample_reproject_clip` method to ensure that operations done in correct order (according to GEE docs) [c4c37626](https://github.com/gbelouze/geefetch/commit/c4c3762623901dd1fa4f32fe3e5d99e4b2dc4b98)
+- Choose to apply refined lee filter to PALSAR-2 images [ac50c1e3](https://github.com/gbelouze/geefetch/commit/ac50c1e324a4f30d423895d87d963f365b4ad093)
+- Allow choice of resampling method for downloaded images [7c3da39f](https://github.com/gbelouze/geefetch/commit/7c3da39f5504baa2535bc8936dab33f767ade193)
+
+### Changed
+
+- `before_composite` and `after_composite` logic to ensure that operations are done in power scale for Palsar-2 and Sentinel-1 [e4e418b4](https://github.com/gbelouze/geefetch/commit/e4e418b489f34bfb5fa61055cf4827a32f0f8ae2)
+- By default, all satellite data will be resampled using bilinear interpolation (previously it was nearest neighbour) [7c3da39f](https://github.com/gbelouze/geefetch/commit/7c3da39f5504baa2535bc8936dab33f767ade193)
+
+
 ## [0.5.2](https://github.com/gbelouze/geefetch/compare/v0.5.2...v0.5.1) (2025-04-15)
 
 ### Added
@@ -20,6 +34,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Don't scale bands if the range of value fits within the dtype-representable range [ac2321e](https://github.com/gbelouze/geefetch/commit/ac2321ed7bfad78ea9ddb40fd589b903d8b4af5a)
 - Remove the necessity to write `satellite: {}` in the config [803c13e](https://github.com/gbelouze/geefetch/commit/803c13e9d59adde54ffab52abeebe573dd6d9a58)
 - Migrated the docs to `mkdocs` [607050c](https://github.com/gbelouze/geefetch/commit/607050ca244cdd3865de967e67d2d20d6fb56d47)
+
 
 ### Fixed
 
