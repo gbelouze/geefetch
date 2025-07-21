@@ -11,8 +11,8 @@ In GeeFetch, Landsat-8 data is accessed via the Google Earth Engine collection [
 1.  Filtering by date range and area of interest
 2.  Cloud and saturated pixels masking using the QA_PIXEL and QA_RADSAT bands.
 3.  Bidirectional Reflectance Distribution Function (BRDF) correction: adjust radiometric values to account for variations in surface reflectance based on the sun and view angles.
-4.  Mosaicking of overlapping acquisitions
-5.  Resampling to target resolution
+4.  Resampling to target resolution
+5.  Mosaicking of overlapping acquisitions
 6.  Scaling to maximize precision with the requested data type. Pixels outside the range $(0, 65455)$ are saturated. For example, when the requested datatype is `uint8`, the image is scaled by $255/2^{16}$.
 
 ## Available Bands for download

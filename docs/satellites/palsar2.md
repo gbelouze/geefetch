@@ -9,17 +9,17 @@ In GeeFetch, PALSAR-2 data is accessed via the Google Earth Engine collection [`
 ## Processing
 
 1. Filtering by date range and area of interest
-2. Noise removal : 🚧 Documentation is under construction 🚧
-3. Mosaicking of overlapping acquisitions
-4. Resampling to target resolution
-5. Scaling to maximize precision within the requested data type. Pixels outside the range $(0, 8000)$ saturate. For instance, if the requested datatype is `uint8`, the image is scaled by $255/8000$.
+2. Refined lee filter is applied to remove noise
+3. Resampling to target resolution
+4. Mosaicking of overlapping acquisitions
+5. Scaling to maximize precision within the requested data type. Pixels outside of the range $(-30, 0)$ saturate. For instance, if the requested datatype is `uint8`, the image is scaled by $x \mapsto (x + 30) \cdot 255/30$.
 
 ## Available Bands for download
 
 | Band | Description                                                      | Native resolution | Download by default |
 | ---- | ---------------------------------------------------------------- | ----------------- | ------------------- |
-| HH   | Horizontal transmit, horizontal receive                          | 25m               | yes                 |
-| HV   | Horizontal transmit, vertical receive                            | 25m               | yes                 |
+| HH   | Horizontal transmit, horizontal receive (dB)                     | 25m               | yes                 |
+| HV   | Horizontal transmit, vertical receive (dB)                       | 25m               | yes                 |
 | LIN  | Local incidence angle (between radar direction and slope normal) | 0.01 deg          | no                  |
 | MSK  | Data quality bitmask                                             | 25m               | no                  |
 
