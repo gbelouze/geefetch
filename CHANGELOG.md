@@ -12,10 +12,13 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Added
 
+- generic 'resample_reproject_clip' method to ensure that operations done in correct order (according to GEE docs)
+- Choose to apply refined lee filter to PALSAR-2 images
 - Allow choice of resampling method for downloaded images
 
 ### Changed
 
+- before_composite and after_composite logic to ensure that operations are done in power scale for Palsar-2 and Sentinel-1
 - By default, all satellite data will be resampled using bilinear interpolation (previously it was nearest neighbour)
 
 ### Fixed

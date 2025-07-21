@@ -139,7 +139,6 @@ class Palsar2(SatelliteABC):
             id_ = feature["id"]
             footprint = PatchedBaseImage.from_id(id_).footprint
             assert footprint is not None
-            # Check if the intersection of image and AOI is exactly the AOI
             if Polygon(footprint["coordinates"][0]).contains(aoi.to_shapely_polygon()):
                 im = Image(id_)
                 im = self.before_composite(im, resampling, aoi, resolution, refined_lee)
