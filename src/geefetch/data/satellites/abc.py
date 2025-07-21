@@ -186,8 +186,13 @@ class SatelliteABC(ABC):
         resampling: ResamplingMethod,
         scale: float,
     ) -> Image:
-        if resampling.value is not None:
-            im = im.resample(resampling.value)
+        match resampling:
+            case ResamplingMethod.BILINEAR | ResamplingMethod.BICUBIC:
+                im = im.resample(resampling.value)
+            case ResamplingMethod.NEAREST:
+                pass
+            case _:
+                raise ValueError(f"Cannot reproject with method {resampling}")
         im = im.reproject(crs=aoi.crs.to_string(), scale=scale)
         bounds = aoi.transform(WGS84).to_ee_geometry()
         return im.clip(bounds)

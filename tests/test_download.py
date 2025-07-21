@@ -237,11 +237,11 @@ class TestResamplingMethods:
         config_bicubic.satellite_default.resampling = ResamplingMethod.BICUBIC
 
         # Create separate temporary directories for each download
-        bilinear_tmp_dir = tempfile.mkdtemp()
-        nearest_tmp_dir = tempfile.mkdtemp()
-        bicubic_tmp_dir = tempfile.mkdtemp()
-
-        try:
+        with (
+            tempfile.TemporaryDirectory() as bilinear_tmp_dir,
+            tempfile.TemporaryDirectory() as nearest_tmp_dir,
+            tempfile.TemporaryDirectory() as bicubic_tmp_dir,
+        ):
             # Update data directories
             config_bilinear.data_dir = bilinear_tmp_dir
             config_nearest.data_dir = nearest_tmp_dir
@@ -295,14 +295,6 @@ class TestResamplingMethods:
                 nearest_data, bicubic_data
             ), "Nearest and bicubic resampling produced identical outputs"
 
-        finally:
-            # Clean up temporary directories
-            import shutil
-
-            shutil.rmtree(bilinear_tmp_dir, ignore_errors=True)
-            shutil.rmtree(nearest_tmp_dir, ignore_errors=True)
-            shutil.rmtree(bicubic_tmp_dir, ignore_errors=True)
-
     def test_resolution(self, paris_config_path: Path):
         """Test that different resolution parameters produce images with different pixel sizes."""
 
@@ -315,10 +307,10 @@ class TestResamplingMethods:
         config_30m.satellite_default.resolution = 30
 
         # Create separate temporary directories for each download
-        res10_tmp_dir = tempfile.mkdtemp()
-        res30_tmp_dir = tempfile.mkdtemp()
-
-        try:
+        with (
+            tempfile.TemporaryDirectory() as res10_tmp_dir,
+            tempfile.TemporaryDirectory() as res30_tmp_dir,
+        ):
             # Update data directories
             config_10m.data_dir = res10_tmp_dir
             config_30m.data_dir = res30_tmp_dir
@@ -362,10 +354,3 @@ class TestResamplingMethods:
                 f"30m resolution pixel size ({res30_pixel_size_y}) should be"
                 f"larger than 10m resolution pixel size ({res10_pixel_size_y})"
             )
-
-        finally:
-            # Clean up temporary directories
-            import shutil
-
-            shutil.rmtree(res10_tmp_dir, ignore_errors=True)
-            shutil.rmtree(res30_tmp_dir, ignore_errors=True)
