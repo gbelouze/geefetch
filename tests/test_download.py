@@ -1,7 +1,9 @@
+import tempfile
 from collections.abc import Generator
 from pathlib import Path
 
 import geopandas as gpd
+import numpy as np
 import pytest
 import rasterio as rio
 from omegaconf import DictConfig, OmegaConf
@@ -18,7 +20,7 @@ from geefetch.cli.download_implementation import (
 )
 from geefetch.cli.omegaconfig import load
 from geefetch.data.process import tif_is_clean
-from geefetch.utils.enums import CompositeMethod, P2Orbit, S1Orbit
+from geefetch.utils.enums import CompositeMethod, P2Orbit, ResamplingMethod, S1Orbit
 
 
 @pytest.fixture
@@ -216,3 +218,87 @@ class TestDownloadOtherSatellites:
         conf = load(paris_config_path)
         downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
         assert len(downloaded_files) == 1
+
+
+class TestResamplingMethods:
+    """Test that different resampling methods produce different outputs."""
+
+    def test_resampling_methods_produce_different_outputs(self, paris_config_path: Path):
+        """Test that different resampling methods produce different outputs."""
+
+        # Create three configs with different resampling methods
+        config_bilinear = OmegaConf.load(paris_config_path)
+        config_nearest = OmegaConf.load(paris_config_path)
+        config_bicubic = OmegaConf.load(paris_config_path)
+
+        # Set different resampling methods
+        config_bilinear.satellite_default.resampling = ResamplingMethod.BILINEAR
+        config_nearest.satellite_default.resampling = ResamplingMethod.NEAREST
+        config_bicubic.satellite_default.resampling = ResamplingMethod.BICUBIC
+
+        # Create separate temporary directories for each download
+        bilinear_tmp_dir = tempfile.mkdtemp()
+        nearest_tmp_dir = tempfile.mkdtemp()
+        bicubic_tmp_dir = tempfile.mkdtemp()
+
+        try:
+            # Update data directories
+            config_bilinear.data_dir = bilinear_tmp_dir
+            config_nearest.data_dir = nearest_tmp_dir
+            config_bicubic.data_dir = bicubic_tmp_dir
+
+            # Create temporary config files
+            config_bilinear_path = Path(bilinear_tmp_dir) / "config_bilinear.yaml"
+            config_nearest_path = Path(nearest_tmp_dir) / "config_nearest.yaml"
+            config_bicubic_path = Path(bicubic_tmp_dir) / "config_bicubic.yaml"
+
+            OmegaConf.save(config_bilinear, config_bilinear_path)
+            OmegaConf.save(config_nearest, config_nearest_path)
+            OmegaConf.save(config_bicubic, config_bicubic_path)
+
+            # Download with bilinear resampling
+            download_s1(config_bilinear_path)
+            conf_bilinear = load(config_bilinear_path)
+            bilinear_files = list(Path(conf_bilinear.data_dir).rglob("*.tif"))
+            assert len(bilinear_files) == 1
+
+            # Download with nearest resampling
+            download_s1(config_nearest_path)
+            conf_nearest = load(config_nearest_path)
+            nearest_files = list(Path(conf_nearest.data_dir).rglob("*.tif"))
+            assert len(nearest_files) == 1
+
+            # Download with bicubic resampling
+            download_s1(config_bicubic_path)
+            conf_bicubic = load(config_bicubic_path)
+            bicubic_files = list(Path(conf_bicubic.data_dir).rglob("*.tif"))
+            assert len(bicubic_files) == 1
+
+            # Read the downloaded files and compare their content
+            with rio.open(bilinear_files[0]) as bilinear_ds:
+                bilinear_data = bilinear_ds.read()
+
+            with rio.open(nearest_files[0]) as nearest_ds:
+                nearest_data = nearest_ds.read()
+
+            with rio.open(bicubic_files[0]) as bicubic_ds:
+                bicubic_data = bicubic_ds.read()
+
+            # All outputs should be different from each other
+            assert not np.array_equal(
+                bilinear_data, nearest_data
+            ), "Bilinear and nearest resampling produced identical outputs"
+            assert not np.array_equal(
+                bilinear_data, bicubic_data
+            ), "Bilinear and bicubic resampling produced identical outputs"
+            assert not np.array_equal(
+                nearest_data, bicubic_data
+            ), "Nearest and bicubic resampling produced identical outputs"
+
+        finally:
+            # Clean up temporary directories
+            import shutil
+
+            shutil.rmtree(bilinear_tmp_dir, ignore_errors=True)
+            shutil.rmtree(nearest_tmp_dir, ignore_errors=True)
+            shutil.rmtree(bicubic_tmp_dir, ignore_errors=True)
