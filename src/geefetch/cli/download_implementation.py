@@ -432,6 +432,7 @@ def download_custom(config_path: Path, custom_name: str) -> None:
             if custom_config.aoi.country is None
             else load_country_filter_polygon(custom_config.aoi.country)
         ),
+        resampling=custom_config.resampling,
     )
 
 
