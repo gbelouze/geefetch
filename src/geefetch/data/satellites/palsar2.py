@@ -131,15 +131,6 @@ class Palsar2(SatelliteABC):
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
         p2_col = p2_col.filter(ee.Filter.contains(leftField=".geo", rightValue=bounds))
 
-        # add year and month to the image
-
-        def add_ym(image):
-            date = image.date()
-            return image.set({"year": date.get("year"), "month": date.get("month")})
-
-        p2_col = p2_col.map(add_ym)
-        # distinct so that we only get one image per year and month
-        p2_col = p2_col.distinct(["year", "month"])  # type: ignore[assignment]
         # get the info of the collection
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
