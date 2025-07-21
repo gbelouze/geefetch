@@ -98,7 +98,7 @@ class AOIConfig:  # noqa: 605
     Attributes
     ----------
     spatial : SpatialAOIConfig
-    temporal : TemporalAOIConfig
+    temporal : TemporalAOIConfig | None
     country : str | list[str] | None
         The name of one or more countries. If given, spatial AOI is further restricted to its area
         that intersects one of the country boundaries. Defaults to None.
@@ -108,7 +108,7 @@ class AOIConfig:  # noqa: 605
     """
 
     spatial: SpatialAOIConfig
-    temporal: TemporalAOIConfig
+    temporal: TemporalAOIConfig | None
 
     # The name of a line in geopandas.datasets "naturalearth_lowres"
     # ..see also: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
@@ -174,10 +174,19 @@ class GediConfig(SatelliteDefaultConfig):
 
 @dataclass
 class S1Config(SatelliteDefaultConfig):
-    """The structured type for configuring Sentinel-1."""
+    """The structured type for configuring Sentinel-1.
+
+    Attributes
+    ----------
+    orbit : S1Orbit
+        Orbit direction to filter Sentinel-1 acquisitions.
+        Can be ASCENDING, DESCENDING, BOTH, or AS_BANDS
+        to download ascending and descending composites as separate bands.
+        Defaults to BOTH.
+    """
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
-    orbit: S1Orbit = S1Orbit.ASCENDING
+    orbit: S1Orbit = S1Orbit.BOTH
 
 
 @dataclass
@@ -189,8 +198,9 @@ class S2Config(SatelliteDefaultConfig):
     cloudless_portion : int
         Threshold for the portion of filled pixels that must be cloud/shadow free (%).
         Images that do not fullfill the requirement are filtered out before mosaicking.
+        Default is 40.
     cloud_prb_threshold : int
-        Threshold for cloud probability above which a pixel is filtered out (%).
+        Threshold for cloud probability above which a pixel is filtered out (%). Default is 40.
     """
 
     cloudless_portion: int = 40
@@ -214,8 +224,8 @@ class Palsar2Config(SatelliteDefaultConfig):
     Attributes
     ----------
     orbit : P2Orbit
-        The orbit used to filter the collection before mosaicking.
-        Defaults to P2Orbit.DESCENDING.
+        Orbit direction to filter PALSAR-2 acquisitions.
+        Can be ASCENDING or DESCENDING. Defaults to DESCENDING.
     refined_lee : bool
         Whether to apply the Refined Lee filter to reduce speckle noise.
         Defaults to True.
@@ -231,6 +241,21 @@ class NASADEMConfig(SatelliteDefaultConfig):
 
 
 @dataclass
+class CustomSatelliteConfig(SatelliteDefaultConfig):
+    """The structured type for configuring a custom GEE dataset source."""
+
+    url: str = "unknown"
+    pixel_range: tuple[float, float] = (-1, -1)
+
+    def __post_init__(self):
+        if self.url == "unknown":
+            raise ValueError("Argument `url` must be given.")
+        self.pixel_range = tuple(self.pixel_range)  # type: ignore[assignment]
+        if self.pixel_range == (-1, -1):
+            raise ValueError("Argument `pixel_range` must be given.")
+
+
+@dataclass
 class GeefetchConfig:
     """The structured type for a GeeFetch configuration.
 
@@ -240,106 +265,131 @@ class GeefetchConfig:
         The path to store downloaded data.
     satellite_default : SatelliteDefaultConfig
         Default satellite configuration.
-    gedi : GediConfig | None
+    gedi : GediConfig
         GEDI specific configuration / variation to the default.
-    s1 : S1Config | None
+    s1 : S1Config
         Sentinel-1 specific configuration / variation to the default.
-    s2 : S2Config | None
+    s2 : S2Config
         Sentinel-2 specific configuration / variation to the default.
-    dynworld : DynWorldConfig | None
+    dynworld : DynWorldConfig
         Dynamic world specific configuration / variation to the default.
-    landsat8 : Landsat8Config | None
+    landsat8 : Landsat8Config
         Landsat 8 specific configuration / variation to the default.
-    palsar2 : Palsar2Config | None
+    palsar2 : Palsar2Config
         Palsar 2 specific configuration / variation to the default.
-    nasadem : NASADEMConfig | None
+    nasadem : NASADEMConfig
         NASA-DEM specific configuration / variation to the default.
+    customs : dict[str, CustomSatelliteConfig]
+        Configuration for a specific dataset sources unsupported natively by `geefetch`.
     """
 
     data_dir: Path
     satellite_default: SatelliteDefaultConfig
-    gedi: GediConfig | None
-    s1: S1Config | None
-    s2: S2Config | None
-    dynworld: DynWorldConfig | None
-    landsat8: Landsat8Config | None
-    palsar2: Palsar2Config | None
-    nasadem: NASADEMConfig | None
+    gedi: GediConfig
+    s1: S1Config
+    s2: S2Config
+    dynworld: DynWorldConfig
+    landsat8: Landsat8Config
+    palsar2: Palsar2Config
+    nasadem: NASADEMConfig
+    customs: dict[str, CustomSatelliteConfig]
 
     def __post_init__(self):
         self.data_dir = self.data_dir.expanduser().absolute()
 
 
-def post_omegaconf_load(config: DictConfig | ListConfig) -> None:
-    """Updates in place the missing satellites config with the default.
+def _post_omegaconf_load(config: DictConfig | ListConfig) -> None:
+    """Post-processes a loaded OmegaConf config by merging satellite defaults.
+
+    This function updates the configuration in place by merging default satellite
+    parameters into each satellite-specific configuration (GEDI, Sentinel-1, Sentinel-2, etc.).
+    If custom satellites are defined, they are also merged with the default template.
 
     Parameters
     ----------
     config : DictConfig | ListConfig
-        The config loaded by OmegaConf.
+        A configuration object loaded using OmegaConf, expected to include
+        a `satellite_default` section and optionally sections for each known
+        satellite or user-defined `customs`.
     """
     OmegaConf.resolve(config)
-    config.gedi = (
-        OmegaConf.merge(OmegaConf.structured(GediConfig), config.satellite_default, config.gedi)
-        if "gedi" in config
-        else None
+
+    config.gedi = OmegaConf.merge(
+        OmegaConf.structured(GediConfig),
+        config.satellite_default,
+        config.gedi if "gedi" in config else {},
     )
-    config.s1 = (
-        OmegaConf.merge(OmegaConf.structured(S1Config), config.satellite_default, config.s1)
-        if "s1" in config
-        else None
+    config.s1 = OmegaConf.merge(
+        OmegaConf.structured(S1Config),
+        config.satellite_default,
+        config.s1 if "s1" in config else {},
     )
-    config.s2 = (
-        OmegaConf.merge(OmegaConf.structured(S2Config), config.satellite_default, config.s2)
-        if "s2" in config
-        else None
+    config.s2 = OmegaConf.merge(
+        OmegaConf.structured(S2Config),
+        config.satellite_default,
+        config.s2 if "s2" in config else {},
     )
-    config.dynworld = (
-        OmegaConf.merge(
-            OmegaConf.structured(DynWorldConfig),
-            config.satellite_default,
-            config.dynworld,
-        )
-        if "dynworld" in config
-        else None
+    config.dynworld = OmegaConf.merge(
+        OmegaConf.structured(DynWorldConfig),
+        config.satellite_default,
+        config.dynworld if "dynworld" in config else {},
     )
-    config.landsat8 = (
-        OmegaConf.merge(
-            OmegaConf.structured(Landsat8Config),
-            config.satellite_default,
-            config.landsat8,
-        )
-        if "landsat8" in config
-        else None
+    config.landsat8 = OmegaConf.merge(
+        OmegaConf.structured(Landsat8Config),
+        config.satellite_default,
+        config.landsat8 if "landsat8" in config else {},
     )
-    config.palsar2 = (
-        OmegaConf.merge(
-            OmegaConf.structured(Palsar2Config),
-            config.satellite_default,
-            config.palsar2,
-        )
-        if "palsar2" in config
-        else None
+    config.palsar2 = OmegaConf.merge(
+        OmegaConf.structured(Palsar2Config),
+        config.satellite_default,
+        config.palsar2 if "palsar2" in config else {},
     )
 
-    config.nasadem = (
-        OmegaConf.merge(
-            OmegaConf.structured(NASADEMConfig), config.satellite_default, config.nasadem
-        )
-        if "nasadem" in config
-        else None
+    config.nasadem = OmegaConf.merge(
+        OmegaConf.structured(NASADEMConfig),
+        config.satellite_default,
+        config.nasadem if "nasadem" in config else {},
     )
+
+    if "customs" in config:
+        if not isinstance(config.customs, DictConfig):
+            raise ValueError(
+                "Invalid configuration for `customs`. "
+                f"Expected dict-like, got {type(config.customs)}."
+            )
+        config.customs = {
+            custom_name: OmegaConf.merge(
+                OmegaConf.structured(CustomSatelliteConfig), config.satellite_default, custom_config
+            )
+            for custom_name, custom_config in config.customs.items()
+        }
+    else:
+        config.customs = {}
 
 
 def load(path: Path) -> GeefetchConfig:
-    """Load a config file."""
+    """Loads and validates a geefetch configuration from a YAML file or directory.
+
+    If a directory is provided, all `.yaml` files within it are merged. The function
+    then injects missing satellite configurations with defaults.
+
+    Parameters
+    ----------
+    path : Path
+        Path to a YAML file or a directory containing YAML files to load.
+
+    Returns
+    -------
+    GeefetchConfig
+        The fully merged and validated configuration object.
+    """
     if path.is_dir():
         from_yaml = OmegaConf.merge(
             *[OmegaConf.load(file) for file in path.iterdir() if file.suffix == ".yaml"]
         )
     else:
         from_yaml = OmegaConf.load(path)
-    post_omegaconf_load(from_yaml)
+    _post_omegaconf_load(from_yaml)
     from_structured = OmegaConf.structured(GeefetchConfig)
     merged = OmegaConf.merge(from_structured, from_yaml)
     if merged.satellite_default.selected_bands is not None:

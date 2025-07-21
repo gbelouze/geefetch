@@ -1,6 +1,6 @@
 Usage: main [OPTIONS] COMMAND [ARGS]...
 
-  Download satellites from Google Earth Engine.
+  Download satellite data from Google Earth Engine.
 
 Options:
   -v, --verbose
@@ -12,9 +12,11 @@ Options:
 
 Commands:
   all       Download all satellites given in the config.
+  custom    Download Custom images.
   dynworld  Download Dynamic World images.
   gedi      Download GEDI images.
   landsat8  Download Landsat 8 images.
+  nasadem   Download NASA-DEM images.
   palsar2   Download Palsar-2 images.
   s1        Download Sentinel-1 images.
   s2        Download Sentinel-2 images.

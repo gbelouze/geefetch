@@ -65,8 +65,8 @@ class DynWorld(SatelliteABC):
     def get_col(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> ImageCollection:
         """Get Dynamic World cloud free collection.
 
@@ -74,9 +74,9 @@ class DynWorld(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
 
         Returns
@@ -84,32 +84,33 @@ class DynWorld(SatelliteABC):
         dynworld_col : ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
+        col = ImageCollection("GOOGLE/DYNAMICWORLD/V1")
+        if start_date is not None and end_date is not None:
+            col = col.filterDate(start_date, end_date)
 
         return (  # type: ignore[no-any-return]
-            ImageCollection("GOOGLE/DYNAMICWORLD/V1")
-            .filterDate(start_date, end_date)
-            .filterBounds(bounds)
+            col.filterBounds(bounds)
         )
 
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Dynamic World collection.
+        """Get a downloabable time series of Dynamic World images.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         dtype : DType
             The data type for the image
@@ -150,23 +151,23 @@ class DynWorld(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Dynamic World cloud free collection.
+        """Get a downloadable mosaic of Dynamic World images.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
             The method to use for compositing.

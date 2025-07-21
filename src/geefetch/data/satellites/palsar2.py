@@ -54,9 +54,9 @@ class Palsar2(SatelliteABC):
     def get_col(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
-        orbit: P2Orbit,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        orbit: P2Orbit = P2Orbit.ASCENDING,
     ) -> ImageCollection:
         """Get Palsar 2 collection.
 
@@ -64,9 +64,9 @@ class Palsar2(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         orbit : P2Orbit
             The orbit used to filter the collection before mosaicking.
@@ -77,11 +77,11 @@ class Palsar2(SatelliteABC):
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
-        palsar2_col = (
-            ImageCollection("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")
-            .filterDate(start_date, end_date)
-            .filterBounds(bounds)
-            .filter(Filter.eq("PassDirection", orbit.value))
+        palsar2_col = ImageCollection("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")
+        if start_date is not None and end_date is not None:
+            palsar2_col = palsar2_col.filterDate(start_date, end_date)
+        palsar2_col = palsar2_col.filterBounds(bounds).filter(
+            Filter.eq("PassDirection", orbit.value)
         )
 
         return palsar2_col  # type: ignore[no-any-return]
@@ -89,8 +89,8 @@ class Palsar2(SatelliteABC):
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         orbit: P2Orbit = P2Orbit.DESCENDING,
@@ -98,15 +98,15 @@ class Palsar2(SatelliteABC):
         refined_lee: bool = True,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Palsar-2 collection.
+        """Get a downloadable time series of Palsar-2 images.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         dtype : DType
             The data type for the image
@@ -151,8 +151,8 @@ class Palsar2(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
@@ -161,15 +161,15 @@ class Palsar2(SatelliteABC):
         refined_lee: bool = True,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Palsar-2 collection.
+        """Get a downloadable mosaic of Palsar-2 images.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
             The method use to do mosaicking.

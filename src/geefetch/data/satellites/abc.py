@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -7,6 +8,8 @@ from geobbox import GeoBoundingBox
 from ...utils.enums import DType, ResamplingMethod
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableABC
+
+log = logging.getLogger(__name__)
 
 __all__ = ["SatelliteABC"]
 
@@ -20,8 +23,8 @@ class SatelliteABC(ABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         **kwargs: Any,
     ) -> DownloadableABC:
         """Get downloadable data. It is up to the caller to make sure the computation will stay
@@ -33,8 +36,8 @@ class SatelliteABC(ABC):
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         **kwargs: Any,
     ) -> DownloadableABC:
         """Get downloadable data to fetch time series. It is up to the caller to make sure
@@ -122,21 +125,47 @@ class SatelliteABC(ABC):
                     case _:
                         raise ValueError(f"Unsupported {dtype=}.")
             case dict():
+                band_names: list[str] = im.bandNames().getInfo()  # type: ignore[assignment]
+                band_types: dict[str, Any] = im.bandTypes().getInfo()  # type: ignore[assignment]
                 for band, (min_p, max_p) in pixel_range.items():
+                    if band not in band_names:
+                        log.warning(f"Band name {band} is not a recognized band name. Ignoring it.")
+                        continue
+                    if band not in band_types:
+                        log.warning(f"Unkwown pixel type for band {band}.")
+                        band_type = None
+                    else:
+                        band_type = band_types[band]
                     band_im = im.select(band).clamp(min_p, max_p)
                     match dtype:
                         case DType.Float32:
                             pass
                         case DType.UInt16:
-                            band_im = (
-                                band_im.add(-min_p)
-                                .multiply((2**16 - 1) / (max_p - min_p))
-                                .toUint16()
-                            )
+                            if not (
+                                (0 <= min_p < max_p <= 2**16 - 1)
+                                and band_type is not None
+                                and band_type["precision"] == "int"
+                            ):
+                                band_im = (
+                                    band_im.add(-min_p)
+                                    .multiply((2**16 - 1) / (max_p - min_p))
+                                    .toUint16()
+                                )
+                            else:
+                                band_im = band_im.toUint16()
                         case DType.UInt8:
-                            band_im = (
-                                band_im.add(-min_p).multiply((2**8 - 1) / (max_p - min_p)).toUint8()
-                            )
+                            if not (
+                                (0 <= min_p < max_p <= 2**8 - 1)
+                                and band_type is not None
+                                and band_type["precision"] == "int"
+                            ):
+                                band_im = (
+                                    band_im.add(-min_p)
+                                    .multiply((2**8 - 1) / (max_p - min_p))
+                                    .toUint8()
+                                )
+                            else:
+                                band_im = band_im.toUint8()
                         case _:
                             raise ValueError(f"Unsupported {dtype=}.")
                     im = im.addBands(band_im, overwrite=True)

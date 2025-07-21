@@ -43,7 +43,7 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         **kwargs: Any,
     ) -> None:
         filename = Path(filename)
-        tmp_filename = filename.with_suffix(f".tmp.{filename.suffix}")
+        tmp_filename = filename.with_suffix(f".tmp{filename.suffix}")
         tmp_filename.unlink(missing_ok=True)
         self._download(
             tmp_filename,

@@ -21,7 +21,7 @@ def compute_slope(data: Image) -> Image:
 
 
 class NASADEM(SatelliteABC):
-    _bands = ["elevation", "num", "slope", "swb"]
+    _bands = ["elevation", "slope", "swb"]
     _default_selected_bands = ["elevation", "slope"]
 
     @property
@@ -34,7 +34,7 @@ class NASADEM(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return {"elevation": (-512, 8768), "slope": (0, 90), "num": (0, 255), "swb": (0, 255)}
+        return {"elevation": (-512, 8768), "slope": (0, 90), "swb": (0, 255)}
 
     @property
     def is_raster(self):
@@ -58,8 +58,8 @@ class NASADEM(SatelliteABC):
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
@@ -68,23 +68,23 @@ class NASADEM(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get NASADEM composite image.
+        """Get a downloadable NASADEM composite image.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             (Unused) Included for compatibility.
-        end_date : str
+        end_date : str | None
             (Unused) Included for compatibility.
         composite_method: CompositeMethod
             (Unused) NASADEM is a single static dataset.

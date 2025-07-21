@@ -46,8 +46,8 @@ class S1(SatelliteABC):
     def get_col(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         orbit: S1Orbit = S1Orbit.ASCENDING,
         selected_bands: list[str] | None = None,
     ) -> ImageCollection:
@@ -57,9 +57,9 @@ class S1(SatelliteABC):
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         orbit : S1Orbit
             The orbit used to filter the collection.
@@ -98,13 +98,10 @@ class S1(SatelliteABC):
                 if band != "angle"
             ]
         )
-        col = (
-            ImageCollection("COPERNICUS/S1_GRD")
-            .filterDate(start_date, end_date)
-            .filterBounds(bounds)
-            .filter(band_filter)
-            .filter(Filter.eq("instrumentMode", "IW"))
-        )
+        col = ImageCollection("COPERNICUS/S1_GRD")
+        if start_date is not None and end_date is not None:
+            col = col.filterDate(start_date, end_date)
+        col = col.filterBounds(bounds).filter(band_filter).filter(Filter.eq("instrumentMode", "IW"))
 
         match orbit:
             case S1Orbit.ASCENDING | S1Orbit.DESCENDING:
@@ -119,8 +116,8 @@ class S1(SatelliteABC):
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.Float32,
         orbit: S1Orbit = S1Orbit.ASCENDING,
         selected_bands: list[str] | None = None,
@@ -128,15 +125,15 @@ class S1(SatelliteABC):
         resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Sentinel-1 collection.
+        """Get a downloadable time series of Sentinel-1 images.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         dtype : DType
             The data type for the image
@@ -183,8 +180,8 @@ class S1(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEAN,
         dtype: DType = DType.Float32,
         orbit: S1Orbit = S1Orbit.ASCENDING,
@@ -193,15 +190,15 @@ class S1(SatelliteABC):
         resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Sentinel-1 collection.
+        """Get a downloadable mosaic of Sentinel-1 images.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
             The method use to do mosaicking.

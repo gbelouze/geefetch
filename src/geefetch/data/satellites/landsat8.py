@@ -31,7 +31,8 @@ LOWER_RIGHT = 2
 UPPER_RIGHT = 3
 
 
-def maskLandsat8cloud(im: Image) -> Image:
+def mask_clouds_and_saturation(im: Image) -> Image:
+    """Masks out clouds, cloud shadows, and saturated pixels from a Landsat 8 image."""
     qa = im.select("QA_PIXEL")
     fillBitMask = 1 << 0
     dilatedCloudBitMask = 1 << 1
@@ -63,21 +64,23 @@ def maskLandsat8cloud(im: Image) -> Image:
     return im.updateMask(qaMask).updateMask(saturationMask)
 
 
-def applyBRDF_L8(im: Image) -> Image:
+def apply_brdf_correction(im: Image) -> Image:
+    """Applies BRDF correction to a Landsat 8 image to account for angular effects."""
     date = im.date()
     footprint = List(im.geometry().bounds().bounds().coordinates().get(0))
-    sunAz, sunZen = getSunAngles(date, footprint)
+    sunAz, sunZen = compute_sun_angles(date, footprint)
 
-    viewAz = azimuth(footprint)
-    viewZen = zenith(footprint)
+    viewAz = calculate_view_azimuth(footprint)
+    viewZen = calculate_view_zenith(footprint)
 
-    kvol, kvol0 = _kvol(sunAz, sunZen, viewAz, viewZen)
-    result = _applyL8(im, kvol.multiply(PI), kvol0.multiply(PI))
+    kvol, kvol0 = calculate_brdf_volumetric_kernel(sunAz, sunZen, viewAz, viewZen)
+    result = apply_brdf_to_bands(im, kvol.multiply(PI), kvol0.multiply(PI))
 
     return result
 
 
-def getSunAngles(date: Date, footprint: List) -> tuple[Image, Image]:
+def compute_sun_angles(date: Date, footprint: List) -> tuple[Image, Image]:
+    """Calculates the sun azimuth and zenith angles for a given date and footprint."""
     jdp = date.getFraction("year")
     seconds_in_hour = 3600
     hourGMT = Number(date.getRelative("second", "day")).divide(seconds_in_hour)
@@ -149,7 +152,9 @@ def getSunAngles(date: Date, footprint: List) -> tuple[Image, Image]:
     return (sunAz, sunZen)
 
 
-def azimuth(footprint: List) -> Image:
+def calculate_view_azimuth(footprint: List) -> Image:
+    """Calculates the sensor's view azimuth angle based on the image footprint."""
+
     def x(point: List) -> Number:
         return Number(List(point).get(0))
 
@@ -166,7 +171,8 @@ def azimuth(footprint: List) -> Image:
     return azimuthLeft.rename(["viewAz"])  # type: ignore[no-any-return]
 
 
-def zenith(footprint: List) -> Image:
+def calculate_view_zenith(footprint: List) -> Image:
+    """Calculates the sensor's view zenith angle based on the image footprint."""
     leftLine = line_from_coords(footprint, UPPER_LEFT, LOWER_LEFT)
     rightLine = line_from_coords(footprint, UPPER_RIGHT, LOWER_RIGHT)
     leftDistance = FeatureCollection(leftLine).distance(MAX_DISTANCE)
@@ -181,20 +187,30 @@ def zenith(footprint: List) -> Image:
     return viewZenith.multiply(PI / 180)  # type: ignore[no-any-return]
 
 
-def _applyL8(image: Image, kvol: Image, kvol0: Image) -> Image:
-    # f_iso = 0
-    # f_geo = 0
-    # f_vol = 0
-    blue = _correct_band(image, "SR_B2", kvol, kvol0, f_iso=0.0774, f_geo=0.0079, f_vol=0.0372)
-    green = _correct_band(image, "SR_B3", kvol, kvol0, f_iso=0.1306, f_geo=0.0178, f_vol=0.0580)
-    red = _correct_band(image, "SR_B4", kvol, kvol0, f_iso=0.1690, f_geo=0.0227, f_vol=0.0574)
-    nir = _correct_band(image, "SR_B5", kvol, kvol0, f_iso=0.3093, f_geo=0.0330, f_vol=0.1535)
-    swir1 = _correct_band(image, "SR_B6", kvol, kvol0, f_iso=0.3430, f_geo=0.0453, f_vol=0.1154)
-    swir2 = _correct_band(image, "SR_B7", kvol, kvol0, f_iso=0.2658, f_geo=0.0387, f_vol=0.0639)
+def apply_brdf_to_bands(image: Image, kvol: Image, kvol0: Image) -> Image:
+    """Applies BRDF correction to each band of a Landsat 8 image."""
+    blue = correct_band_reflectance(
+        image, "SR_B2", kvol, kvol0, f_iso=0.0774, f_geo=0.0079, f_vol=0.0372
+    )
+    green = correct_band_reflectance(
+        image, "SR_B3", kvol, kvol0, f_iso=0.1306, f_geo=0.0178, f_vol=0.0580
+    )
+    red = correct_band_reflectance(
+        image, "SR_B4", kvol, kvol0, f_iso=0.1690, f_geo=0.0227, f_vol=0.0574
+    )
+    nir = correct_band_reflectance(
+        image, "SR_B5", kvol, kvol0, f_iso=0.3093, f_geo=0.0330, f_vol=0.1535
+    )
+    swir1 = correct_band_reflectance(
+        image, "SR_B6", kvol, kvol0, f_iso=0.3430, f_geo=0.0453, f_vol=0.1154
+    )
+    swir2 = correct_band_reflectance(
+        image, "SR_B7", kvol, kvol0, f_iso=0.2658, f_geo=0.0387, f_vol=0.0639
+    )
     return image.select([]).addBands([blue, green, red, nir, swir1, swir2])  # type: ignore[no-any-return]
 
 
-def _correct_band(
+def correct_band_reflectance(
     image: Image,
     band_name: str,
     kvol: Image,
@@ -203,6 +219,7 @@ def _correct_band(
     f_geo: float,
     f_vol: float,
 ) -> Image:
+    """Corrects the reflectance of a specific band using BRDF correction factors."""
     iso = Image(f_iso)
     geo = Image(f_geo)
     vol = Image(f_vol)
@@ -213,7 +230,26 @@ def _correct_band(
     return corr  # type: ignore[no-any-return]
 
 
-def _kvol(sunAz: Image, sunZen: Image, viewAz: Image, viewZen: Image) -> tuple[Image, Image]:
+def calculate_brdf_volumetric_kernel(
+    sunAz: Image, sunZen: Image, viewAz: Image, viewZen: Image
+) -> tuple[Image, Image]:
+    """Calculates the BRDF correction factors (k_vol and k_vol0) for a given set of angles.
+
+    The Ross-Thick kernel k_vol is calculated as
+
+        kᵥₒₗ  = [(π/2−ξ)⋅cos(ξ) + sin(ξ)] / [cos(θₛ)+cos(θᵥ)] − π/4
+
+    The Ross-Thick kernel at nadir view k_vol0 is kernel when θᵥ=0, is calculated as
+
+        kᵥₒₗ₀ = [(π/2−θₛ)⋅cos(θₛ) + sin(θₛ)] / [cos(θₛ) +  1] − π/4
+
+    where
+
+        ξ = cos⁻¹(cos(θₛ)⋅cos(θᵥ) + sin(θₛ)⋅sin(θᵥ)⋅cos(ϕ))
+        θₛ the solar zenith angle `sunZen`
+        θᵥ the view zenith angle `viewZen`
+        ϕ  the relative azimuth angle `suvAz - viewAz`
+    """
     relative_azimuth = sunAz.subtract(viewAz).rename(["relAz"])
     pa1 = viewZen.cos().multiply(sunZen.cos())
     pa2 = viewZen.sin().multiply(sunZen.sin()).multiply(relative_azimuth.cos())
@@ -301,16 +337,18 @@ class Landsat8(SatelliteABC):
     def is_raster(self) -> bool:
         return True
 
-    def get_col(self, aoi: GeoBoundingBox, start_date: str, end_date: str) -> ImageCollection:
+    def get_col(
+        self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
+    ) -> ImageCollection:
         """Get Landsat 8 collection.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
 
         Returns
@@ -319,33 +357,32 @@ class Landsat8(SatelliteABC):
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
 
-        landsat_col = (
-            ImageCollection("LANDSAT/LC08/C02/T1_L2")
-            .filterDate(start_date, end_date)
-            .filterBounds(bounds)
-        )
+        landsat_col = ImageCollection("LANDSAT/LC08/C02/T1_L2")
+        if start_date is not None and end_date is not None:
+            landsat_col = landsat_col.filterDate(start_date, end_date)
+        landsat_col = landsat_col.filterBounds(bounds)
 
-        return landsat_col.map(maskLandsat8cloud).map(applyBRDF_L8)  # type: ignore[no-any-return]
+        return landsat_col.map(mask_clouds_and_saturation).map(apply_brdf_correction)  # type: ignore[no-any-return]
 
     def get_time_series(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         dtype: DType = DType.UInt16,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get Landsat 8 collection.
+        """Get a downloadable time series of Landsat 8 images.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         dtype : DType
             The data type for the image
@@ -388,23 +425,23 @@ class Landsat8(SatelliteABC):
     def get(
         self,
         aoi: GeoBoundingBox,
-        start_date: str,
-        end_date: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get Landsat 8 collection.
+        """Get a downloadable mosaic of Landsat 8 images.
 
         Parameters
         ----------
         aoi : GeoBoundingBox
             Area of interest.
-        start_date : str
+        start_date : str | None
             Start date in "YYYY-MM-DD" format.
-        end_date : str
+        end_date : str | None
             End date in "YYYY-MM-DD" format.
         composite_method : CompositeMethod
             The method to use for compositing the images.

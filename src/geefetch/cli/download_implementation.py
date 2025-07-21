@@ -93,8 +93,8 @@ def download_gedi(config_path: Path, vector: bool) -> None:
         data.get.download_gedi_vector(
             data_dir,
             bounds,
-            config.gedi.aoi.temporal.start_date,
-            config.gedi.aoi.temporal.end_date,
+            config.gedi.aoi.temporal.start_date if config.gedi.aoi.temporal is not None else None,
+            config.gedi.aoi.temporal.end_date if config.gedi.aoi.temporal is not None else None,
             config.gedi.selected_bands,
             crs=(
                 CRS.from_epsg(config.gedi.aoi.spatial.epsg)
@@ -117,8 +117,8 @@ def download_gedi(config_path: Path, vector: bool) -> None:
         data.get.download_gedi(
             data_dir,
             bounds,
-            config.gedi.aoi.temporal.start_date,
-            config.gedi.aoi.temporal.end_date,
+            config.gedi.aoi.temporal.start_date if config.gedi.aoi.temporal is not None else None,
+            config.gedi.aoi.temporal.end_date if config.gedi.aoi.temporal is not None else None,
             config.gedi.selected_bands,
             crs=(
                 CRS.from_epsg(config.gedi.aoi.spatial.epsg)
@@ -155,8 +155,8 @@ def download_s1(config_path: Path) -> None:
     data.get.download_s1(
         data_dir,
         bounds,
-        config.s1.aoi.temporal.start_date,
-        config.s1.aoi.temporal.end_date,
+        config.s1.aoi.temporal.start_date if config.s1.aoi.temporal is not None else None,
+        config.s1.aoi.temporal.end_date if config.s1.aoi.temporal is not None else None,
         config.s1.selected_bands,
         crs=(
             CRS.from_epsg(config.s1.aoi.spatial.epsg)
@@ -196,8 +196,8 @@ def download_s2(config_path: Path) -> None:
     data.get.download_s2(
         data_dir,
         bounds,
-        config.s2.aoi.temporal.start_date,
-        config.s2.aoi.temporal.end_date,
+        config.s2.aoi.temporal.start_date if config.s2.aoi.temporal is not None else None,
+        config.s2.aoi.temporal.end_date if config.s2.aoi.temporal is not None else None,
         config.s2.selected_bands,
         crs=(
             CRS.from_epsg(config.s2.aoi.spatial.epsg)
@@ -238,8 +238,10 @@ def download_dynworld(config_path: Path) -> None:
     data.get.download_dynworld(
         data_dir,
         bounds,
-        config.dynworld.aoi.temporal.start_date,
-        config.dynworld.aoi.temporal.end_date,
+        config.dynworld.aoi.temporal.start_date
+        if config.dynworld.aoi.temporal is not None
+        else None,
+        config.dynworld.aoi.temporal.end_date if config.dynworld.aoi.temporal is not None else None,
         config.dynworld.selected_bands,
         crs=(
             CRS.from_epsg(config.dynworld.aoi.spatial.epsg)
@@ -277,8 +279,10 @@ def download_landsat8(config_path: Path) -> None:
     data.get.download_landsat8(
         data_dir,
         bounds,
-        config.landsat8.aoi.temporal.start_date,
-        config.landsat8.aoi.temporal.end_date,
+        config.landsat8.aoi.temporal.start_date
+        if config.landsat8.aoi.temporal is not None
+        else None,
+        config.landsat8.aoi.temporal.end_date if config.landsat8.aoi.temporal is not None else None,
         config.landsat8.selected_bands,
         crs=(
             CRS.from_epsg(config.landsat8.aoi.spatial.epsg)
@@ -317,8 +321,8 @@ def download_palsar2(config_path: Path) -> None:
     data.get.download_palsar2(
         data_dir,
         bounds,
-        config.palsar2.aoi.temporal.start_date,
-        config.palsar2.aoi.temporal.end_date,
+        config.palsar2.aoi.temporal.start_date if config.palsar2.aoi.temporal is not None else None,
+        config.palsar2.aoi.temporal.end_date if config.palsar2.aoi.temporal is not None else None,
         config.palsar2.selected_bands,
         crs=(
             CRS.from_epsg(config.palsar2.aoi.spatial.epsg)
@@ -356,11 +360,14 @@ def download_nasadem(config_path: Path) -> None:
     data_dir = Path(config.data_dir)
     auth(config.nasadem.gee.ee_project_id)
     bounds = config.nasadem.aoi.spatial.as_bbox()
+    if config.nasadem.aoi.temporal is not None:
+        log.warning(
+            f"Temporal config {config.nasadem.aoi.temporal.start_date} "
+            f"→ {config.nasadem.aoi.temporal.end_date} is ignored."
+        )
     data.get.download_nasadem(
         data_dir,
         bounds,
-        config.nasadem.aoi.temporal.start_date,
-        config.nasadem.aoi.temporal.end_date,
         crs=(
             CRS.from_epsg(config.nasadem.aoi.spatial.epsg)
             if config.nasadem.aoi.spatial.epsg
@@ -378,6 +385,53 @@ def download_nasadem(config_path: Path) -> None:
             else load_country_filter_polygon(config.nasadem.aoi.country)
         ),
         resampling=config.nasadem.resampling,
+    )
+
+
+def download_custom(config_path: Path, custom_name: str) -> None:
+    """Download Custom images."""
+    config = load(config_path)
+    if config.customs is None or custom_name not in config.customs:
+        raise RuntimeError(f"No configuration given for custom satellites {custom_name}.")
+    custom_config = config.customs[custom_name]
+    if custom_config.selected_bands is None:
+        raise ValueError("`selected_bands` must be given for custom satellites.")
+    satellite_custom = satellites.CustomSatellite(
+        custom_config.url, custom_config.pixel_range, name=custom_name
+    )
+    save_config(custom_config, config.data_dir / satellite_custom.name)
+    data_dir = Path(config.data_dir)
+    auth(custom_config.gee.ee_project_id)
+    bounds = custom_config.aoi.spatial.as_bbox()
+    start_date = (
+        custom_config.aoi.temporal.start_date if custom_config.aoi.temporal is not None else None
+    )
+    end_date = (
+        custom_config.aoi.temporal.end_date if custom_config.aoi.temporal is not None else None
+    )
+
+    data.get.download_custom(
+        satellite_custom,
+        data_dir,
+        bounds,
+        start_date,
+        end_date,
+        crs=(
+            CRS.from_epsg(custom_config.aoi.spatial.epsg)
+            if custom_config.aoi.spatial.epsg != 4326
+            else None
+        ),
+        composite_method=custom_config.composite_method,
+        dtype=custom_config.dtype,
+        resolution=custom_config.resolution,
+        tile_shape=custom_config.tile_size,
+        max_tile_size=custom_config.gee.max_tile_size,
+        selected_bands=custom_config.selected_bands,
+        filter_polygon=(
+            None
+            if custom_config.aoi.country is None
+            else load_country_filter_polygon(custom_config.aoi.country)
+        ),
     )
 
 
@@ -402,3 +456,10 @@ def download_all(config_path: Path) -> None:
     if config.landsat8 is not None:
         log.info("Downloading Landsat-8 data.")
         download_landsat8(config_path)
+    if config.nasadem is not None:
+        log.info("Downloading NASADEM")
+        download_nasadem(config_path)
+    if config.customs is not None:
+        for custom_name in config.customs:
+            log.info(f"Downloading CustomSatellite({custom_name}).")
+            download_custom(config_path, custom_name)

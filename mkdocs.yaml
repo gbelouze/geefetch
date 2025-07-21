@@ -1,0 +1,101 @@
+site_name: GeeFetch
+site_description: A Python library for downloading large-scale satellite data from Google Earth Engine
+site_url: https://geefetch.readthedocs.io/
+repo_url: https://github.com/gbelouze/geefetch
+repo_name: gbelouze/geefetch
+theme:
+  name: material
+  logo: assets/logo.png
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  favicon: assets/logo.png
+  features:
+    - navigation.tracking
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.tabs.link
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_section_style: table
+            docstring_style: numpy # Changed from google to numpy
+            heading_level: 4
+            members_order: source
+            show_signature_annotations: false
+            show_symbol_type_toc: true
+            filters:
+            - "!^_"
+            - "^__"
+  - git-revision-date-localized
+  - include-markdown
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - Satellite Data Sources:
+      - Overview: satellites/index.md
+      - Sentinel-1: satellites/sentinel1.md
+      - Sentinel-2: satellites/sentinel2.md
+      - GEDI: satellites/gedi.md
+      - Landsat-8: satellites/landsat8.md
+      - Palsar-2: satellites/palsar2.md
+      - Dynamic World: satellites/dynworld.md
+      - NASADEM: satellites/nasadem.md
+      - Custom: satellites/custom.md
+  # - Advanced Usage: advanced-usage.md
+  # - Command Line Interface: cli.md
+  - API Reference:
+      - Overview: api/index.md
+      - Core: api/core/index.md
+      - Downloadables: api/downloadables.md
+      - Satellites: api/satellites.md
+      - CLI configuration: api/cli/configuration.md
+  # - Troubleshooting & FAQ: troubleshooting.md
+  - Examples & Tutorials:
+      - Overview: examples/index.md
+  #     - Basic Download: examples/basic-download.md
+  #     - Time Series Analysis: examples/time-series.md
+  #     - Country-Level Data: examples/country-data.md
+  - Changelog: changelog.md
+  - Contributing: contributing.md
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/gbelouze/geefetch
+    - icon: fontawesome/brands/python
+extra_javascript:
+  # - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
