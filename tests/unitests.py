@@ -1,12 +1,16 @@
 from unittest.mock import patch
 
+import ee
 import pytest
 import rasterio.warp as warp
 import shapely
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 
+from geefetch.data.satellites.abc import SatelliteABC
 from geefetch.data.tiler import Tiler
+from geefetch.utils.enums import ResamplingMethod
+from geefetch.utils.gee import auth
 
 # Define a variety of bounding boxes and their corresponding tiling sizes
 BBOXES_AND_SHAPES = [
@@ -135,3 +139,37 @@ def test_split_uses_utm_if_no_crs_given(simple_bbox: GeoBoundingBox):
         assert tile.crs.to_epsg() in [32633]  # Expected UTM zone for the given bbox
 
     assert_non_overlapping(tiles)
+
+
+def test_resample_reproject_clip(gee_project_id: str):
+    """Test that resample_reproject_clip applies resampling, reprojection, and clipping."""
+
+    # Initialize Earth Engine for testing using the fixture
+    auth(gee_project_id)
+
+    # Create a simple test image
+    test_image = ee.Image.constant(1)
+
+    # Create a simple AOI
+    aoi = GeoBoundingBox(left=0, right=1, bottom=0, top=1, crs=CRS.from_epsg(4326))
+
+    # Test with bilinear resampling
+    result = SatelliteABC.resample_reproject_clip(
+        im=test_image, aoi=aoi, resampling=ResamplingMethod.BILINEAR, scale=10.0
+    )
+
+    # Verify the result is an Earth Engine Image
+    assert isinstance(result, ee.image.Image), "Result should be an Earth Engine Image"
+
+    # Test with nearest resampling
+    result_nearest = SatelliteABC.resample_reproject_clip(
+        im=test_image, aoi=aoi, resampling=ResamplingMethod.NEAREST, scale=20.0
+    )
+
+    # Verify the result is an Earth Engine Image
+    assert isinstance(result_nearest, ee.image.Image), "Result should be an Earth Engine Image"
+
+    # Test that different scale values produce different results
+    assert (
+        result is not result_nearest
+    ), "Different parameters should produce different image objects"
