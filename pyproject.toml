@@ -21,7 +21,7 @@ requires-python = ">=3.10"
 license = { "file" = "LICENSE" }
 dynamic = ["version"]
 dependencies = [
-    "click",
+    "click>=8.2.0",
     "earthengine-api",
     "geedim",
     "geobbox>=0.1.0",
