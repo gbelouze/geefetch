@@ -58,13 +58,14 @@ def save_config(
     config: Any,
     dir: Path,
 ) -> None:
-    """When `geefetch` is called with a specified configuration file,
-    save it to the tracker root."""
+    """When `geefetch` is called with a specified configuration file, save it to the tracker root"""
     if not dir.exists():
         dir.mkdir()
-    suffix = f"_tiles_{config.tile_range[0]}" if config.tile_range is not None else ""
-    config_path = Path(dir / f"config{suffix}.yaml")
+    config_path = Path(dir / "config.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
+
+    del config["tile_range"]
+    del config["gee"]["ee_project_id"]
     config["geefetch_version"] = geefetch.__version__
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
