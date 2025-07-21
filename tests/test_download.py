@@ -302,3 +302,70 @@ class TestResamplingMethods:
             shutil.rmtree(bilinear_tmp_dir, ignore_errors=True)
             shutil.rmtree(nearest_tmp_dir, ignore_errors=True)
             shutil.rmtree(bicubic_tmp_dir, ignore_errors=True)
+
+    def test_resolution(self, paris_config_path: Path):
+        """Test that different resolution parameters produce images with different pixel sizes."""
+
+        # Create two configs with different resolution values
+        config_10m = OmegaConf.load(paris_config_path)
+        config_30m = OmegaConf.load(paris_config_path)
+
+        # Set different resolution values
+        config_10m.satellite_default.resolution = 10
+        config_30m.satellite_default.resolution = 30
+
+        # Create separate temporary directories for each download
+        res10_tmp_dir = tempfile.mkdtemp()
+        res30_tmp_dir = tempfile.mkdtemp()
+
+        try:
+            # Update data directories
+            config_10m.data_dir = res10_tmp_dir
+            config_30m.data_dir = res30_tmp_dir
+
+            # Create temporary config files
+            config_10m_path = Path(res10_tmp_dir) / "config_10m.yaml"
+            config_30m_path = Path(res30_tmp_dir) / "config_30m.yaml"
+
+            OmegaConf.save(config_10m, config_10m_path)
+            OmegaConf.save(config_30m, config_30m_path)
+
+            # Download with 10m resolution
+            download_s1(config_10m_path)
+            conf_10m = load(config_10m_path)
+            res10_files = list(Path(conf_10m.data_dir).rglob("*.tif"))
+            assert len(res10_files) == 1
+
+            # Download with 30m resolution
+            download_s1(config_30m_path)
+            conf_30m = load(config_30m_path)
+            res30_files = list(Path(conf_30m.data_dir).rglob("*.tif"))
+            assert len(res30_files) == 1
+
+            # Read the downloaded files and compare their pixel sizes
+            with rio.open(res10_files[0]) as res10_ds:
+                res10_transform = res10_ds.transform
+                res10_pixel_size_x = abs(res10_transform[0])  # Pixel width
+                res10_pixel_size_y = abs(res10_transform[4])  # Pixel height
+
+            with rio.open(res30_files[0]) as res30_ds:
+                res30_transform = res30_ds.transform
+                res30_pixel_size_x = abs(res30_transform[0])  # Pixel width
+                res30_pixel_size_y = abs(res30_transform[4])  # Pixel height
+
+            # The pixel sizes should be different (30m should be larger than 10m)
+            assert res30_pixel_size_x > res10_pixel_size_x, (
+                f"30m resolution pixel size ({res30_pixel_size_x}) should be"
+                f"larger than 10m resolution pixel size ({res10_pixel_size_x})"
+            )
+            assert res30_pixel_size_y > res10_pixel_size_y, (
+                f"30m resolution pixel size ({res30_pixel_size_y}) should be"
+                f"larger than 10m resolution pixel size ({res10_pixel_size_y})"
+            )
+
+        finally:
+            # Clean up temporary directories
+            import shutil
+
+            shutil.rmtree(res10_tmp_dir, ignore_errors=True)
+            shutil.rmtree(res30_tmp_dir, ignore_errors=True)
