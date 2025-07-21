@@ -127,9 +127,6 @@ class Palsar2(SatelliteABC):
             A Palsar-2 time series collection of the specified AOI and time range.
         """
         p2_col = self.get_col(aoi, start_date, end_date, orbit)
-        # filter so that must contain the AoI
-        bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
-        p2_col = p2_col.filter(ee.Filter.contains(leftField=".geo", rightValue=bounds))
 
         # get the info of the collection
         info = p2_col.getInfo()
