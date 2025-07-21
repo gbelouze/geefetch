@@ -183,10 +183,10 @@ class SatelliteABC(ABC):
     def resample_reproject_clip(
         im: Image,
         aoi: GeoBoundingBox,
-        resampling: ResamplingMethod | None,
+        resampling: ResamplingMethod,
         scale: float,
     ) -> Image:
-        if resampling is not None:
+        if resampling.value is not None:
             im = im.resample(resampling.value)
         im = im.reproject(crs=aoi.crs.to_string(), scale=scale)
         bounds = aoi.transform(WGS84).to_ee_geometry()
