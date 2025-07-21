@@ -1,4 +1,5 @@
 import logging
+import math
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -174,7 +175,7 @@ def download_time_series(
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
     filter_polygon: shapely.Geometry | None = None,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
     **kwargs: Any,
 ) -> None:
     """Download time series of images from a specific satellite. Images are written in several .tif
@@ -215,8 +216,9 @@ def download_time_series(
         Whether to check if the data is clean. Defaults to True.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+                e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     **kwargs : Any
         Accepted but ignored additional arguments.
@@ -236,12 +238,14 @@ def download_time_series(
             tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
         )
         if tile_range is not None:
-            if tile_range[0] < 0 or tile_range[1] > len(tiles):
+            if not 0 <= tile_range[0] < tile_range[1] <= 1:
                 raise ValueError(
-                    f"Invalid tile range {tile_range}. Expected a range within 0 and {len(tiles)}."
+                    f"Invalid tile range {tile_range}. Expected a range between 0. and 1."
                 )
-            log.info(f"Downloading tiles {tile_range[0]} to {tile_range[1]}")
-            tiles = tiles[tile_range[0] : tile_range[1]]
+            start = math.floor(tile_range[0] * len(tiles))
+            end = math.floor(tile_range[1] * len(tiles))
+            log.info(f"Downloading tiles {start} to {end}")
+            tiles = tiles[start:end]
         else:
             log.info("Downloading all tiles")
         overall_task = progress.add_task(
@@ -296,7 +300,7 @@ def download(
     filter_polygon: shapely.Geometry | None = None,
     in_parallel: bool = False,
     max_workers: int = 1,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
     to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
@@ -341,8 +345,9 @@ def download(
         is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
     max_workers : int
         How many parallel workers are used in case `in_parallel` is True. Defaults to 10.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     if not data_dir.is_dir():
@@ -358,12 +363,14 @@ def download(
             tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
         )
         if tile_range is not None:
-            if tile_range[0] < 0 or tile_range[1] > len(tiles):
+            if not 0 <= tile_range[0] < tile_range[1] <= 1:
                 raise ValueError(
-                    f"Invalid tile range {tile_range}. Expected a range within 0 and {len(tiles)}."
+                    f"Invalid tile range {tile_range}. Expected a range between 0. and 1."
                 )
-            log.info(f"Downloading tiles {tile_range[0]} to {tile_range[1]}")
-            tiles = tiles[tile_range[0] : tile_range[1]]
+            start = math.floor(tile_range[0] * len(tiles))
+            end = math.floor(tile_range[1] * len(tiles))
+            log.info(f"Downloading tiles {start} to {end}")
+            tiles = tiles[start:end]
         else:
             log.info("Downloading all tiles")
 
@@ -461,7 +468,7 @@ def download_gedi(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download GEDI images fused as rasters. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `gedi.vrt` is written to combine all the chips.
@@ -496,8 +503,9 @@ def download_gedi(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
@@ -538,7 +546,7 @@ def download_gedi_vector(
     resolution: int = 10,
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download GEDI vector points. Points are written in several .geojson files
     to `data_dir`.
@@ -566,8 +574,9 @@ def download_gedi_vector(
         More fine-grained AOI than `bbox`. Defaults to None.
     format : Format
         Format in which to save the vector points. Defaults to Format.CSV.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     download(
@@ -602,7 +611,7 @@ def download_s1(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.
@@ -639,8 +648,9 @@ def download_s1(
         More fine-grained AOI than `bbox`. Defaults to None.
     orbit : S1Orbit
         The orbit used to filter Sentinel-1 images. Defaults to S1Orbit.ASCENDING.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
@@ -698,7 +708,7 @@ def download_s2(
     filter_polygon: shapely.Geometry | None = None,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Sentinel-2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s2.vrt` is written to combine all the chips.
@@ -738,8 +748,9 @@ def download_s2(
         See :meth:`geefetch.data.s2.get`. Defaults to 60.
     cloud_prb_thresh : int
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
@@ -783,7 +794,7 @@ def download_dynworld(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Dynamic World images. Images are written in several .tif chips
     to `data_dir`. Additionnally a file `dynworld.vrt` is written to combine all the chips.
@@ -818,8 +829,9 @@ def download_dynworld(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
@@ -861,7 +873,7 @@ def download_landsat8(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Landsat 8 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `landsat8.vrt` is written to combine all the chips.
@@ -896,8 +908,9 @@ def download_landsat8(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
@@ -938,7 +951,7 @@ def download_palsar2(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     orbit: P2Orbit = P2Orbit.DESCENDING,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
@@ -975,8 +988,9 @@ def download_palsar2(
         More fine-grained AOI than `bbox`. Defaults to None.
     orbit : P2Orbit
         The orbit used to filter Palsar-2 images. Defaults to P2Orbit.ASCENDING.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
@@ -1015,7 +1029,7 @@ def download_nasadem(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download NASADEM images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
@@ -1046,8 +1060,9 @@ def download_nasadem(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     if composite_method == CompositeMethod.TIMESERIES:
@@ -1089,7 +1104,7 @@ def download_custom(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
-    tile_range: tuple[int, int] | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download images from a custom data source. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
@@ -1125,8 +1140,9 @@ def download_custom(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Polygon | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    tile_range: tuple[int, int] | None
-        Start and end tile indices to download, e.g., (5, 10) to download tiles 5 to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
         If None, all tiles are downloaded. Defaults to None.
     """
     if composite_method == CompositeMethod.TIMESERIES:

@@ -72,7 +72,7 @@ def paris_config_tile_range_path(
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
     raw_paris_config.satellite_default.aoi.spatial.right = 660001
-    raw_paris_config["s1"] = {"tile_range": [1, 2]} | dict(raw_paris_config.get("s1", {}))
+    raw_paris_config["s1"] = {"tile_range": (0.5, 1.)} | dict(raw_paris_config.get("s1", {}))
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     return conf_path
