@@ -42,7 +42,6 @@ class Palsar2(SatelliteABC):
     @property
     def pixel_range(self):
         return -30, 0  # log10 scale
-        # return 0, 200_000_000  # power scale
 
     @property
     def resolution(self):
@@ -96,6 +95,7 @@ class Palsar2(SatelliteABC):
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         orbit: P2Orbit = P2Orbit.DESCENDING,
         resolution: float = 25,
+        refined_lee: bool = True,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get Palsar-2 collection.
@@ -116,6 +116,8 @@ class Palsar2(SatelliteABC):
             The orbit used to filter the collection before mosaicking.
         resolution: float
             The resolution for the image.
+        refined_lee : bool
+            Whether to apply the Refined Lee filter to reduce speckle noise.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -152,7 +154,7 @@ class Palsar2(SatelliteABC):
             # Check if the intersection of image and AOI is exactly the AOI
             if Polygon(footprint["coordinates"][0]).contains(aoi.to_shapely_polygon()):
                 im = Image(id_)
-                im = self.before_composite(im, resampling, aoi, resolution)
+                im = self.before_composite(im, resampling, aoi, resolution, refined_lee)
                 im = self.after_composite(im, dtype)
                 images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = PatchedBaseImage(
                     im
@@ -169,6 +171,7 @@ class Palsar2(SatelliteABC):
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         orbit: P2Orbit = P2Orbit.DESCENDING,
         resolution: float = 25,
+        refined_lee: bool = True,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get Palsar-2 collection.
@@ -191,6 +194,8 @@ class Palsar2(SatelliteABC):
             The orbit used to filter the collection before mosaicking
         resolution: float
             The resolution for the image.
+        refined_lee : bool
+            Whether to apply the Refined Lee filter to reduce speckle noise.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -214,7 +219,9 @@ class Palsar2(SatelliteABC):
             log.error(f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
         log.debug(f"Palsar-2 mosaicking with {n_images} images.")
-        p2_col = p2_col.map(lambda img: self.before_composite(img, resampling, aoi, resolution))
+        p2_col = p2_col.map(
+            lambda img: self.before_composite(img, resampling, aoi, resolution, refined_lee)
+        )
         bounds = aoi.transform(WGS84).to_ee_geometry()
         p2_im = composite_method.transform(p2_col).clip(bounds)
         p2_im = self.after_composite(p2_im, dtype)
@@ -235,13 +242,13 @@ class Palsar2(SatelliteABC):
         resampling: ResamplingMethod,
         aoi: GeoBoundingBox,
         scale: float,
-        apply_rl: bool = False,
+        refined_lee: bool = False,
     ) -> Image:
         # Convert from DN to power
         im = im.pow(2)
         # Optionally apply a refined lee filter
-        if apply_rl:
-            im = refined_lee(im)
+        if refined_lee:
+            im = _refined_lee(im)
         # Apply resampling if specified
         im = self.resample_reproject_clip(im, aoi, resampling, scale)
         return im
@@ -255,7 +262,7 @@ class Palsar2(SatelliteABC):
         return im
 
 
-def refined_lee(image: Image) -> Image:
+def _refined_lee(image: Image) -> Image:
     """
     Apply the Refined Lee filter to reduce speckle noise.
     Parameters

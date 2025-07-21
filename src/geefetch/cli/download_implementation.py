@@ -338,6 +338,7 @@ def download_palsar2(config_path: Path) -> None:
         ),
         orbit=config.palsar2.orbit,
         resampling=config.palsar2.resampling,
+        refined_lee=config.palsar2.refined_lee,
     )
 
 

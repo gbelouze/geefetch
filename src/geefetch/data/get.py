@@ -907,6 +907,7 @@ def download_palsar2(
     filter_polygon: shapely.Geometry | None = None,
     orbit: P2Orbit = P2Orbit.DESCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    refined_lee: bool = True,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
@@ -947,6 +948,9 @@ def download_palsar2(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    refined_lee : bool
+        Whether to apply the Refined Lee filter to reduce speckle noise.
+        Defaults to True.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -969,6 +973,7 @@ def download_palsar2(
             "orbit": orbit,
             "resampling": resampling,
             "resolution": resolution,
+            "refined_lee": refined_lee,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )

@@ -209,9 +209,20 @@ class Landsat8Config(SatelliteDefaultConfig):
 
 @dataclass
 class Palsar2Config(SatelliteDefaultConfig):
-    """The structured type for configuring Palsar 2."""
+    """The structured type for configuring Palsar 2.
+
+    Attributes
+    ----------
+    orbit : P2Orbit
+        The orbit used to filter the collection before mosaicking.
+        Defaults to P2Orbit.DESCENDING.
+    refined_lee : bool
+        Whether to apply the Refined Lee filter to reduce speckle noise.
+        Defaults to True.
+    """
 
     orbit: P2Orbit = P2Orbit.DESCENDING
+    refined_lee: bool = True
 
 
 @dataclass
