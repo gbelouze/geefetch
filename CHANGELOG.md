@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fixed" and "Security".
 
+## pre-release
+
+### Added
+
+- generic 'resample_reproject_clip' method to ensure that operations done in correct order (according to GEE docs)
+- Choose to apply refined lee filter to PALSAR-2 images
+- Allow choice of resampling method for downloaded images
+
+### Changed
+
+- before_composite and after_composite logic to ensure that operations are done in power scale for Palsar-2 and Sentinel-1
+- By default, all satellite data will be resampled using bilinear interpolation (previously it was nearest neighbour)
+
 ## [0.5.2](https://github.com/gbelouze/geefetch/compare/v0.5.2...v0.5.1) (2025-04-15)
 
 ### Added
@@ -21,16 +34,6 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Remove the necessity to write `satellite: {}` in the config [803c13e](https://github.com/gbelouze/geefetch/commit/803c13e9d59adde54ffab52abeebe573dd6d9a58)
 - Migrated the docs to `mkdocs` [607050c](https://github.com/gbelouze/geefetch/commit/607050ca244cdd3865de967e67d2d20d6fb56d47)
 
-### Added
-
-- generic 'resample_reproject_clip' method to ensure that operations done in correct order (according to GEE docs)
-- Choose to apply refined lee filter to PALSAR-2 images
-- Allow choice of resampling method for downloaded images
-
-### Changed
-
-- before_composite and after_composite logic to ensure that operations are done in power scale for Palsar-2 and Sentinel-1
-- By default, all satellite data will be resampled using bilinear interpolation (previously it was nearest neighbour)
 
 ### Fixed
 
