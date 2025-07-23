@@ -66,14 +66,27 @@ def paris_config_selected_bands_path(
 
 
 @pytest.fixture
-def paris_config_tile_range_path(
+def paris_config_tile_range_path_first_half(
     raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
 ) -> Path:
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
     raw_paris_config.satellite_default.aoi.spatial.right = 660001
-    raw_paris_config["s1"] = {"tile_range": (0.5, 1.)} | dict(raw_paris_config.get("s1", {}))
-    conf_path = tmp_path / "config.yaml"
+    raw_paris_config["s1"] = {"tile_range": (0.0, 0.5)} | dict(raw_paris_config.get("s1", {}))
+    conf_path = tmp_path / "config_first_half.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
+def paris_config_tile_range_path_second_half(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+) -> Path:
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.aoi.spatial.right = 660001
+    raw_paris_config["s1"] = {"tile_range": (0.5, 1.0)} | dict(raw_paris_config.get("s1", {}))
+    conf_path = tmp_path / "config_second_half.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     return conf_path
 
@@ -152,12 +165,24 @@ class TestDownloadSentinel1:
             assert len(downloaded_files) == 1
             assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
 
-    def test_download_s1_tile_range(self, paris_config_tile_range_path: Path):
-        download_s1(paris_config_tile_range_path)
-        conf = load(paris_config_tile_range_path)
+    def test_download_s1_tile_range_last_half(self, paris_config_tile_range_path_second_half: Path):
+        download_s1(paris_config_tile_range_path_second_half)
+        conf = load(paris_config_tile_range_path_second_half)
         downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
         assert len(downloaded_files) == 1
         assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_660000_6860000.tif")
+
+    def test_download_s1_tile_range_first_half_then_last_half(
+        self,
+        paris_config_tile_range_path_first_half: Path,
+        paris_config_tile_range_path_second_half: Path,
+    ):
+        download_s1(paris_config_tile_range_path_first_half)
+        download_s1(paris_config_tile_range_path_second_half)
+        conf = load(paris_config_tile_range_path_first_half)
+        downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.tif")))
+        assert len(downloaded_files) == 2
+        assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
 
 
 class TestDownloadGedi:
