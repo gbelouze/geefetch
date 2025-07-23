@@ -22,6 +22,12 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - `before_composite` and `after_composite` logic to ensure that operations are done in power scale for Palsar-2 and Sentinel-1 [e4e418b4](https://github.com/gbelouze/geefetch/commit/e4e418b489f34bfb5fa61055cf4827a32f0f8ae2)
 - By default, all satellite data will be resampled using bilinear interpolation (previously it was nearest neighbour) [7c3da39f](https://github.com/gbelouze/geefetch/commit/7c3da39f5504baa2535bc8936dab33f767ade193)
 
+### Fixed
+
+- download 'all' downloads all satellites listed in config file instead of all geefetch-supported satellites
+- allow user to download just VH or HV Sentinel-1 bands
+- stop trying to create vrt files with partially downloaded tifs
+- improve error logging (avoid silent failures)
 
 ## [0.5.2](https://github.com/gbelouze/geefetch/compare/v0.5.2...v0.5.1) (2025-04-15)
 
