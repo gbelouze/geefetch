@@ -1,5 +1,4 @@
 # Repo-level custom ignores
-data/*
 *.html
 notebooks/
 _tests/
