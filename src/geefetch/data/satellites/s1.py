@@ -85,7 +85,7 @@ class S1(SatelliteABC):
         ):
             raise ValueError(
                 "Only polarization band combination accepted for Sentinel-1 are "
-                "[VV], [HH], [VH], [HH, HV] or [VV, VH]"
+                "[VV], [HH], [VH], [HV], [HH, HV] or [VV, VH]"
             )
 
         band_filter = Filter.And(
