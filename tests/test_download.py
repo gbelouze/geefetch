@@ -25,6 +25,7 @@ from geefetch.utils.enums import CompositeMethod, P2Orbit, S1Orbit
 def paris_config_path(
     raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
 ) -> Generator[Path]:
+    raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
 
@@ -38,6 +39,7 @@ def paris_config_path(
 def paris_timeseriesconfig_path(
     raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
 ) -> Path:
+    raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
     raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
@@ -51,6 +53,7 @@ def paris_timeseriesconfig_path(
 def paris_config_selected_bands_path(
     raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
 ) -> Path:
+    raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
     raw_paris_config["s1"] = {"selected_bands": ["VV", "VH", "angle"]} | dict(
@@ -69,6 +72,7 @@ def paris_config_selected_bands_path(
 def paris_config_tile_range_path_first_half(
     raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
 ) -> Path:
+    raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
     raw_paris_config.satellite_default.aoi.spatial.right = 660001
@@ -82,6 +86,7 @@ def paris_config_tile_range_path_first_half(
 def paris_config_tile_range_path_second_half(
     raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
 ) -> Path:
+    raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
     raw_paris_config.satellite_default.aoi.spatial.right = 660001
