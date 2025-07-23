@@ -45,7 +45,13 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         tmp_filename = filename.with_suffix(f".tmp{filename.suffix}")
         tmp_filename.unlink(missing_ok=True)
         self._download(
-            tmp_filename, overwrite, num_threads, max_tile_size, max_tile_dim, progress, **kwargs
+            tmp_filename,
+            overwrite,
+            num_threads,
+            max_tile_size,
+            max_tile_dim,
+            progress,
+            **kwargs,
         )
         tmp_filename.replace(filename)
 

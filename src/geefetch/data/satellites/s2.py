@@ -8,7 +8,7 @@ from ee.join import Join
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
-from ...utils.enums import CompositeMethod, DType
+from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
@@ -168,8 +168,10 @@ class S2(SatelliteABC):
         start_date: str | None = None,
         end_date: str | None = None,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Sentinel-2 images.
@@ -184,11 +186,15 @@ class S2(SatelliteABC):
             End date in "YYYY-MM-DD" format.
         dtype: DType
             The data type for the image.
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
         cloudless_portion : int
             Threshold for the portion of filled pixels that must be cloud/shadow free (%).
             Images that do not fullfill the requirement are filtered out.
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
+        resolution: float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -220,7 +226,10 @@ class S2(SatelliteABC):
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
-                im = self.convert_image(im, dtype)
+                # resample
+                im = self.resample_reproject_clip(im, aoi, resampling, resolution)
+                # apply dtype
+                im = self.convert_dtype(im, dtype)
                 images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -231,8 +240,10 @@ class S2(SatelliteABC):
         end_date: str | None = None,
         composite_method: CompositeMethod = CompositeMethod.MEDIAN,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
+        resolution: float = 10,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Sentinel-2 images.
@@ -246,13 +257,18 @@ class S2(SatelliteABC):
         end_date : str | None
             End date in "YYYY-MM-DD" format.
         composite_method: CompositeMethod
+            The method to use for compositing.
         dtype: DType
             The data type for the image.
+        resampling : ResamplingMethod
+            The resampling method to use when processing the image.
         cloudless_portion : int
             Threshold for the portion of filled pixels that must be cloud/shadow free (%).
             Images that do not fullfill the requirement are filtered out.
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
+        resolution: float
+            The resolution for the image.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -264,7 +280,6 @@ class S2(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        bounds = aoi.transform(WGS84).to_ee_geometry()
         s2_cloudless = self.get_col(
             aoi,
             start_date,
@@ -272,8 +287,14 @@ class S2(SatelliteABC):
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
         )
+        # Apply resampling
+        s2_cloudless = s2_cloudless.map(
+            lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
+        )
+        bounds = aoi.transform(WGS84).to_ee_geometry()
         s2_im = composite_method.transform(s2_cloudless).clip(bounds)
-        s2_im = self.convert_image(s2_im, dtype)
+        # Apply dtype
+        s2_im = self.convert_dtype(s2_im, dtype)
         s2_im = PatchedBaseImage(s2_im)
         n_images = len(s2_cloudless.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
@@ -301,8 +322,10 @@ class S2(SatelliteABC):
                 end_date,
                 composite_method,
                 dtype,
+                resampling,
                 new_cloudless_portion,
                 cloud_prb_thresh,
+                resolution,
             )
         log.debug(f"Sentinel-2 mosaicking with {n_images} images.")
         return DownloadableGeedimImage(s2_im)

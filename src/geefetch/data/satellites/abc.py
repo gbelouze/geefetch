@@ -5,7 +5,8 @@ from typing import Any
 from ee.image import Image
 from geobbox import GeoBoundingBox
 
-from ...utils.enums import DType
+from ...utils.enums import DType, ResamplingMethod
+from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableABC
 
 log = logging.getLogger(__name__)
@@ -93,7 +94,22 @@ class SatelliteABC(ABC):
     def __str__(self) -> str:
         return self.name
 
-    def convert_image(self, im: Image, dtype: DType) -> Image:
+    def convert_dtype(self, im: Image, dtype: DType) -> Image:
+        """Convert the image to the specified data type, applying the pixel range.
+
+        Parameters
+        ----------
+        im : Image
+            The image to convert.
+        dtype : DType
+            The target data type.
+
+        Returns
+        -------
+        Image
+            The converted (and optionally resampled) image.
+        """
+
         pixel_range = self.pixel_range
         match pixel_range:
             case tuple():
@@ -162,3 +178,21 @@ class SatelliteABC(ABC):
         unknown_bands = set(bands) - set(self.bands)
         if len(unknown_bands) > 0:
             raise ValueError(f"Unknown bands {unknown_bands} for satellite {self.full_name}.")
+
+    @staticmethod
+    def resample_reproject_clip(
+        im: Image,
+        aoi: GeoBoundingBox,
+        resampling: ResamplingMethod,
+        scale: float,
+    ) -> Image:
+        match resampling:
+            case ResamplingMethod.BILINEAR | ResamplingMethod.BICUBIC:
+                im = im.resample(resampling.value)
+            case ResamplingMethod.NEAREST:
+                pass
+            case _:
+                raise ValueError(f"Cannot reproject with method {resampling}")
+        im = im.reproject(crs=aoi.crs.to_string(), scale=scale)
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        return im.clip(bounds)

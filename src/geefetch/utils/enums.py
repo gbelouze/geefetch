@@ -95,3 +95,11 @@ class P2Orbit(Enum):
 
     ASCENDING = "Ascending"
     DESCENDING = "Descending"
+
+
+class ResamplingMethod(Enum):
+    """The resampling method for image processing."""
+
+    NEAREST = None
+    BILINEAR = "bilinear"
+    BICUBIC = "bicubic"

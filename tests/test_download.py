@@ -1,7 +1,9 @@
+import tempfile
 from collections.abc import Generator
 from pathlib import Path
 
 import geopandas as gpd
+import numpy as np
 import pytest
 import rasterio as rio
 from omegaconf import DictConfig, OmegaConf
@@ -18,7 +20,7 @@ from geefetch.cli.download_implementation import (
 )
 from geefetch.cli.omegaconfig import load
 from geefetch.data.process import tif_is_clean
-from geefetch.utils.enums import CompositeMethod, P2Orbit, S1Orbit
+from geefetch.utils.enums import CompositeMethod, P2Orbit, ResamplingMethod, S1Orbit
 
 
 @pytest.fixture
@@ -266,3 +268,139 @@ class TestDownloadOtherSatellites:
         conf = load(paris_config_path)
         downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
         assert len(downloaded_files) == 1
+
+
+class TestResamplingMethods:
+    """Test that different resampling methods produce different outputs."""
+
+    def test_resampling_methods_produce_different_outputs(self, paris_config_path: Path):
+        """Test that different resampling methods produce different outputs."""
+
+        # Create three configs with different resampling methods
+        config_bilinear = OmegaConf.load(paris_config_path)
+        config_nearest = OmegaConf.load(paris_config_path)
+        config_bicubic = OmegaConf.load(paris_config_path)
+
+        # Set different resampling methods
+        config_bilinear.satellite_default.resampling = ResamplingMethod.BILINEAR
+        config_nearest.satellite_default.resampling = ResamplingMethod.NEAREST
+        config_bicubic.satellite_default.resampling = ResamplingMethod.BICUBIC
+
+        # Create separate temporary directories for each download
+        with (
+            tempfile.TemporaryDirectory() as bilinear_tmp_dir,
+            tempfile.TemporaryDirectory() as nearest_tmp_dir,
+            tempfile.TemporaryDirectory() as bicubic_tmp_dir,
+        ):
+            # Update data directories
+            config_bilinear.data_dir = bilinear_tmp_dir
+            config_nearest.data_dir = nearest_tmp_dir
+            config_bicubic.data_dir = bicubic_tmp_dir
+
+            # Create temporary config files
+            config_bilinear_path = Path(bilinear_tmp_dir) / "config_bilinear.yaml"
+            config_nearest_path = Path(nearest_tmp_dir) / "config_nearest.yaml"
+            config_bicubic_path = Path(bicubic_tmp_dir) / "config_bicubic.yaml"
+
+            OmegaConf.save(config_bilinear, config_bilinear_path)
+            OmegaConf.save(config_nearest, config_nearest_path)
+            OmegaConf.save(config_bicubic, config_bicubic_path)
+
+            # Download with bilinear resampling
+            download_s1(config_bilinear_path)
+            conf_bilinear = load(config_bilinear_path)
+            bilinear_files = list(Path(conf_bilinear.data_dir).rglob("*.tif"))
+            assert len(bilinear_files) == 1
+
+            # Download with nearest resampling
+            download_s1(config_nearest_path)
+            conf_nearest = load(config_nearest_path)
+            nearest_files = list(Path(conf_nearest.data_dir).rglob("*.tif"))
+            assert len(nearest_files) == 1
+
+            # Download with bicubic resampling
+            download_s1(config_bicubic_path)
+            conf_bicubic = load(config_bicubic_path)
+            bicubic_files = list(Path(conf_bicubic.data_dir).rglob("*.tif"))
+            assert len(bicubic_files) == 1
+
+            # Read the downloaded files and compare their content
+            with rio.open(bilinear_files[0]) as bilinear_ds:
+                bilinear_data = bilinear_ds.read()
+
+            with rio.open(nearest_files[0]) as nearest_ds:
+                nearest_data = nearest_ds.read()
+
+            with rio.open(bicubic_files[0]) as bicubic_ds:
+                bicubic_data = bicubic_ds.read()
+
+            # All outputs should be different from each other
+            assert not np.array_equal(
+                bilinear_data, nearest_data
+            ), "Bilinear and nearest resampling produced identical outputs"
+            assert not np.array_equal(
+                bilinear_data, bicubic_data
+            ), "Bilinear and bicubic resampling produced identical outputs"
+            assert not np.array_equal(
+                nearest_data, bicubic_data
+            ), "Nearest and bicubic resampling produced identical outputs"
+
+    def test_resolution(self, paris_config_path: Path):
+        """Test that different resolution parameters produce images with different pixel sizes."""
+
+        # Create two configs with different resolution values
+        config_10m = OmegaConf.load(paris_config_path)
+        config_30m = OmegaConf.load(paris_config_path)
+
+        # Set different resolution values
+        config_10m.satellite_default.resolution = 10
+        config_30m.satellite_default.resolution = 30
+
+        # Create separate temporary directories for each download
+        with (
+            tempfile.TemporaryDirectory() as res10_tmp_dir,
+            tempfile.TemporaryDirectory() as res30_tmp_dir,
+        ):
+            # Update data directories
+            config_10m.data_dir = res10_tmp_dir
+            config_30m.data_dir = res30_tmp_dir
+
+            # Create temporary config files
+            config_10m_path = Path(res10_tmp_dir) / "config_10m.yaml"
+            config_30m_path = Path(res30_tmp_dir) / "config_30m.yaml"
+
+            OmegaConf.save(config_10m, config_10m_path)
+            OmegaConf.save(config_30m, config_30m_path)
+
+            # Download with 10m resolution
+            download_s1(config_10m_path)
+            conf_10m = load(config_10m_path)
+            res10_files = list(Path(conf_10m.data_dir).rglob("*.tif"))
+            assert len(res10_files) == 1
+
+            # Download with 30m resolution
+            download_s1(config_30m_path)
+            conf_30m = load(config_30m_path)
+            res30_files = list(Path(conf_30m.data_dir).rglob("*.tif"))
+            assert len(res30_files) == 1
+
+            # Read the downloaded files and compare their pixel sizes
+            with rio.open(res10_files[0]) as res10_ds:
+                res10_transform = res10_ds.transform
+                res10_pixel_size_x = abs(res10_transform[0])  # Pixel width
+                res10_pixel_size_y = abs(res10_transform[4])  # Pixel height
+
+            with rio.open(res30_files[0]) as res30_ds:
+                res30_transform = res30_ds.transform
+                res30_pixel_size_x = abs(res30_transform[0])  # Pixel width
+                res30_pixel_size_y = abs(res30_transform[4])  # Pixel height
+
+            # The pixel sizes should be different (30m should be larger than 10m)
+            assert res30_pixel_size_x > res10_pixel_size_x, (
+                f"30m resolution pixel size ({res30_pixel_size_x}) should be"
+                f"larger than 10m resolution pixel size ({res10_pixel_size_x})"
+            )
+            assert res30_pixel_size_y > res10_pixel_size_y, (
+                f"30m resolution pixel size ({res30_pixel_size_y}) should be"
+                f"larger than 10m resolution pixel size ({res10_pixel_size_y})"
+            )
