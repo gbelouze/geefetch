@@ -54,13 +54,18 @@ def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.Multi
     return shapely.ops.unary_union(polygons)
 
 
-def save_config(config: Any, dir: Path) -> None:
-    """When `geefetch` is called with a specified configuration file,
-    save it to the tracker root."""
+def save_config(
+    config: Any,
+    dir: Path,
+) -> None:
+    """When `geefetch` is called with a specified configuration file, save it to the tracker root"""
     if not dir.exists():
         dir.mkdir()
     config_path = Path(dir / "config.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
+
+    del config["tile_range"]
+    del config["gee"]["ee_project_id"]
     config["geefetch_version"] = geefetch.__version__
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
@@ -89,6 +94,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
     if vector:
         if config.gedi.selected_bands is None:
             config.gedi.selected_bands = satellites.GEDIvector().default_selected_bands
+
         save_config(config.gedi, config.data_dir / "gedi_vector")
         data.get.download_gedi_vector(
             data_dir,
@@ -109,6 +115,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
                 else load_country_filter_polygon(config.gedi.aoi.country)
             ),
             format=config.gedi.format,
+            tile_range=config.gedi.tile_range,
         )
     else:
         if config.gedi.selected_bands is None:
@@ -134,6 +141,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
                 if config.gedi.aoi.country is None
                 else load_country_filter_polygon(config.gedi.aoi.country)
             ),
+            tile_range=config.gedi.tile_range,
         )
 
 
@@ -175,6 +183,7 @@ def download_s1(config_path: Path) -> None:
         ),
         orbit=config.s1.orbit,
         resampling=config.s1.resampling,
+        tile_range=config.s1.tile_range,
     )
 
 
@@ -217,6 +226,7 @@ def download_s2(config_path: Path) -> None:
         cloudless_portion=config.s2.cloudless_portion,
         cloud_prb_thresh=config.s2.cloud_prb_threshold,
         resampling=config.s2.resampling,
+        tile_range=config.s2.tile_range,
     )
 
 
@@ -259,6 +269,7 @@ def download_dynworld(config_path: Path) -> None:
             else load_country_filter_polygon(config.dynworld.aoi.country)
         ),
         resampling=config.dynworld.resampling,
+        tile_range=config.dynworld.tile_range,
     )
 
 
@@ -301,6 +312,7 @@ def download_landsat8(config_path: Path) -> None:
             else load_country_filter_polygon(config.landsat8.aoi.country)
         ),
         resampling=config.landsat8.resampling,
+        tile_range=config.landsat8.tile_range,
     )
 
 
@@ -343,6 +355,7 @@ def download_palsar2(config_path: Path) -> None:
         orbit=config.palsar2.orbit,
         resampling=config.palsar2.resampling,
         refined_lee=config.palsar2.refined_lee,
+        tile_range=config.palsar2.tile_range,
     )
 
 
@@ -385,6 +398,7 @@ def download_nasadem(config_path: Path) -> None:
             else load_country_filter_polygon(config.nasadem.aoi.country)
         ),
         resampling=config.nasadem.resampling,
+        tile_range=config.nasadem.tile_range,
     )
 
 
@@ -433,6 +447,7 @@ def download_custom(config_path: Path, custom_name: str) -> None:
             else load_country_filter_polygon(custom_config.aoi.country)
         ),
         resampling=custom_config.resampling,
+        tile_range=custom_config.tile_range,
     )
 
 

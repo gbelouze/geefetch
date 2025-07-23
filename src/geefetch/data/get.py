@@ -1,4 +1,5 @@
 import logging
+import math
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -169,11 +170,12 @@ def download_time_series(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
     filter_polygon: shapely.Geometry | None = None,
+    tile_range: tuple[float, float] | None = None,
     **kwargs: Any,
 ) -> None:
     """Download time series of images from a specific satellite. Images are written in several .tif
@@ -214,6 +216,10 @@ def download_time_series(
         Whether to check if the data is clean. Defaults to True.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+                e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     **kwargs : Any
         Accepted but ignored additional arguments.
     """
@@ -231,7 +237,17 @@ def download_time_series(
         tiles = list(
             tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
         )
-
+        if tile_range is not None:
+            if not 0 <= tile_range[0] < tile_range[1] <= 1:
+                raise ValueError(
+                    f"Invalid tile range {tile_range}. Expected a range between 0. and 1."
+                )
+            start = math.floor(tile_range[0] * len(tiles))
+            end = math.floor(tile_range[1] * len(tiles))
+            log.info(f"Downloading tiles {start} to {end}")
+            tiles = tiles[start:end]
+        else:
+            log.info("Downloading all tiles")
         overall_task = progress.add_task(
             f"[magenta]Downloading {satellite.full_name} chips...[/]",
             total=len(tiles),
@@ -277,13 +293,14 @@ def download(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
     filter_polygon: shapely.Geometry | None = None,
     in_parallel: bool = False,
-    max_workers: int = 10,
+    max_workers: int = 1,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
     to `dir`. Additionally, a file `.vrt` is written to combine all the chips.
@@ -328,6 +345,10 @@ def download(
         is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
     max_workers : int
         How many parallel workers are used in case `in_parallel` is True. Defaults to 10.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     if not data_dir.is_dir():
         raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
@@ -341,6 +362,17 @@ def download(
         tiles = list(
             tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
         )
+        if tile_range is not None:
+            if not 0 <= tile_range[0] < tile_range[1] <= 1:
+                raise ValueError(
+                    f"Invalid tile range {tile_range}. Expected a range between 0. and 1."
+                )
+            start = math.floor(tile_range[0] * len(tiles))
+            end = math.floor(tile_range[1] * len(tiles))
+            log.info(f"Downloading tiles {start} to {end}")
+            tiles = tiles[start:end]
+        else:
+            log.info("Downloading all tiles")
 
         overall_task = progress.add_task(
             f"[magenta]Downloading {satellite.full_name} chips...[/]",
@@ -432,10 +464,11 @@ def download_gedi(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download GEDI images fused as rasters. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `gedi.vrt` is written to combine all the chips.
@@ -470,6 +503,10 @@ def download_gedi(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -486,7 +523,7 @@ def download_gedi(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         check_clean=False,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
@@ -494,6 +531,7 @@ def download_gedi(
             "dtype": dtype,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -508,6 +546,7 @@ def download_gedi_vector(
     resolution: int = 10,
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download GEDI vector points. Points are written in several .geojson files
     to `data_dir`.
@@ -535,6 +574,10 @@ def download_gedi_vector(
         More fine-grained AOI than `bbox`. Defaults to None.
     format : Format
         Format in which to save the vector points. Defaults to Format.CSV.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download(
         data_dir=data_dir,
@@ -550,6 +593,7 @@ def download_gedi_vector(
         in_parallel=False,
         check_clean=False,
         satellite_download_kwargs={"format": format},
+        tile_range=tile_range,
     )
 
 
@@ -562,12 +606,13 @@ def download_s1(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.
@@ -608,6 +653,10 @@ def download_s1(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if (composite_method == CompositeMethod.TIMESERIES) else download
@@ -637,7 +686,7 @@ def download_s1(
         max_tile_size=max_tile_size,
         filter_polygon=filter_polygon,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
@@ -647,6 +696,7 @@ def download_s1(
             "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -659,13 +709,14 @@ def download_s2(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Sentinel-2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s2.vrt` is written to combine all the chips.
@@ -709,6 +760,10 @@ def download_s2(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -725,7 +780,7 @@ def download_s2(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -736,6 +791,7 @@ def download_s2(
             "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -748,11 +804,12 @@ def download_dynworld(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Dynamic World images. Images are written in several .tif chips
     to `data_dir`. Additionnally a file `dynworld.vrt` is written to combine all the chips.
@@ -791,6 +848,10 @@ def download_dynworld(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -807,7 +868,7 @@ def download_dynworld(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -816,6 +877,7 @@ def download_dynworld(
             "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -828,11 +890,12 @@ def download_landsat8(
     crs: CRS | None = None,
     resolution: int = 30,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Landsat 8 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `landsat8.vrt` is written to combine all the chips.
@@ -871,6 +934,10 @@ def download_landsat8(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -894,6 +961,7 @@ def download_landsat8(
             "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -906,13 +974,14 @@ def download_palsar2(
     crs: CRS | None = None,
     resolution: int = 30,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     orbit: P2Orbit = P2Orbit.DESCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
     refined_lee: bool = True,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
@@ -956,6 +1025,10 @@ def download_palsar2(
     refined_lee : bool
         Whether to apply the Refined Lee filter to reduce speckle noise.
         Defaults to True.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     download_func = (
         download_time_series if composite_method == CompositeMethod.TIMESERIES else download
@@ -981,6 +1054,7 @@ def download_palsar2(
             "refined_lee": refined_lee,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -991,11 +1065,12 @@ def download_nasadem(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: int = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download NASADEM images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
@@ -1030,6 +1105,10 @@ def download_nasadem(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     if composite_method == CompositeMethod.TIMESERIES:
         raise ValueError("Time series is not relevant for DEM.")
@@ -1045,7 +1124,7 @@ def download_nasadem(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -1053,6 +1132,7 @@ def download_nasadem(
             "resampling": resampling,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
 
 
@@ -1071,6 +1151,7 @@ def download_custom(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download images from a custom data source. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `nasadem.vrt` is written to combine all the chips.
@@ -1110,6 +1191,10 @@ def download_custom(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
     """
     if composite_method == CompositeMethod.TIMESERIES:
         raise ValueError("Time series is not relevant for Custom Satellites.")
@@ -1125,7 +1210,7 @@ def download_custom(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         in_parallel=True,
-        max_workers=3,
+        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -1134,4 +1219,5 @@ def download_custom(
             "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        tile_range=tile_range,
     )
