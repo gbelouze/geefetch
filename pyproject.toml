@@ -105,6 +105,7 @@ convention = "numpy"
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/*.py" = ["INP001"]
+"benchmark/*.py" = ["INP001"]
 "docs/**/*.py" = ["INP001"]
 
 [tool.pydoclint]
