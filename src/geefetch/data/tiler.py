@@ -234,8 +234,6 @@ class TileTracker:
             return False
         if file.name.endswith(".tmp.tif"):
             return False
-        if file.name.endswith(".tmp.parquet"):
-            return False
         if self._filter is None:
             return True
         if isinstance(self._filter, str):
