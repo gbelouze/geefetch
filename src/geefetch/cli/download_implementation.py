@@ -59,8 +59,7 @@ def save_config(
     dir: Path,
 ) -> None:
     """When `geefetch` is called with a specified configuration file, save it to the tracker root"""
-    if not dir.exists():
-        dir.mkdir()
+    dir.mkdir(exist_ok=True, parents=True)
     config_path = Path(dir / "config.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
 
