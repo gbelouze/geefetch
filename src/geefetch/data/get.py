@@ -7,7 +7,7 @@ from typing import Any
 
 import shapely
 from geobbox import GeoBoundingBox
-from gee_s1_processing.wrapper import S1Filter
+from gee_s1_processing.wrapper import S1FilterConfig
 from rasterio.crs import CRS
 from retry import retry
 from rich.progress import Progress
@@ -620,7 +620,7 @@ def download_s1(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
-    filter_params: S1Filter = None,
+    filter_params: S1FilterConfig = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
     tile_range: tuple[float, float] | None = None,
@@ -658,7 +658,7 @@ def download_s1(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    filter_params : S1Filter
+    filter_params : S1FilterConfig
         Filter parameters for the gee_s1_processing function. 
     orbit : S1Orbit
         The orbit used to filter Sentinel-1 images. Defaults to S1Orbit.ASCENDING.
