@@ -39,6 +39,23 @@ See [common configuration options](../api/cli/configuration.md#geefetch.cli.omeg
       show_bases: false
       show_root_toc_entry: false
 
+### gee_s1_ard filter parameters
+
+The gee_s1_ard filters are taken from this [gee_s1_ard fork](https://github.com/LSCE-forest/gee_s1_processing/) repository. See related paper [here](https://www.mdpi.com/2072-4292/13/10/1954).
+
+| Parameter                                         | Type  | Description |
+|---------------------------------------------------|-------|-------------|
+|apply_border_noise_correction                      |boolean| Apply border noise correction if True
+|apply_terrain_flattening                           |boolean| Apply terrain flattening if True
+|apply_speckle_filtering                            |boolean| Apply speckel filtering if True
+|dem                                                |string | Digital elevation Model used for terrain corrections. See
+|speckle_filter_framework                           |string | 
+|speckle_filter                                     |string |
+|speckle_filter_kernel_size                         |integer|
+|speckle_filter_nr_of_images                        |integer|
+|terrain_flattening_model                           |string |
+|terrain_flattening_additional_layover_shadow_buffer|integer|
+
 ## Example Usage
 
 ### Command Line
