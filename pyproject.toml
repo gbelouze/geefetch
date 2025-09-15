@@ -36,6 +36,7 @@ dependencies = [
     "rich",
     "shapely>=2.0.6",
     "thefuzz",
+    "gee_s1_processing @ git+https://github.com/LSCE-forest/gee_s1_processing.git@main",
 ]
 
 [tool.flit.module]

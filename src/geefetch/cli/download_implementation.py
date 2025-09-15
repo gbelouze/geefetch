@@ -180,6 +180,7 @@ def download_s1(config_path: Path) -> None:
             if config.s1.aoi.country is None
             else load_country_filter_polygon(config.s1.aoi.country)
         ),
+        filter_params=config.s1.filter_params,
         orbit=config.s1.orbit,
         resampling=config.s1.resampling,
         tile_range=config.s1.tile_range,

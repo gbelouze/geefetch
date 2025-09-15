@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from gee_s1_processing.wrapper import S1Filter
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
@@ -187,11 +188,12 @@ class S1Config(SatelliteDefaultConfig):
         Can be ASCENDING, DESCENDING, BOTH, or AS_BANDS
         to download ascending and descending composites as separate bands.
         Defaults to BOTH.
+    filter_config : S1Filter
     """
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
     orbit: S1Orbit = S1Orbit.BOTH
-
+    filter_params: S1Filter|None = None
 
 @dataclass
 class S2Config(SatelliteDefaultConfig):

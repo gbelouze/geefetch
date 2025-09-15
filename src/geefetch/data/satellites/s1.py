@@ -7,6 +7,7 @@ from ee.image import Image
 from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
+from gee_s1_processing.wrapper import s1_preproc, S1FilterConfig
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod, S1Orbit
 from ...utils.rasterio import WGS84
@@ -42,6 +43,16 @@ class S1(SatelliteABC):
     @property
     def resolution(self):
         return 10
+
+    def __init__(self, filter_params: S1FilterConfig|None = None):
+        """Initialise the S1 class.
+        
+        Parameters
+        ----------
+        filter_params : S1FilterConfig
+            Filter parameters for the gee_s1_ard sub package.
+        """
+        self.filter_params = filter_params
 
     def get_col(
         self,
@@ -107,7 +118,8 @@ class S1(SatelliteABC):
                 pass
             case S1Orbit.AS_BANDS:
                 raise ValueError(f"Cannot get S1 collection with {orbit=}")
-
+        if self.filter_params:
+            col = s1_preproc(col, self.filter_params)
         return col  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -153,7 +165,6 @@ class S1(SatelliteABC):
         if orbit == S1Orbit.AS_BANDS:
             raise ValueError("Orbit AS_BANDS is not permitted for downloading time series.")
         s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
-
         images = {}
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
@@ -161,7 +172,9 @@ class S1(SatelliteABC):
             log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
-            id_ = feature["id"]
+            # Need to get id on the server side after applying filters like map, mean or mosaic to the ImCol
+            # is  'id_ = feature.get("properties").get("system:id")' not eough ?
+            id_ = feature.get("id") or feature.get("properties").get("system:id") 
             footprint = PatchedBaseImage.from_id(id_).footprint
             assert footprint is not None
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
