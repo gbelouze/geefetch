@@ -89,11 +89,7 @@ def download_chip_ts(
     """Download a specific chip of data from the satellite."""
     bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
     satellite.check_selected_bands(bands)
-    try:
-        data = data_get_lazy(**data_get_kwargs)
-    except ValueError as e:
-        log.error(f"ValueError in data_get_lazy for {out}: {e}")
-        raise e
+    data = data_get_lazy(**data_get_kwargs)
 
     try:
         data.download(
@@ -134,11 +130,7 @@ def download_chip(
         else:
             log.debug(f"File {out} does not seem corrupted. Skipping download.")
             return out
-    try:
-        data = data_get_lazy(**data_get_kwargs)
-    except ValueError as e:
-        log.error(f"ValueError in data_get_lazy for {out}: {e}")
-        raise e
+    data = data_get_lazy(**data_get_kwargs)
 
     try:
         data.download(
@@ -433,9 +425,16 @@ def download(
                     )
                     futures.append(future)
             if in_parallel:
+                n_failures = 0
                 try:
-                    for _ in as_completed(futures):
-                        progress.update(overall_task, advance=1)
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                        except Exception as e:
+                            n_failures += 1
+                            log.error(f"Download error: {e}")
+                        finally:
+                            progress.update(overall_task, advance=1)
                 except KeyboardInterrupt:
                     executor.shutdown(wait=False, cancel_futures=True)
                     log.error(
@@ -443,6 +442,8 @@ def download(
                         "Please wait while current download finish (up to a few minutes)."
                     )
                     raise
+                if n_failures > 0:
+                    raise DownloadError(f"Failed to download {n_failures} tiles.")
     if satellite.is_raster:
         _create_vrts(tracker)
     if satellite.is_vector and "format" in satellite_download_kwargs:
