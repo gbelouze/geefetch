@@ -93,7 +93,7 @@ def download_chip_ts(
         data = data_get_lazy(**data_get_kwargs)
     except ValueError as e:
         log.error(f"ValueError in data_get_lazy for {out}: {e}")
-        raise DownloadError from e
+        raise e
 
     try:
         data.download(
@@ -106,9 +106,6 @@ def download_chip_ts(
             **kwargs,
         )
         log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
-    except ValueError as e:
-        log.error(f"ValueError in download_chip_ts for {out}: {e}")
-        raise DownloadError from e
     except Exception as e:
         log.error(f"Failed to download chip to {out}: {e}")
         raise DownloadError from e
@@ -141,7 +138,7 @@ def download_chip(
         data = data_get_lazy(**data_get_kwargs)
     except ValueError as e:
         log.error(f"ValueError in data_get_lazy for {out}: {e}")
-        raise DownloadError from e
+        raise e
 
     try:
         data.download(
@@ -153,9 +150,6 @@ def download_chip(
             **kwargs,
         )
         log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
-    except ValueError as e:
-        log.error(f"ValueError in download_chip for {out}: {e}")
-        raise DownloadError from e
     except Exception as e:
         log.error(f"Failed to download chip to {out}: {e}")
         raise DownloadError from e
