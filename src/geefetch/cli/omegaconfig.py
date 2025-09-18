@@ -371,7 +371,7 @@ def _post_omegaconf_load(config: DictConfig | ListConfig) -> None:
         config.customs = {}
 
 
-def load(path: Path) -> GeefetchConfig:
+def load(path: Path, add_missing_sats: bool = True) -> GeefetchConfig:
     """Loads and validates a geefetch configuration from a YAML file or directory.
 
     If a directory is provided, all `.yaml` files within it are merged. The function
@@ -381,6 +381,8 @@ def load(path: Path) -> GeefetchConfig:
     ----------
     path : Path
         Path to a YAML file or a directory containing YAML files to load.
+    add_missing_sats : bool, optional
+        Whether to inject missing satellite configurations with defaults. Defaults to True.
 
     Returns
     -------
@@ -393,6 +395,8 @@ def load(path: Path) -> GeefetchConfig:
         )
     else:
         from_yaml = OmegaConf.load(path)
+    if not add_missing_sats:
+        return from_yaml  # type: ignore
     _post_omegaconf_load(from_yaml)
     from_structured = OmegaConf.structured(GeefetchConfig)
     merged = OmegaConf.merge(from_structured, from_yaml)

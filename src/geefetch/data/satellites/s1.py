@@ -75,20 +75,17 @@ class S1(SatelliteABC):
         selected_bands = self.default_selected_bands if selected_bands is None else selected_bands
         self.check_selected_bands(selected_bands)
 
-        # Only accepted combination are [VV], [HH], [HH, HV] or [VV, VH]
+        # Only accepted combination are [VV], [HH], [VH], [HH, HV] or [VV, VH]
+        # Check for invalid combinations
         if (
-            "VV" in selected_bands
-            and ("HH" in selected_bands or "HV" in selected_bands)
-            or "HH" in selected_bands
-            and "VH" in selected_bands
-            or "VH" in selected_bands
-            and "VV" not in selected_bands
-            or "HV" in selected_bands
-            and "HH" not in selected_bands
+            ("VV" in selected_bands and "HH" in selected_bands)
+            or ("VV" in selected_bands and "HV" in selected_bands)
+            or ("HH" in selected_bands and "VH" in selected_bands)
+            or ("VH" in selected_bands and "HV" in selected_bands)
         ):
             raise ValueError(
                 "Only polarization band combination accepted for Sentinel-1 are "
-                "[VV], [HH], [HH, HV] or [VV, VH]"
+                "[VV], [HH], [VH], [HV], [HH, HV] or [VV, VH]"
             )
 
         band_filter = Filter.And(

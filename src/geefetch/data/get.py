@@ -425,9 +425,16 @@ def download(
                     )
                     futures.append(future)
             if in_parallel:
+                n_failures = 0
                 try:
-                    for _ in as_completed(futures):
-                        progress.update(overall_task, advance=1)
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                        except Exception as e:
+                            n_failures += 1
+                            log.error(f"Download error: {e}")
+                        finally:
+                            progress.update(overall_task, advance=1)
                 except KeyboardInterrupt:
                     executor.shutdown(wait=False, cancel_futures=True)
                     log.error(
@@ -435,6 +442,8 @@ def download(
                         "Please wait while current download finish (up to a few minutes)."
                     )
                     raise
+                if n_failures > 0:
+                    raise DownloadError(f"Failed to download {n_failures} tiles.")
     if satellite.is_raster:
         _create_vrts(tracker)
     if satellite.is_vector and "format" in satellite_download_kwargs:

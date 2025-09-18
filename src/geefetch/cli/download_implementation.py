@@ -59,8 +59,7 @@ def save_config(
     dir: Path,
 ) -> None:
     """When `geefetch` is called with a specified configuration file, save it to the tracker root"""
-    if not dir.exists():
-        dir.mkdir()
+    dir.mkdir(exist_ok=True, parents=True)
     config_path = Path(dir / "config.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
 
@@ -453,29 +452,31 @@ def download_custom(config_path: Path, custom_name: str) -> None:
 
 def download_all(config_path: Path) -> None:
     """Download all configured satellites."""
-    config = load(config_path)
-    if config.s1 is not None:
+    config = load(config_path, add_missing_sats=False)
+
+    # Check which satellites were actually configured by the user
+    if hasattr(config, "s1"):
         log.info("Downloading Sentinel-1 data.")
         download_s1(config_path)
-    if config.s2 is not None:
+    if hasattr(config, "s2"):
         log.info("Downloading Sentinel-2 data.")
         download_s2(config_path)
-    if config.gedi is not None:
+    if hasattr(config, "gedi"):
         log.info("Downloading GEDI data.")
         download_gedi(config_path, vector=True)
-    if config.dynworld is not None:
+    if hasattr(config, "dynworld"):
         log.info("Downloading Dynamic World data.")
         download_dynworld(config_path)
-    if config.palsar2 is not None:
+    if hasattr(config, "palsar2"):
         log.info("Downloading Palsar-2 data.")
         download_palsar2(config_path)
-    if config.landsat8 is not None:
+    if hasattr(config, "landsat8"):
         log.info("Downloading Landsat-8 data.")
         download_landsat8(config_path)
-    if config.nasadem is not None:
+    if hasattr(config, "nasadem"):
         log.info("Downloading NASADEM")
         download_nasadem(config_path)
-    if config.customs is not None:
+    if hasattr(config, "customs"):
         for custom_name in config.customs:
             log.info(f"Downloading CustomSatellite({custom_name}).")
             download_custom(config_path, custom_name)

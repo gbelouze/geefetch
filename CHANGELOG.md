@@ -24,6 +24,10 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Fixed
 
+- download 'all' downloads all satellites listed in config file instead of all geefetch-supported satellites
+- allow user to download just VH or HV Sentinel-1 bands
+- stop trying to create vrt files with partially downloaded tifs
+- improve error logging (avoid silent failures)
 - `geedim v2.0.0` causes breaking changes with the `PatchedBaseImage` class. The `pyproject.toml` has been adjusted to request versions `<2.0.0`
 
 ## [0.5.2](https://github.com/gbelouze/geefetch/compare/v0.5.2...v0.5.1) (2025-04-15)
