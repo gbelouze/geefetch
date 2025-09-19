@@ -180,6 +180,8 @@ def download_s1(config_path: Path) -> None:
             if config.s1.aoi.country is None
             else load_country_filter_polygon(config.s1.aoi.country)
         ),
+        speckle_filter_config=config.s1.speckle_filter_config,
+        terrain_normalization_config=config.s1.terrain_normalization_config,
         filter_params=config.s1.filter_params,
         orbit=config.s1.orbit,
         resampling=config.s1.resampling,

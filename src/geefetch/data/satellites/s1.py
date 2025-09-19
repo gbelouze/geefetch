@@ -7,7 +7,7 @@ from ee.image import Image
 from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
 from shapely import Polygon
-from gee_s1_processing.wrapper import s1_preproc, S1FilterConfig
+from gee_s1_processing.wrapper import get_analysis_ready_data, SpeckleFilterConfig, TerrainNormalizationConfig
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod, S1Orbit
 from ...utils.rasterio import WGS84
@@ -44,16 +44,21 @@ class S1(SatelliteABC):
     def resolution(self):
         return 10
 
-    def __init__(self, filter_params: S1FilterConfig|None = None):
+    def __init__(
+        self, 
+        speckle_filter_config: SpeckleFilterConfig|None = None, 
+        terrain_normalization_config: TerrainNormalizationConfig|None = TerrainNormalizationConfig()
+    ):
         """Initialise the S1 class.
         
         Parameters
         ----------
-        filter_params : S1FilterConfig
+        speckle_filter_config : SpeckleFilterConfig
             Filter parameters for the gee_s1_ard sub package.
         """
-        self.filter_params = filter_params
-
+        self.speckle_filter_config = speckle_filter_config
+        self.terrain_normalization_config = terrain_normalization_config
+        
     def get_col(
         self,
         aoi: GeoBoundingBox,
@@ -106,7 +111,7 @@ class S1(SatelliteABC):
                 if band != "angle"
             ]
         )
-        col = ImageCollection("COPERNICUS/S1_GRD")
+        col = ImageCollection("COPERNICUS/S1_GRD_FLOAT")
         if start_date is not None and end_date is not None:
             col = col.filterDate(start_date, end_date)
         col = col.filterBounds(bounds).filter(band_filter).filter(Filter.eq("instrumentMode", "IW"))
@@ -118,8 +123,8 @@ class S1(SatelliteABC):
                 pass
             case S1Orbit.AS_BANDS:
                 raise ValueError(f"Cannot get S1 collection with {orbit=}")
-        if self.filter_params:
-            col = s1_preproc(col, self.filter_params)
+        if self.speckle_filter_config:
+            col = get_analysis_ready_data(col, self.speckle_filter_config, self.terrain_normalization_config, additional_border_noise_correction=True)
         return col  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -184,7 +189,7 @@ class S1(SatelliteABC):
                 im = self.before_composite(im, resampling, aoi, resolution)
                 # Apply pixel range and dtype
                 im = self.after_composite(im, dtype)
-                images[id_.removeprefix("COPERNICUS/S1_GRD/")] = PatchedBaseImage(im)
+                images[id_.removeprefix("COPERNICUS/S1_GRD_FLOAT/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -281,7 +286,7 @@ class S1(SatelliteABC):
         scale: float,
     ) -> Image:
         # Convert from db to power: 10^(im/10)
-        im = ee.Image(10).pow(im.divide(10))
+        # im = ee.Image(10).pow(im.divide(10))
         # Apply resampling if specified
         im = self.resample_reproject_clip(im, aoi, resampling, scale)
         return im
