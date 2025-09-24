@@ -285,8 +285,6 @@ class S1(SatelliteABC):
         aoi: GeoBoundingBox,
         scale: float,
     ) -> Image:
-        # Convert from db to power: 10^(im/10)
-        # im = ee.Image(10).pow(im.divide(10))
         # Apply resampling if specified
         im = self.resample_reproject_clip(im, aoi, resampling, scale)
         return im
