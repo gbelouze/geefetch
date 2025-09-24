@@ -39,23 +39,6 @@ See [common configuration options](../api/cli/configuration.md#geefetch.cli.omeg
       show_bases: false
       show_root_toc_entry: false
 
-### gee_s1_ard filter parameters
-
-The gee_s1_ard filters are taken from this [gee_s1_ard fork](https://github.com/LSCE-forest/gee_s1_processing/) repository. See related paper [here](https://www.mdpi.com/2072-4292/13/10/1954).
-
-| Parameter                                         | Type  | Description |
-|---------------------------------------------------|-------|-------------|
-|apply_border_noise_correction                      |boolean| Apply border noise correction if True
-|apply_terrain_flattening                           |boolean| Apply terrain flattening if True
-|apply_speckle_filtering                            |boolean| Apply speckel filtering if True
-|dem                                                |string | Digital elevation Model used for terrain corrections. See
-|speckle_filter_framework                           |string | 
-|speckle_filter                                     |string |
-|speckle_filter_kernel_size                         |integer|
-|speckle_filter_nr_of_images                        |integer|
-|terrain_flattening_model                           |string |
-|terrain_flattening_additional_layover_shadow_buffer|integer|
-
 ## Example Usage
 
 ### Command Line
@@ -81,16 +64,14 @@ satellite_default:
   resolution: 10
 s1:
   orbit: ASCENDING
-  filter_params:
-        apply_border_noise_correction: false
-        apply_terrain_flattening: false
-        apply_speckle_filtering: false
-        dem: 'USGS/SRTMGL1_003'
+  speckle_filter_config:
         speckle_filter_framework: 'MONO'
         speckle_filter: 'BOXCAR'
         speckle_filter_kernel_size: 3
         speckle_filter_nr_of_images: 10
+  terrain_normalization_config:
         terrain_flattening_model: 'DIRECT'
+        dem: 'USGS/SRTMGL1_003'
         terrain_flattening_additional_layover_shadow_buffer: 0
 ```
 
@@ -99,6 +80,8 @@ then download with
 ```bash
 geefetch s1 -c config.yaml
 ```
+
+For more information on the [speckle_filter_config](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Speckle_Filters.md) and [terrain_normalization_config](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Terrain_Normalization.md).
 
 ### Python API
 

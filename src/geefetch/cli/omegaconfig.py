@@ -189,6 +189,9 @@ class S1Config(SatelliteDefaultConfig):
         to download ascending and descending composites as separate bands.
         Defaults to BOTH.
     filter_config : SpeckleFilterConfig
+        Configuration dataclass for speckle filtering.
+    terrain_normalization_config : TerrainNormalizationConfig
+        Configuration dataclass for terrain normalization.
     """
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
