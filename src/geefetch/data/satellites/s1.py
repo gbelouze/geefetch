@@ -123,7 +123,7 @@ class S1(SatelliteABC):
                 pass
             case S1Orbit.AS_BANDS:
                 raise ValueError(f"Cannot get S1 collection with {orbit=}")
-        if self.speckle_filter_config:
+        if self.speckle_filter_config or self.terrain_normalization_config:
             col = get_analysis_ready_data(col, self.speckle_filter_config, self.terrain_normalization_config, additional_border_noise_correction=True)
         return col  # type: ignore[no-any-return]
 
