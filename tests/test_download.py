@@ -6,6 +6,7 @@ import geopandas as gpd
 import numpy as np
 import pytest
 import rasterio as rio
+from gee_s1_processing.wrapper import SpeckleFilterConfig
 from omegaconf import DictConfig, OmegaConf
 
 from geefetch.cli.download_implementation import (
@@ -35,6 +36,17 @@ def paris_config_path(
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     yield conf_path
     conf_path.unlink()
+
+
+@pytest.fixture
+def paris_speckle_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str):
+    raw_paris_config = raw_paris_config.copy()
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.s1.speckle_filter_config = SpeckleFilterConfig()
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
 
 
 @pytest.fixture
@@ -138,6 +150,13 @@ class TestDownloadSentinel1:
             "s1_EPSG2154_650000_6860000",
             "S1A_IW_GRDH_1SDV_20200111T174030_20200111T174055_030756_0386DC_869A.tif",
         )
+
+    def test_download_s1_with_speckle_filter(self, paris_speckle_path: Path):
+        download_s1(paris_speckle_path)
+        conf = load(paris_speckle_path)
+        downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+        assert len(downloaded_files) == 1
+        assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
 
     def test_download_s1_overwrite_garbage(self, paris_config_path: Path):
         conf = load(paris_config_path)
