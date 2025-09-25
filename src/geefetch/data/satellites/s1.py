@@ -190,7 +190,10 @@ class S1(SatelliteABC):
             log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
-            id_= feature.get("id") or f"COPERNICUS/S1_GRD_FLOAT/{feature.get("properties").get("system:index")}"
+            id_ = (
+                feature.get("id")
+                or f"COPERNICUS/S1_GRD_FLOAT/{feature.get("properties").get("system:index")}"
+            )
             footprint = PatchedBaseImage.from_id(id_).footprint
             assert footprint is not None
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
