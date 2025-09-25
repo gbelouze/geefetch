@@ -81,6 +81,14 @@ then download with
 geefetch s1 -c config.yaml
 ```
 
+Note that s1 can be preprocessed before its download. You can apply **terrain normalization** as well as **speckle filtering**. If not specified, **terrain normalization** will be implemented by default with the following configuration:
+```yaml
+terrain_normalization_config:
+  terrain_flattening_model: "VOLUME"
+  terrain_flattening_additional_layover_shadow_buffer: 3
+  dem: "USGS/SRTMGL1_003"
+```
+
 For more information on the [speckle_filter_config](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Speckle_Filters.md) and [terrain_normalization_config](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Terrain_Normalization.md).
 
 ### Python API
