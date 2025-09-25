@@ -1,13 +1,16 @@
 import logging
 from typing import Any
 
-import ee
 from ee.filter import Filter
 from ee.image import Image
 from ee.imagecollection import ImageCollection
+from gee_s1_processing.wrapper import (
+    SpeckleFilterConfig,
+    TerrainNormalizationConfig,
+    get_analysis_ready_data,
+)
 from geobbox import GeoBoundingBox
 from shapely import Polygon
-from gee_s1_processing.wrapper import get_analysis_ready_data, SpeckleFilterConfig, TerrainNormalizationConfig
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod, S1Orbit
 from ...utils.rasterio import WGS84
@@ -21,6 +24,15 @@ __all__ = ["S1"]
 
 
 class S1(SatelliteABC):
+    """
+    Parameters
+    ----------
+    speckle_filter_config : SpeckleFilterConfig | None
+        Filter parameters for the gee_s1_processing sub package.
+    terrain_normalization_config : TerrainNormalizationConfig | None
+        Terrain flattening parameters from the gee_s1_processing sub package
+    """
+
     _bands = ["HH", "HV", "VV", "VH", "angle"]
     _default_selected_bands = ["VV", "VH"]
 
@@ -45,20 +57,16 @@ class S1(SatelliteABC):
         return 10
 
     def __init__(
-        self, 
-        speckle_filter_config: SpeckleFilterConfig|None = None, 
-        terrain_normalization_config: TerrainNormalizationConfig|None = TerrainNormalizationConfig()
+        self,
+        speckle_filter_config: SpeckleFilterConfig | None = None,
+        terrain_normalization_config: TerrainNormalizationConfig | None = None,
     ):
-        """Initialise the S1 class.
-        
-        Parameters
-        ----------
-        speckle_filter_config : SpeckleFilterConfig
-            Filter parameters for the gee_s1_ard sub package.
-        """
+        if not terrain_normalization_config:
+            self.terrain_normalization_config = TerrainNormalizationConfig()
+        else:
+            self.terrain_normalization_config = terrain_normalization_config
         self.speckle_filter_config = speckle_filter_config
-        self.terrain_normalization_config = terrain_normalization_config
-        
+
     def get_col(
         self,
         aoi: GeoBoundingBox,
@@ -124,7 +132,12 @@ class S1(SatelliteABC):
             case S1Orbit.AS_BANDS:
                 raise ValueError(f"Cannot get S1 collection with {orbit=}")
         if self.speckle_filter_config or self.terrain_normalization_config:
-            col = get_analysis_ready_data(col, self.speckle_filter_config, self.terrain_normalization_config, additional_border_noise_correction=True)
+            col = get_analysis_ready_data(
+                col,
+                self.speckle_filter_config,
+                self.terrain_normalization_config,
+                additional_border_noise_correction=True,
+            )
         return col  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -177,9 +190,7 @@ class S1(SatelliteABC):
             log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
-            # Need to get id on the server side after applying filters like map, mean or mosaic to the ImCol
-            # is  'id_ = feature.get("properties").get("system:id")' not eough ?
-            id_ = feature.get("id") or feature.get("properties").get("system:id") 
+            id_= feature.get("id") or f"COPERNICUS/S1_GRD_FLOAT/{feature.get("properties").get("system:index")}"
             footprint = PatchedBaseImage.from_id(id_).footprint
             assert footprint is not None
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):

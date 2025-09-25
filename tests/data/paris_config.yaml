@@ -31,17 +31,15 @@ palsar2:
   orbit: DESCENDING
 s1:
   orbit: ASCENDING
-  filter_params:
-      apply_border_noise_correction: true
-      apply_terrain_flattening: true
-      apply_speckle_filtering: true
-      dem: 'USGS/SRTMGL1_003'
-      speckle_filter_framework: 'MONO'
-      speckle_filter: 'BOXCAR'
-      speckle_filter_kernel_size: 3
-      speckle_filter_nr_of_images: 10
-      terrain_flattening_model: 'DIRECT'
-      terrain_flattening_additional_layover_shadow_buffer: 0
+  speckle_filter_config:
+    speckle_filter_framework: 'MONO'
+    speckle_filter: 'BOXCAR'
+    speckle_filter_kernel_size: 3
+    speckle_filter_nr_of_images: 10
+  terrain_normalization_config:
+    dem: 'USGS/SRTMGL1_003'
+    terrain_flattening_model: 'DIRECT'
+    terrain_flattening_additional_layover_shadow_buffer: 0
 
 customs:
   chm_pauls:

@@ -188,16 +188,17 @@ class S1Config(SatelliteDefaultConfig):
         Can be ASCENDING, DESCENDING, BOTH, or AS_BANDS
         to download ascending and descending composites as separate bands.
         Defaults to BOTH.
-    filter_config : SpeckleFilterConfig
+    speckle_filter_config : SpeckleFilterConfig | None
         Configuration dataclass for speckle filtering.
-    terrain_normalization_config : TerrainNormalizationConfig
+    terrain_normalization_config : TerrainNormalizationConfig | None
         Configuration dataclass for terrain normalization.
     """
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
     orbit: S1Orbit = S1Orbit.BOTH
-    speckle_filter_config: SpeckleFilterConfig|None = None
-    terrain_normalization_config: TerrainNormalizationConfig|None = None
+    speckle_filter_config: SpeckleFilterConfig | None = None
+    terrain_normalization_config: TerrainNormalizationConfig | None = None
+
 
 @dataclass
 class S2Config(SatelliteDefaultConfig):

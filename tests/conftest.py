@@ -1,14 +1,15 @@
 import logging
 import os
-from dotenv import load_dotenv
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 TESTS_DIR = Path(__file__).parent
 GEE_PROJECT_ID_ENV_NAME = "GEEFETCH_GEE_PROJECT_ID"
 load_dotenv()
+
 
 @pytest.fixture
 def raw_paris_config() -> DictConfig | ListConfig:
