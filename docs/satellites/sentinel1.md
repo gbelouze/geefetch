@@ -64,15 +64,15 @@ satellite_default:
   resolution: 10
 s1:
   orbit: ASCENDING
-  speckle_filter_config:
-        speckle_filter_framework: 'MONO'
-        speckle_filter: 'BOXCAR'
-        speckle_filter_kernel_size: 3
-        speckle_filter_nr_of_images: 10
-  terrain_normalization_config:
-        terrain_flattening_model: 'DIRECT'
-        dem: 'USGS/SRTMGL1_003'
-        terrain_flattening_additional_layover_shadow_buffer: 0
+  speckle_filter:
+    framework: 'MONO'
+    filter_name: 'BOXCAR'
+    kernel_size: 3
+    nr_of_images: 10
+  terrain_normalization:
+    flattening_model: 'DIRECT'
+    layover_shadow_buffer: 0
+    dem: 'USGS/SRTMGL1_003'
 ```
 
 then download with
