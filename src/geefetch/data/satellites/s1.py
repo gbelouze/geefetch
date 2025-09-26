@@ -1,17 +1,16 @@
 import logging
+from dataclasses import astuple
 from typing import Any
 
 from ee.filter import Filter
 from ee.image import Image
 from ee.imagecollection import ImageCollection
-from gee_s1_processing.wrapper import (
-    SpeckleFilterConfig,
-    TerrainNormalizationConfig,
-    get_analysis_ready_data,
-)
+from gee_s1_processing.border_noise_correction import f_mask_edges
+from gee_s1_processing.wrapper import speckle_filter_wrapper, terrain_normalization_wrapper
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
+from ...cli.omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod, S1Orbit
 from ...utils.rasterio import WGS84
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
@@ -24,17 +23,10 @@ __all__ = ["S1"]
 
 
 class S1(SatelliteABC):
-    """
-    Parameters
-    ----------
-    speckle_filter_config : SpeckleFilterConfig | None
-        Filter parameters for the gee_s1_processing sub package.
-    terrain_normalization_config : TerrainNormalizationConfig | None
-        Terrain flattening parameters from the gee_s1_processing sub package
-    """
-
     _bands = ["HH", "HV", "VV", "VH", "angle"]
     _default_selected_bands = ["VV", "VH"]
+    speckle_filter_config: SpeckleFilterConfig | None
+    terrain_normalization_config: TerrainNormalizationConfig | None
 
     @property
     def bands(self) -> list[str]:
@@ -55,17 +47,6 @@ class S1(SatelliteABC):
     @property
     def resolution(self):
         return 10
-
-    def __init__(
-        self,
-        speckle_filter_config: SpeckleFilterConfig | None = None,
-        terrain_normalization_config: TerrainNormalizationConfig | None = None,
-    ):
-        if not terrain_normalization_config:
-            self.terrain_normalization_config = TerrainNormalizationConfig()
-        else:
-            self.terrain_normalization_config = terrain_normalization_config
-        self.speckle_filter_config = speckle_filter_config
 
     def get_col(
         self,
@@ -131,13 +112,11 @@ class S1(SatelliteABC):
                 pass
             case S1Orbit.AS_BANDS:
                 raise ValueError(f"Cannot get S1 collection with {orbit=}")
-        if self.speckle_filter_config or self.terrain_normalization_config:
-            col = get_analysis_ready_data(
-                col,
-                self.speckle_filter_config,
-                self.terrain_normalization_config,
-                additional_border_noise_correction=True,
-            )
+        col = col.map(f_mask_edges)
+        if self.speckle_filter_config:
+            speckle_filter_wrapper(col, *astuple(self.speckle_filter_config))
+        if self.terrain_normalization_config:
+            col = terrain_normalization_wrapper(col, *astuple(self.terrain_normalization_config))
         return col  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -180,6 +159,13 @@ class S1(SatelliteABC):
         s1_im: DownloadableGeedimImageCollection
             A Sentinel-1 time series collection of the specified AOI and time range.
         """
+        for key in kwargs:
+            if key not in ("speckle_filter_config", "terrain_normalization_config"):
+                log.warning(f"Argument {key} is ignored.")
+
+        self.speckle_filter_config = kwargs.get("speckle_filter_config")
+        self.terrain_normalization_config = kwargs.get("terrain_normalization_config")
+
         if orbit == S1Orbit.AS_BANDS:
             raise ValueError("Orbit AS_BANDS is not permitted for downloading time series.")
         s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
@@ -250,7 +236,10 @@ class S1(SatelliteABC):
             A Sentinel-1 composite image of the specified AOI and time range.
         """
         for key in kwargs:
-            log.warning(f"Argument {key} is ignored.")
+            if key not in ("speckle_filter_config", "terrain_normalization_config"):
+                log.warning(f"Argument {key} is ignored.")
+        self.speckle_filter_config = kwargs.get("speckle_filter_config")
+        self.terrain_normalization_config = kwargs.get("terrain_normalization_config")
 
         def get_im(orbit: S1Orbit) -> Image:
             s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
