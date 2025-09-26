@@ -114,7 +114,7 @@ class S1(SatelliteABC):
                 raise ValueError(f"Cannot get S1 collection with {orbit=}")
         col = col.map(f_mask_edges)
         if self.speckle_filter_config:
-            speckle_filter_wrapper(col, *astuple(self.speckle_filter_config))
+            col = speckle_filter_wrapper(col, *astuple(self.speckle_filter_config))
         if self.terrain_normalization_config:
             col = terrain_normalization_wrapper(col, *astuple(self.terrain_normalization_config))
         return col  # type: ignore[no-any-return]
