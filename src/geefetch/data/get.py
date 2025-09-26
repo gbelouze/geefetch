@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import Any
 
 import shapely
-from gee_s1_processing.wrapper import SpeckleFilterConfig, TerrainNormalizationConfig
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 from retry import retry
 from rich.progress import Progress
 
+from ..cli.omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig
 from ..utils.enums import CompositeMethod, DType, Format, P2Orbit, ResamplingMethod, S1Orbit
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
@@ -692,7 +692,7 @@ def download_s1(
     download_func(
         data_dir=data_dir,
         bbox=bbox,
-        satellite=S1(speckle_filter_config, terrain_normalization_config),
+        satellite=S1(),
         start_date=start_date,
         end_date=end_date,
         selected_bands=download_selected_bands,
@@ -710,6 +710,8 @@ def download_s1(
             "selected_bands": selected_bands,
             "resampling": resampling,
             "resolution": resolution,
+            "speckle_filter_config": speckle_filter_config,
+            "terrain_normalization_config": terrain_normalization_config,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
         tile_range=tile_range,
