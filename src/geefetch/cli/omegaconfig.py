@@ -234,12 +234,16 @@ class S1Config(SatelliteDefaultConfig):
         Configuration dataclass for speckle filtering.
     terrain_normalization : TerrainNormalizationConfig | None
         Configuration dataclass for terrain normalization.
+    apply_default_terrain_normalization : bool
+        If True the default and terrain_normalization is None, the default
+        TerrainNormalizationConfig will be passed to satellite_get_kwargs.
     """
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
     orbit: S1Orbit = S1Orbit.BOTH
     speckle_filter: SpeckleFilterConfig | None = None
     terrain_normalization: TerrainNormalizationConfig | None = None
+    apply_default_terrain_normalization: bool = True
 
 
 @dataclass

@@ -96,7 +96,12 @@ terrain_normalization_config:
   layover_shadow_buffer: 3
   dem: "USGS/SRTMGL1_003"
 ```
-More detail on the fonctions and conventions [here](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Terrain_Normalization.md). 
+If you do not want any terrain normalization done you can explicitly deactivate it by setting the following:
+```yaml
+s1:
+  apply_default_terrain_normalization: false
+```
+More detail on the fonctions and conventions [here](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Terrain_Normalization.md).
 
 ### Speckle Filters
 S1 images can be preprocessed with speckle filtering. See the table bellow for the possile configurations.
