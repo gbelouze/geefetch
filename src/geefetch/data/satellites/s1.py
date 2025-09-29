@@ -48,6 +48,12 @@ class S1(SatelliteABC):
     def resolution(self):
         return 10
 
+    @property
+    def is_preprocessed(self):
+        return (self.speckle_filter_config is not None) or (
+            self.terrain_normalization_config is not None
+        )
+
     def get_col(
         self,
         aoi: GeoBoundingBox,
@@ -176,20 +182,24 @@ class S1(SatelliteABC):
             log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
-            id_ = (
-                feature.get("id")
-                or f"COPERNICUS/S1_GRD_FLOAT/{feature.get("properties").get("system:index")}"
-            )
-            footprint = PatchedBaseImage.from_id(id_).footprint
+            sys_index = feature.get("properties").get("system:index")
+            if self.is_preprocessed:
+                im = s1_col.filter(Filter.eq("system:index", sys_index)).first()
+                footprint = PatchedBaseImage.from_id(
+                    f"COPERNICUS/S1_GRD_FLOAT/{sys_index}"
+                ).footprint
+            else:
+                id_ = feature.get("id")
+                footprint = PatchedBaseImage.from_id(id_).footprint
+                im = Image(id_)
             assert footprint is not None
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
-                im = Image(id_)
                 # convert to power and resample
                 im = self.before_composite(im, resampling, aoi, resolution)
                 # Apply pixel range and dtype
                 im = self.after_composite(im, dtype)
-                images[id_.removeprefix("COPERNICUS/S1_GRD_FLOAT/")] = PatchedBaseImage(im)
+                images[sys_index] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
