@@ -158,3 +158,4 @@ exclude = ['tests/test_download.py', 'tests/conftest.py']
 
 [tool.pyright]
 typeCheckingMode = "off"
+pythonVersion = "3.11"

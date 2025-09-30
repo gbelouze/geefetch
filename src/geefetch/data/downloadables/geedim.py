@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import threading
 import traceback
@@ -65,7 +66,8 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         progress: Progress | None = None,
         **kwargs: Any,
     ) -> None:
-        max_threads = 39
+        max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
+        max_threads = 37
         geedim_log.debug(f"Using {max_threads} threads for download.")
         out_lock = threading.Lock()
         filename = Path(filename)

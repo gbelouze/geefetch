@@ -14,7 +14,6 @@ import geefetch
 import geefetch.data.satellites as satellites
 from geefetch import data
 from geefetch.utils.config import git_style_diff
-from geefetch.utils.gee import auth
 
 from .omegaconfig import load
 
@@ -64,7 +63,7 @@ def save_config(
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
 
     del config["tile_range"]
-    del config["gee"]["ee_project_id"]
+    del config["gee"]["ee_project_ids"]
     config["geefetch_version"] = geefetch.__version__
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
@@ -88,7 +87,6 @@ def download_gedi(config_path: Path, vector: bool) -> None:
             "GEDI is not configured. Pass `gedi: {}` in the config file to use `satellite_default`."
         )
     data_dir = Path(config.data_dir)
-    auth(config.gedi.gee.ee_project_id)
     bounds = config.gedi.aoi.spatial.as_bbox()
     if vector:
         if config.gedi.selected_bands is None:
@@ -97,6 +95,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
         save_config(config.gedi, config.data_dir / "gedi_vector")
         data.get.download_gedi_vector(
             data_dir,
+            config.gedi.gee.ee_project_ids,
             bounds,
             config.gedi.aoi.temporal.start_date if config.gedi.aoi.temporal is not None else None,
             config.gedi.aoi.temporal.end_date if config.gedi.aoi.temporal is not None else None,
@@ -122,6 +121,7 @@ def download_gedi(config_path: Path, vector: bool) -> None:
         save_config(config.gedi, config.data_dir / "gedi_raster")
         data.get.download_gedi(
             data_dir,
+            config.gedi.gee.ee_project_ids,
             bounds,
             config.gedi.aoi.temporal.start_date if config.gedi.aoi.temporal is not None else None,
             config.gedi.aoi.temporal.end_date if config.gedi.aoi.temporal is not None else None,
@@ -157,10 +157,10 @@ def download_s1(config_path: Path) -> None:
     save_config(config.s1, config.data_dir / "s1")
 
     data_dir = Path(config.data_dir)
-    auth(config.s1.gee.ee_project_id)
     bounds = config.s1.aoi.spatial.as_bbox()
     data.get.download_s1(
         data_dir,
+        config.s1.gee.ee_project_ids,
         bounds,
         config.s1.aoi.temporal.start_date if config.s1.aoi.temporal is not None else None,
         config.s1.aoi.temporal.end_date if config.s1.aoi.temporal is not None else None,
@@ -199,10 +199,10 @@ def download_s2(config_path: Path) -> None:
     save_config(config.s2, config.data_dir / "s2")
 
     data_dir = Path(config.data_dir)
-    auth(config.s2.gee.ee_project_id)
     bounds = config.s2.aoi.spatial.as_bbox()
     data.get.download_s2(
         data_dir,
+        config.s2.gee.ee_project_ids,
         bounds,
         config.s2.aoi.temporal.start_date if config.s2.aoi.temporal is not None else None,
         config.s2.aoi.temporal.end_date if config.s2.aoi.temporal is not None else None,
@@ -242,10 +242,10 @@ def download_dynworld(config_path: Path) -> None:
     save_config(config.dynworld, config.data_dir / "dyn_world")
 
     data_dir = Path(config.data_dir)
-    auth(config.dynworld.gee.ee_project_id)
     bounds = config.dynworld.aoi.spatial.as_bbox()
     data.get.download_dynworld(
         data_dir,
+        config.dynworld.gee.ee_project_ids,
         bounds,
         config.dynworld.aoi.temporal.start_date
         if config.dynworld.aoi.temporal is not None
@@ -284,10 +284,10 @@ def download_landsat8(config_path: Path) -> None:
         config.landsat8.selected_bands = satellites.Landsat8().default_selected_bands
     save_config(config.landsat8, config.data_dir / "landsat8")
     data_dir = Path(config.data_dir)
-    auth(config.landsat8.gee.ee_project_id)
     bounds = config.landsat8.aoi.spatial.as_bbox()
     data.get.download_landsat8(
         data_dir,
+        config.landsat8.gee.ee_project_ids,
         bounds,
         config.landsat8.aoi.temporal.start_date
         if config.landsat8.aoi.temporal is not None
@@ -327,10 +327,10 @@ def download_palsar2(config_path: Path) -> None:
         config.palsar2.selected_bands = satellites.Palsar2().default_selected_bands
     save_config(config.palsar2, config.data_dir / "palsar2")
     data_dir = Path(config.data_dir)
-    auth(config.palsar2.gee.ee_project_id)
     bounds = config.palsar2.aoi.spatial.as_bbox()
     data.get.download_palsar2(
         data_dir,
+        config.palsar2.gee.ee_project_ids,
         bounds,
         config.palsar2.aoi.temporal.start_date if config.palsar2.aoi.temporal is not None else None,
         config.palsar2.aoi.temporal.end_date if config.palsar2.aoi.temporal is not None else None,
@@ -370,7 +370,6 @@ def download_nasadem(config_path: Path) -> None:
         config.nasadem.selected_bands = satellites.NASADEM().default_selected_bands
     save_config(config.nasadem, config.data_dir / "nasadem")
     data_dir = Path(config.data_dir)
-    auth(config.nasadem.gee.ee_project_id)
     bounds = config.nasadem.aoi.spatial.as_bbox()
     if config.nasadem.aoi.temporal is not None:
         log.warning(
@@ -379,6 +378,7 @@ def download_nasadem(config_path: Path) -> None:
         )
     data.get.download_nasadem(
         data_dir,
+        config.nasadem.gee.ee_project_ids,
         bounds,
         crs=(
             CRS.from_epsg(config.nasadem.aoi.spatial.epsg)
@@ -414,7 +414,6 @@ def download_custom(config_path: Path, custom_name: str) -> None:
     )
     save_config(custom_config, config.data_dir / satellite_custom.name)
     data_dir = Path(config.data_dir)
-    auth(custom_config.gee.ee_project_id)
     bounds = custom_config.aoi.spatial.as_bbox()
     start_date = (
         custom_config.aoi.temporal.start_date if custom_config.aoi.temporal is not None else None
@@ -426,6 +425,7 @@ def download_custom(config_path: Path, custom_name: str) -> None:
     data.get.download_custom(
         satellite_custom,
         data_dir,
+        custom_config.gee.ee_project_ids,
         bounds,
         start_date,
         end_date,

@@ -1,7 +1,10 @@
 import logging
 import math
-from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from itertools import cycle, repeat
+from multiprocessing.queues import Queue
+from os import getpid
 from pathlib import Path
 from typing import Any
 
@@ -9,12 +12,23 @@ import shapely
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 from retry import retry
-from rich.progress import Progress
 
-from ..utils.enums import CompositeMethod, DType, Format, P2Orbit, ResamplingMethod, S1Orbit
+from ..utils.enums import (
+    CompositeMethod,
+    DType,
+    Format,
+    P2Orbit,
+    ResamplingMethod,
+    S1Orbit,
+)
+from ..utils.gee import auth
+from ..utils.log_multiprocessing import (
+    LogQueue,
+    LogQueueConsumer,
+    init_log_queue_for_children,
+)
 from ..utils.progress import default_bar
 from ..utils.rasterio import create_vrt
-from .downloadables import DownloadableABC
 from .process import (
     geofile_is_clean,
     merge_tracked_geojson,
@@ -74,22 +88,26 @@ class BadDataError(Exception):
     pass
 
 
+def auth_and_log(ee_project_id: str) -> None:
+    auth(ee_project_id)
+    log.info(f"Process {getpid()} authentified with {ee_project_id}")
+
+
 # @retry(exceptions=DownloadError, tries=5)
 def download_chip_ts(
-    data_get_lazy: Callable[..., DownloadableABC],
+    satellite: SatelliteABC,
     data_get_kwargs: dict[Any, Any],
     bbox: GeoBoundingBox,
-    satellite: SatelliteABC,
     scale: int,
     out: Path,
     selected_bands: list[str] | None = None,
-    progress: Progress | None = None,
+    progress_queue: Queue | None = None,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
     bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
     satellite.check_selected_bands(bands)
-    data = data_get_lazy(**data_get_kwargs)
+    data = satellite.get_time_series(**data_get_kwargs)
 
     try:
         data.download(
@@ -98,7 +116,6 @@ def download_chip_ts(
             region=bbox,
             bands=bands,
             scale=scale,
-            progress=progress,
             **kwargs,
         )
         log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
@@ -110,14 +127,14 @@ def download_chip_ts(
 
 @retry(exceptions=DownloadError, tries=5)
 def download_chip(
-    data_get_lazy: Callable[..., DownloadableABC],
+    satellite: SatelliteABC,
     data_get_kwargs: dict[Any, Any],
     bbox: GeoBoundingBox,
-    satellite: SatelliteABC,
     scale: int,
     out: Path,
     selected_bands: list[str] | None = None,
     check_clean: bool = True,
+    progress_queue: Queue | None = None,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
@@ -130,7 +147,7 @@ def download_chip(
         else:
             log.debug(f"File {out} does not seem corrupted. Skipping download.")
             return out
-    data = data_get_lazy(**data_get_kwargs)
+    data = satellite.get(**data_get_kwargs)
 
     try:
         data.download(
@@ -162,6 +179,7 @@ def download_chip(
 
 def download_time_series(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     satellite: SatelliteABC,
     start_date: str | None,
@@ -187,6 +205,9 @@ def download_time_series(
     data_dir : Path
         Directory or file name to write the downloaded files to. If a directory,
         the default `satellite` name is used as a base name.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     satellite : SatelliteABC
@@ -233,6 +254,7 @@ def download_time_series(
     )
     tiler = Tiler()
     tracker = TileTracker(satellite, data_dir)
+
     with default_bar() as progress:
         tiles = list(
             tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
@@ -253,29 +275,73 @@ def download_time_series(
             total=len(tiles),
         )
 
-        for tile in tiles:
-            data_get_kwargs = (
-                dict(
-                    aoi=tile,
-                    start_date=start_date,
-                    end_date=end_date,
-                )
-                | satellite_get_kwargs
-            )
-            tile_path = tracker.get_path(tile, format=satellite_download_kwargs.get("format", None))
-            download_chip_ts(
-                satellite.get_time_series,
-                data_get_kwargs,
-                tile,
-                satellite,
-                resolution,
-                tile_path.with_name(tile_path.stem),
-                progress=progress,
-                selected_bands=selected_bands,
-                max_tile_size=max_tile_size,
-                **satellite_download_kwargs,
-            )
-            progress.update(overall_task, advance=1)
+        max_workers = min(len(ee_project_ids), 4) if isinstance(ee_project_ids, list) else 1
+        ee_project_ids_cycle = (
+            repeat(ee_project_ids) if isinstance(ee_project_ids, str) else cycle(ee_project_ids)
+        )
+        with mp.Manager() as manager:
+            log_queue: LogQueue = manager.Queue()
+            progress_queue = manager.Queue()
+            with (
+                LogQueueConsumer(log_queue) as _,
+                ProcessPoolExecutor(
+                    max_workers=max_workers,
+                    initializer=init_log_queue_for_children,
+                    initargs=(log_queue,),
+                ) as executor,
+            ):
+                futures = []
+                for ee_project_id, _ in zip(ee_project_ids_cycle, range(max_workers), strict=False):
+                    # hacky authentification for the pool processes
+                    executor.submit(auth_and_log, ee_project_id)
+                for tile in tiles:
+                    data_get_kwargs = (
+                        dict(
+                            aoi=tile,
+                            start_date=start_date,
+                            end_date=end_date,
+                        )
+                        | satellite_get_kwargs
+                    )
+                    tile_path = tracker.get_path(
+                        tile, format=satellite_download_kwargs.get("format", None)
+                    )
+                    future = executor.submit(
+                        download_chip_ts,
+                        satellite,
+                        data_get_kwargs,
+                        tile,
+                        resolution,
+                        tile_path,
+                        # progress=progress,
+                        selected_bands=selected_bands,
+                        max_tile_size=max_tile_size,
+                        progress_queue=progress_queue,
+                        **satellite_download_kwargs,
+                    )
+                    futures.append(future)
+
+                n_failures = 0
+                try:
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                        except Exception as e:
+                            n_failures += 1
+                            log.error(f"Download error: {e}")
+                            raise
+                        finally:
+                            progress.update(overall_task, advance=1)
+                except KeyboardInterrupt:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                    log.error(
+                        "Keyboard interrupt. "
+                        "Please wait while current download finish (up to a few minutes)."
+                    )
+                    raise
+                if n_failures > 0:
+                    raise DownloadError(f"Failed to download {n_failures} tiles.")
+
         if satellite.is_raster:
             _create_vrts(tracker)
     log.info(
@@ -285,6 +351,7 @@ def download_time_series(
 
 def download(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     satellite: SatelliteABC,
     start_date: str | None,
@@ -298,7 +365,6 @@ def download(
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
     filter_polygon: shapely.Geometry | None = None,
-    in_parallel: bool = False,
     max_workers: int = 1,
     tile_range: tuple[float, float] | None = None,
 ) -> None:
@@ -310,6 +376,9 @@ def download(
     data_dir : Path
         Directory or file name to write the downloaded files to. If a directory,
         the default `satellite` name is used as a base name.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     satellite : SatelliteABC
@@ -340,11 +409,8 @@ def download(
         Whether to check if the data is clean. Defaults to True.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    in_parallel : bool
-        Whether to send parallel download requests. Do not use if the download backend
-        is already threaded (e.g., :class:`geefetch.data.downloadable.geedim`). Defaults to False.
     max_workers : int
-        How many parallel workers are used in case `in_parallel` is True. Defaults to 10.
+        Number of parallel workers. Defaults to 10.
     tile_range: tuple[float, float] | None
         Start (inclusive) and end (exclusive) tile percentage to download,
         e.g. (0.5, 1.) will download the last half of all tiles.
@@ -379,52 +445,56 @@ def download(
             total=len(tiles),
         )
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = []
-            for tile in tiles:
-                data_get_kwargs = (
-                    dict(
-                        aoi=tile,
-                        start_date=start_date,
-                        end_date=end_date,
+        max_workers = (
+            max(len(ee_project_ids), max_workers)
+            if isinstance(ee_project_ids, list)
+            else max_workers
+        )
+        ee_project_ids_cycle = (
+            repeat(ee_project_ids) if isinstance(ee_project_ids, str) else cycle(ee_project_ids)
+        )
+        with mp.Manager() as manager:
+            log_queue: LogQueue = manager.Queue()
+            progress_queue = manager.Queue()
+            with (
+                LogQueueConsumer(log_queue) as _,
+                ProcessPoolExecutor(
+                    max_workers=max_workers,
+                    initializer=init_log_queue_for_children,
+                    initargs=(log_queue,),
+                ) as executor,
+            ):
+                futures = []
+                for ee_project_id, _ in zip(ee_project_ids_cycle, range(max_workers), strict=False):
+                    # hacky authentification for the pool processes
+                    executor.submit(auth_and_log, ee_project_id)
+                for tile in tiles:
+                    data_get_kwargs = (
+                        dict(
+                            aoi=tile,
+                            start_date=start_date,
+                            end_date=end_date,
+                        )
+                        | satellite_get_kwargs
                     )
-                    | satellite_get_kwargs
-                )
-                tile_path = tracker.get_path(
-                    tile, format=satellite_download_kwargs.get("format", None)
-                )
-                if not in_parallel:
-                    download_chip(
-                        satellite.get,
-                        data_get_kwargs,
-                        tile,
-                        satellite,
-                        resolution,
-                        tile_path,
-                        progress=progress,
-                        selected_bands=selected_bands,
-                        max_tile_size=max_tile_size,
-                        check_clean=check_clean,
-                        **satellite_download_kwargs,
+                    tile_path = tracker.get_path(
+                        tile, format=satellite_download_kwargs.get("format", None)
                     )
-                    progress.update(overall_task, advance=1)
-                else:
                     future = executor.submit(
                         download_chip,
-                        satellite.get,
+                        satellite,
                         data_get_kwargs,
                         tile,
-                        satellite,
                         resolution,
                         tile_path,
-                        progress=progress,
+                        # progress=progress,
                         selected_bands=selected_bands,
                         max_tile_size=max_tile_size,
                         check_clean=check_clean,
+                        progress_queue=progress_queue,
                         **satellite_download_kwargs,
                     )
                     futures.append(future)
-            if in_parallel:
                 n_failures = 0
                 try:
                     for future in as_completed(futures):
@@ -433,6 +503,7 @@ def download(
                         except Exception as e:
                             n_failures += 1
                             log.error(f"Download error: {e}")
+                            raise
                         finally:
                             progress.update(overall_task, advance=1)
                 except KeyboardInterrupt:
@@ -466,6 +537,7 @@ def download(
 
 def download_gedi(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -486,6 +558,9 @@ def download_gedi(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -522,6 +597,7 @@ def download_gedi(
     )
     download_func(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=GEDIraster(),
         start_date=start_date,
@@ -531,7 +607,6 @@ def download_gedi(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        in_parallel=True,
         max_workers=1,
         check_clean=False,
         filter_polygon=filter_polygon,
@@ -546,6 +621,7 @@ def download_gedi(
 
 def download_gedi_vector(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -564,6 +640,9 @@ def download_gedi_vector(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -590,6 +669,7 @@ def download_gedi_vector(
     """
     download(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=GEDIvector(),
         start_date=start_date,
@@ -599,7 +679,6 @@ def download_gedi_vector(
         tile_shape=tile_shape,
         resolution=resolution,
         filter_polygon=filter_polygon,
-        in_parallel=False,
         check_clean=False,
         satellite_download_kwargs={"format": format},
         tile_range=tile_range,
@@ -608,6 +687,7 @@ def download_gedi_vector(
 
 def download_s1(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -630,6 +710,9 @@ def download_s1(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -684,6 +767,7 @@ def download_s1(
         download_selected_bands = selected_bands
     download_func(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=S1(),
         start_date=start_date,
@@ -694,8 +778,7 @@ def download_s1(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         filter_polygon=filter_polygon,
-        in_parallel=True,
-        max_workers=1,
+        max_workers=3,
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
@@ -711,6 +794,7 @@ def download_s1(
 
 def download_s2(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -734,6 +818,9 @@ def download_s2(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -779,6 +866,7 @@ def download_s2(
     )
     download_func(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=S2(),
         start_date=start_date,
@@ -788,7 +876,6 @@ def download_s2(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        in_parallel=True,
         max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
@@ -806,6 +893,7 @@ def download_s2(
 
 def download_dynworld(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -827,6 +915,9 @@ def download_dynworld(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -867,6 +958,7 @@ def download_dynworld(
     )
     download_func(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=DynWorld(),
         start_date=start_date,
@@ -876,7 +968,6 @@ def download_dynworld(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        in_parallel=True,
         max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
@@ -892,6 +983,7 @@ def download_dynworld(
 
 def download_landsat8(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -913,6 +1005,9 @@ def download_landsat8(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -953,6 +1048,7 @@ def download_landsat8(
     )
     download_func(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=Landsat8(),
         start_date=start_date,
@@ -976,6 +1072,7 @@ def download_landsat8(
 
 def download_palsar2(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -999,6 +1096,9 @@ def download_palsar2(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -1044,6 +1144,7 @@ def download_palsar2(
     )
     download_func(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=Palsar2(),
         start_date=start_date,
@@ -1069,6 +1170,7 @@ def download_palsar2(
 
 def download_nasadem(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
@@ -1088,6 +1190,9 @@ def download_nasadem(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     selected_bands : list[str] | None
@@ -1123,6 +1228,7 @@ def download_nasadem(
         raise ValueError("Time series is not relevant for DEM.")
     download(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=NASADEM(),
         start_date=None,
@@ -1132,7 +1238,6 @@ def download_nasadem(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        in_parallel=True,
         max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
@@ -1148,6 +1253,7 @@ def download_nasadem(
 def download_custom(
     satellite_custom: CustomSatellite,
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -1170,6 +1276,9 @@ def download_custom(
     satellite_custom : CustomSatellite
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -1209,6 +1318,7 @@ def download_custom(
         raise ValueError("Time series is not relevant for Custom Satellites.")
     download(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=satellite_custom,
         start_date=start_date,
@@ -1218,7 +1328,6 @@ def download_custom(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        in_parallel=True,
         max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={

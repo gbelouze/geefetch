@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -29,8 +29,9 @@ class GEEConfig:
 
     Attributes
     ----------
-    ee_project_id : str
-        Your GEE id, to connect to the API.
+    ee_project_id : str | list[str]
+        One or more GEE project id, to connect to the API. More project ids allow `geefetch`
+        to process downloads in parallel.
 
         .. see also:: https://developers.google.com/earth-engine/apidocs/ee-initialize
     max_tile_size : int
@@ -39,7 +40,7 @@ class GEEConfig:
         Decrease if User Memory Excess Error, but choose highest possible otherwise. Defaults is 10.
     """
 
-    ee_project_id: str = "my-ee-project"
+    ee_project_ids: list[str] = field(default_factory=list)
     max_tile_size: int = 10
 
 
@@ -246,7 +247,16 @@ class NASADEMConfig(SatelliteDefaultConfig):
 
 @dataclass
 class CustomSatelliteConfig(SatelliteDefaultConfig):
-    """The structured type for configuring a custom GEE dataset source."""
+    """The structured type for configuring a custom GEE dataset source.
+
+    Attributes
+    ----------
+    url : str
+        The Google Earth Engine id to access the satellite. Example: "NASA/NASADEM_HGT/001"
+    pixel_range : tuple[float, float]
+        The (min, max) range of pixel values. Used to normalize the custom satellite data.
+
+    """
 
     url: str = "unknown"
     pixel_range: tuple[float, float] = (-1, -1)
