@@ -86,8 +86,8 @@ S1 images can be preprocessed with terrain flattening algorithms. See the table 
 |Parameter|Type|Accepted Values|Description|
 |-----------|-------|-------|------|
 |dem |string | The GEE snippet of any DEM dataset |Digital elevation Model used for terrain corrections.
-| terrain_flattening_model|string|'VOLUME', 'DIRECT'| The flattening model to be used.|
-| terrain_flattening_additional_layover_shadow_buffer|integer|$i\in\R+$| Layover and shadow buffer distance.|
+| flattening_model|string|'VOLUME', 'DIRECT'| The flattening model to be used.|
+| layover_shadow_buffer|integer|$i\in\R+$| Layover and shadow buffer distance.|
 
 If not specified, **terrain normalization** will be implemented by default with the following configuration:
 ```yaml
@@ -108,10 +108,12 @@ S1 images can be preprocessed with speckle filtering. See the table bellow for t
 
 | Parameter                                         | Type  | Accepted Values | Description |
 |---------------------------------------------------|-------|-------------|-----|
-|speckle_filter_framework                           |string | 'MONO', 'MULTI'| Whether the speckle filter will be applied on a single image or to a termporal stack of images neighboring each image in the filtered collection|
-|speckle_filter_nr_of_images                        |integer|     $i\in\mathbb{}R+$         | The number of images to be used by the multi temporal speckle filter framework
-|speckle_filter                                     |string | 'BOXCAR', 'LEE', 'REFINED LEE', 'LEE SIGMA', 'GAMMA MAP'| The name of the speckle filter to use|
-|speckle_filter_kernel_size                         |integer|     {$i\in\mathbb{}R+\mid i//2\neq0$}         | Size of the kernel that will be used to convolv the images.
+|framework                           |string | 'MONO', 'MULTI'| Whether the speckle filter will be applied on a single image or to a termporal stack of images neighboring each image in the filtered collection|
+|nr_of_images                        |integer|     $i\in\mathbb{}R+$         | The number of images to be used by the multi temporal speckle filter framework
+|filter_name                                     |string | 'BOXCAR', 'LEE', 'REFINED LEE', 'LEE SIGMA', 'GAMMA MAP'| The name of the speckle filter to use|
+|kernel_size                         |integer|     {$i\in\mathbb{}R+\mid i//2\neq0$}         | Size of the kernel that will be used to convolv the images.
+
+By default, speckle filtering isn't applied.
 
 More detail on the filters and conventions [here](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Speckle_Filters.md).
 
