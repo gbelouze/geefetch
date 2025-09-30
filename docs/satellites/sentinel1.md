@@ -91,7 +91,7 @@ S1 images can be preprocessed with terrain flattening algorithms. See the table 
 
 If not specified, **terrain normalization** will be implemented by default with the following configuration:
 ```yaml
-terrain_normalization_config:
+terrain_normalization:
   model: "VOLUME"
   layover_shadow_buffer: 3
   dem: "USGS/SRTMGL1_003"
