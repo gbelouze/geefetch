@@ -1,6 +1,7 @@
 import logging
 import math
 import multiprocessing as mp
+import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import cycle, repeat
 from multiprocessing.queues import Queue
@@ -90,6 +91,11 @@ class BadDataError(Exception):
 
 def auth_and_log(ee_project_id: str) -> None:
     auth(ee_project_id)
+
+    # to make sure there are no race condition for the attribution of authentification id to 
+    # the processes, see how `auth_and_log` is called
+    time.sleep(1)
+
     log.info(f"Process {getpid()} authentified with {ee_project_id}")
 
 
@@ -275,7 +281,7 @@ def download_time_series(
             total=len(tiles),
         )
 
-        max_workers = min(len(ee_project_ids), 4) if isinstance(ee_project_ids, list) else 1
+        max_workers = len(ee_project_ids) if isinstance(ee_project_ids, list) else 1
         ee_project_ids_cycle = (
             repeat(ee_project_ids) if isinstance(ee_project_ids, str) else cycle(ee_project_ids)
         )
@@ -365,7 +371,6 @@ def download(
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
     filter_polygon: shapely.Geometry | None = None,
-    max_workers: int = 1,
     tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download images from a specific satellite. Images are written in several .tif chips
@@ -409,8 +414,6 @@ def download(
         Whether to check if the data is clean. Defaults to True.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
-    max_workers : int
-        Number of parallel workers. Defaults to 10.
     tile_range: tuple[float, float] | None
         Start (inclusive) and end (exclusive) tile percentage to download,
         e.g. (0.5, 1.) will download the last half of all tiles.
@@ -445,11 +448,7 @@ def download(
             total=len(tiles),
         )
 
-        max_workers = (
-            max(len(ee_project_ids), max_workers)
-            if isinstance(ee_project_ids, list)
-            else max_workers
-        )
+        max_workers = len(ee_project_ids) if isinstance(ee_project_ids, list) else 1
         ee_project_ids_cycle = (
             repeat(ee_project_ids) if isinstance(ee_project_ids, str) else cycle(ee_project_ids)
         )
@@ -607,7 +606,6 @@ def download_gedi(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        max_workers=1,
         check_clean=False,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
@@ -778,7 +776,6 @@ def download_s1(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         filter_polygon=filter_polygon,
-        max_workers=3,
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
@@ -876,7 +873,6 @@ def download_s2(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -968,7 +964,6 @@ def download_dynworld(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -1238,7 +1233,6 @@ def download_nasadem(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,
@@ -1328,7 +1322,6 @@ def download_custom(
         resolution=resolution,
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
-        max_workers=1,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
             "composite_method": composite_method,

@@ -287,33 +287,35 @@ class DownloadableGeedimImageCollection(DownloadableABC):
         if not out.is_dir():
             raise ValueError(f"Path {out} was expected to be a directory.")
 
-        with ExitStack() as stack:
-            if progress is None:
-                progress = stack.enter_context(default_bar())
-            task = progress.add_task(
+        task = (
+            progress.add_task(
                 f"[magenta]Downloading time series to [cyan]{out}[/]",
                 total=len(self.id_to_images),
             )
-            for id_, image in self.id_to_images.items():
-                if not re.fullmatch(DownloadableGeedimImageCollection.IMAGE_ID_REGEXP, id_):
-                    raise ValueError(
-                        f"Image id {id_} is not valid "
-                        "(should be alphanumeric, optionally using underscores/dashes)."
-                    )
-                dst_path = out / f"{id_}.tif"
-                if dst_path.exists():
-                    log.debug(f"Found existing {dst_path}. Skipping download.")
-                    continue
-                image.download(
-                    dst_path,
-                    region=region.to_ee_geometry(),
-                    crs=f"EPSG:{crs.to_epsg()}",
-                    bands=bands,
-                    max_tile_size=max_tile_size,
-                    num_threads=num_threads,
-                    scale=scale,
-                    dtype=dtype,
-                    progress=progress,
+            if progress is not None
+            else None
+        )
+        for id_, image in self.id_to_images.items():
+            if not re.fullmatch(DownloadableGeedimImageCollection.IMAGE_ID_REGEXP, id_):
+                raise ValueError(
+                    f"Image id {id_} is not valid "
+                    "(should be alphanumeric, optionally using underscores/dashes)."
                 )
-                log.debug(f"Downloaded image to {dst_path}.")
+            dst_path = out / f"{id_}.tif"
+            if dst_path.exists():
+                log.debug(f"Found existing {dst_path}. Skipping download.")
+                continue
+            image.download(
+                dst_path,
+                region=region.to_ee_geometry(),
+                crs=f"EPSG:{crs.to_epsg()}",
+                bands=bands,
+                max_tile_size=max_tile_size,
+                num_threads=num_threads,
+                scale=scale,
+                dtype=dtype,
+                progress=progress,
+            )
+            log.debug(f"Downloaded image to {dst_path}.")
+            if progress is not None:
                 progress.advance(task)

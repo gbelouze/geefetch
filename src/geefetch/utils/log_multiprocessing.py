@@ -33,13 +33,14 @@ Example
 """
 
 import logging
+import os
 import threading
 import time
 from multiprocessing.queues import Queue
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 if TYPE_CHECKING:
-    LogQueue: TypeAlias = Queue[tuple[str, int, str]]  # logger name, level, message
+    LogQueue: TypeAlias = Queue[tuple[int, str, int, str]]  # pid, logger name, level, message
 else:
     LogQueue: TypeAlias = Queue
 
@@ -58,7 +59,7 @@ class QueueLogger(logging.Logger):
 
     def _log_to_queue_or_local(self, level: int, msg: str, *args: Any, **kwargs: Any) -> None:
         if log_queue is not None:
-            log_queue.put((self.name, level, msg % args if args else msg))
+            log_queue.put((os.getpid(), self.name, level, msg % args if args else msg))
         else:
             super().log(level, msg, *args, **kwargs)
 
@@ -127,7 +128,7 @@ class LogQueueConsumer:
     def _drain(self) -> None:
         while not self.queue.empty():
             try:
-                logger_name, level, msg = self.queue.get_nowait()
-                logging.getLogger(logger_name).log(level, msg)
+                process_pid, logger_name, level, msg = self.queue.get_nowait()
+                logging.getLogger(logger_name).log(level, f"[PID={process_pid}] {msg}")
             except Exception:
                 break
