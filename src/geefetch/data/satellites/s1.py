@@ -135,6 +135,8 @@ class S1(SatelliteABC):
         selected_bands: list[str] | None = None,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 10,
+        speckle_filter_config: SpeckleFilterConfig | None = None,
+        terrain_normalization_config: TerrainNormalizationConfig | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Sentinel-1 images.
@@ -157,6 +159,8 @@ class S1(SatelliteABC):
             The resampling method to use when compositing images.
         resolution: float
             The resolution for the image.
+        speckle_filter_config : SpeckleFilterConfig | None
+        terrain_normalization_config : TerrainNormalizationConfig | None
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -169,9 +173,8 @@ class S1(SatelliteABC):
             if key not in ("speckle_filter_config", "terrain_normalization_config"):
                 log.warning(f"Argument {key} is ignored.")
 
-        self.speckle_filter_config = kwargs.get("speckle_filter_config")
-        self.terrain_normalization_config = kwargs.get("terrain_normalization_config")
-
+        self.speckle_filter_config = speckle_filter_config
+        self.terrain_normalization_config = terrain_normalization_config
         if orbit == S1Orbit.AS_BANDS:
             raise ValueError("Orbit AS_BANDS is not permitted for downloading time series.")
         s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
@@ -213,6 +216,8 @@ class S1(SatelliteABC):
         selected_bands: list[str] | None = None,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 10,
+        speckle_filter_config: SpeckleFilterConfig | None = None,
+        terrain_normalization_config: TerrainNormalizationConfig | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Sentinel-1 images.
@@ -237,6 +242,8 @@ class S1(SatelliteABC):
             The resampling method to use when compositing images.
         resolution: float
             The resolution for the image.
+        speckle_filter_config : SpeckleFilterConfig | None
+        terrain_normalization_config : TerrainNormalizationConfig | None
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -248,8 +255,9 @@ class S1(SatelliteABC):
         for key in kwargs:
             if key not in ("speckle_filter_config", "terrain_normalization_config"):
                 log.warning(f"Argument {key} is ignored.")
-        self.speckle_filter_config = kwargs.get("speckle_filter_config")
-        self.terrain_normalization_config = kwargs.get("terrain_normalization_config")
+
+        self.speckle_filter_config = speckle_filter_config
+        self.terrain_normalization_config = terrain_normalization_config
 
         def get_im(orbit: S1Orbit) -> Image:
             s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
