@@ -17,7 +17,7 @@ satellite_default:
     country: France
   gee:
     ee_project_id: your-gee-id
-    max_tile_size: 5
+    max_tile_size: 0.5
 gedi:
   aoi:
     temporal:
