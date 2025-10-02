@@ -50,46 +50,15 @@ def rangeContains(band: Image, mini: int | float, maxi: int | float) -> Image:
     return band.gte(mini).And(band.lte(maxi))
 
 
-def qualityFilter(strict: bool = False) -> Filter:
-    filter = Filter.And(
-        Filter.rangeContains("rh98", 0, 80),
-        Filter.eq("quality_flag", 1),
-        Filter.eq("degrade_flag", 0),
-        Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
-        Filter.eq("elevation_bias_flag", 0),
-        Filter.gte("sensitivity", 0.98),
-    )
-
-    if strict:
-        filter = Filter.And(
-            filter,
-            Filter.Or(
-                Filter.rangeContains("solar_azimuth", 70, 120),
-                Filter.rangeContains("solar_azimuth", 240, 290),
-            ),
-            Filter.lte("solar_elevation", -10),
-            Filter.gte("energy_total", 5_000),
-        )
-    return filter  # type: ignore[no-any-return]
-
-
 def relaxedQualityFilter() -> Filter:
     filter = Filter.And(
         Filter.rangeContains("rh98", 0, 80),
         Filter.eq("quality_flag", 1),
         Filter.eq("degrade_flag", 0),
         Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
-        Filter.eq("elevation_bias_flag", 0),
-        Filter.Or(
-            Filter.And(
-                Filter.rangeContains("rh98", 0, 5.0),
-                Filter.gte("sensitivity", 0.9),
-            ),
-            Filter.And(
-                Filter.rangeContains("rh98", 5, 80),
-                Filter.gte("sensitivity", 0.97),
-            ),
-        ),
+        Filter.lte("solar_elevation", 0),
+        Filter.gte("sensitivity", 0.9),
+        Filter.rangeContains("rh100", 0, 80),
     )
     return filter  # type: ignore[no-any-return]
 
