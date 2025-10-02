@@ -65,18 +65,18 @@ class S2(SatelliteABC):
     @property
     def pixel_range(self):
         return {
-            "B1": (0, 3000),  # Coastal aerosol
-            "B2": (0, 3000),  # Blue
-            "B3": (0, 3000),  # Green
-            "B4": (0, 3000),  # Red
-            "B5": (0, 3000),  # Red Edge 1
-            "B6": (0, 3000),  # Red Edge 2
-            "B7": (0, 3000),  # Red Edge 3
-            "B8": (0, 3000),  # NIR
-            "B8A": (0, 3000),  # Narrow NIR
-            "B9": (0, 3000),  # Water vapor
-            "B11": (0, 3000),  # SWIR 1
-            "B12": (0, 3000),  # SWIR 2
+            "B1": (0, 900),  # Coastal aerosol
+            "B2": (0, 1800),  # Blue
+            "B3": (0, 1800),  # Green
+            "B4": (0, 1800),  # Red
+            "B5": (0, 1800),  # Red Edge 1
+            "B6": (0, 3600),  # Red Edge 2
+            "B7": (0, 3600),  # Red Edge 3
+            "B8": (0, 5400),  # NIR
+            "B8A": (0, 5400),  # Narrow NIR
+            "B9": (0, 5400),  # Water vapor
+            "B11": (0, 3600),  # SWIR 1
+            "B12": (0, 3600),  # SWIR 2
             "QA60": (0, 1),  # Cloud mask (binary)
             "AOT": (0, 3000),  # Aerosol Optical Thickness
             "WVP": (0, 20000),  # Water Vapor Pressure (scaled)
