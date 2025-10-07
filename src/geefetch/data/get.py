@@ -92,7 +92,7 @@ class BadDataError(Exception):
 def auth_and_log(ee_project_id: str) -> None:
     auth(ee_project_id)
 
-    # to make sure there are no race condition for the attribution of authentification id to 
+    # to make sure there are no race condition for the attribution of authentification id to
     # the processes, see how `auth_and_log` is called
     time.sleep(1)
 
@@ -1323,6 +1323,7 @@ def download_custom(
         tile_shape=tile_shape,
         max_tile_size=max_tile_size,
         filter_polygon=filter_polygon,
+        check_clean=False,
         satellite_get_kwargs={
             "composite_method": composite_method,
             "dtype": dtype,
