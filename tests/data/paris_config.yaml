@@ -23,6 +23,11 @@ gedi:
     temporal:
       start_date: 2020-07-01
       end_date: 2020-07-31
+gedi_l2b:
+  aoi:
+    temporal:
+      start_date: 2020-07-01
+      end_date: 2020-07-31
 palsar2:
   aoi:
     temporal:

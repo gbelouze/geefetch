@@ -181,6 +181,18 @@ class GediConfig(SatelliteDefaultConfig):
 
 
 @dataclass
+class GediL2BConfig(SatelliteDefaultConfig):
+    """The structured type for configuring GEDI.
+    Attributes
+    ----------
+    format : Format
+        Filetype for downloading vector GEDI. Defaults to Format.PARQUET
+    """
+
+    format: Format = Format.PARQUET
+
+
+@dataclass
 class TerrainNormalizationConfig:
     """The structured type to configure terrain normalization
 
@@ -341,6 +353,8 @@ class GeefetchConfig:
         Default satellite configuration.
     gedi : GediConfig
         GEDI specific configuration / variation to the default.
+    gedi_l2b : GediL2BConfig
+        GEDI L2B specific configuration / variation to the default.
     s1 : S1Config
         Sentinel-1 specific configuration / variation to the default.
     s2 : S2Config
@@ -360,6 +374,7 @@ class GeefetchConfig:
     data_dir: Path
     satellite_default: SatelliteDefaultConfig
     gedi: GediConfig
+    gedi_l2b: GediL2BConfig
     s1: S1Config
     s2: S2Config
     dynworld: DynWorldConfig
@@ -392,6 +407,11 @@ def _post_omegaconf_load(config: DictConfig | ListConfig) -> None:
         OmegaConf.structured(GediConfig),
         config.satellite_default,
         config.gedi if "gedi" in config else {},
+    )
+    config.gedi_l2b = OmegaConf.merge(
+        OmegaConf.structured(GediL2BConfig),
+        config.satellite_default,
+        config.gedi_l2b if "gedi_l2b" in config else {},
     )
     config.s1 = OmegaConf.merge(
         OmegaConf.structured(S1Config),

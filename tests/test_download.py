@@ -12,6 +12,7 @@ from geefetch.cli.download_implementation import (
     download_custom,
     download_dynworld,
     download_gedi,
+    download_gedi_l2b,
     download_landsat8,
     download_nasadem,
     download_palsar2,
@@ -88,6 +89,9 @@ def paris_config_selected_bands_path(
     )
     raw_paris_config["gedi"] = {"selected_bands": ["rh95", "rh98"]} | dict(
         raw_paris_config.get("gedi", {})
+    )
+    raw_paris_config["gedi_l2b"] = {"selected_bands": ["pai", "cover_z0", "cover_z29"]} | dict(
+        raw_paris_config.get("gedi_l2b", {})
     )
 
     conf_path = tmp_path / "config.yaml"
@@ -207,6 +211,27 @@ class TestDownloadGedi:
         downloaded_path = next(iter((Path(conf.data_dir) / "gedi_vector").glob("gedi_*.parquet")))
         gdf = gpd.read_parquet(downloaded_path)
         assert gdf.columns.to_list() == ["id", "rh95", "rh98", "geometry"]
+
+
+class TestDownloadGediL2B:
+    def test_download_gedi_l2b_vector(self, paris_config_path: Path):
+        download_gedi_l2b(paris_config_path)
+        conf = load(paris_config_path)
+        downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.parquet")))
+        assert len(downloaded_files) == 2
+        assert downloaded_files[0].parts[-2:] == (
+            "gedi_l2b_vector",
+            "gedi_l2b_vector_EPSG2154_650000_6860000.parquet",
+        )
+
+    def test_select_bands_gedi_l2b_vector(self, paris_config_selected_bands_path: Path):
+        download_gedi_l2b(paris_config_selected_bands_path)
+        conf = load(paris_config_selected_bands_path)
+        downloaded_path = next(
+            iter((Path(conf.data_dir) / "gedi_l2b_vector").glob("gedi_*.parquet"))
+        )
+        gdf = gpd.read_parquet(downloaded_path)
+        assert gdf.columns.to_list() == ["id", "cover_z0", "cover_z29", "pai", "geometry"]
 
 
 @pytest.mark.slow

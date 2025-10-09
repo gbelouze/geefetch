@@ -3,6 +3,7 @@ from .custom import CustomSatellite
 from .dem import NASADEM
 from .dynworld import DynWorld
 from .gedi import GEDIraster, GEDIvector
+from .gedi_2lb import GEDIL2Bvector
 from .landsat8 import Landsat8
 from .palsar2 import Palsar2
 from .s1 import S1
@@ -13,6 +14,7 @@ __all__ = [
     "DynWorld",
     "GEDIraster",
     "GEDIvector",
+    "GEDIL2Bvector",
     "Landsat8",
     "NASADEM",
     "Palsar2",
