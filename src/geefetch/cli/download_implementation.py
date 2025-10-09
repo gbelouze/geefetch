@@ -141,6 +141,47 @@ def download_gedi(config_path: Path, vector: bool) -> None:
         )
 
 
+def download_gedi_l2b(config_path: Path) -> None:
+    "Download GEDI L2B images."
+    config = load(config_path)
+    if config.gedi_l2b is None:
+        raise RuntimeError(
+            """
+            GEDI L2B is not configured. Pass `gedi_l2b: {}
+            ` in the config file to use `satellite_default`.
+            """
+        )
+    data_dir = Path(config.data_dir)
+    auth(config.gedi_l2b.gee.ee_project_id)
+    bounds = config.gedi_l2b.aoi.spatial.as_bbox()
+    if config.gedi_l2b.selected_bands is None:
+        config.gedi_l2b.selected_bands = satellites.GEDIvector().default_selected_bands
+    save_config(config.gedi_l2b, config.data_dir / "gedi_l2b_vector")
+    data.get.download_gedi_l2b_vector(
+        data_dir,
+        bounds,
+        config.gedi_l2b.aoi.temporal.start_date
+        if config.gedi_l2b.aoi.temporal is not None
+        else None,
+        config.gedi_l2b.aoi.temporal.end_date if config.gedi_l2b.aoi.temporal is not None else None,
+        config.gedi_l2b.selected_bands,
+        crs=(
+            CRS.from_epsg(config.gedi_l2b.aoi.spatial.epsg)
+            if config.gedi_l2b.aoi.spatial.epsg != 4326
+            else None
+        ),
+        resolution=config.gedi_l2b.resolution,
+        tile_shape=config.gedi_l2b.tile_size,
+        filter_polygon=(
+            None
+            if config.gedi_l2b.aoi.country is None
+            else load_country_filter_polygon(config.gedi_l2b.aoi.country)
+        ),
+        format=config.gedi_l2b.format,
+        tile_range=config.gedi_l2b.tile_range,
+    )
+
+
 def download_s1(config_path: Path) -> None:
     "Download Sentinel-1 images."
     config = load(config_path)
@@ -464,6 +505,9 @@ def download_all(config_path: Path) -> None:
     if hasattr(config, "gedi"):
         log.info("Downloading GEDI data.")
         download_gedi(config_path, vector=True)
+    if hasattr(config, "gedi_l2b"):
+        log.info("Downloading GEDI L2B data.")
+        download_gedi_l2b(config_path)
     if hasattr(config, "dynworld"):
         log.info("Downloading Dynamic World data.")
         download_dynworld(config_path)

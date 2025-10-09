@@ -47,6 +47,7 @@ from .satellites import (
     S2,
     CustomSatellite,
     DynWorld,
+    GEDIL2Bvector,
     GEDIraster,
     GEDIvector,
     Landsat8,
@@ -460,6 +461,68 @@ def download_gedi_vector(
         filter_polygon=filter_polygon,
         check_clean=False,
         satellite_download_kwargs={"format": format},
+    )
+
+
+def download_gedi_l2b_vector(
+    data_dir: Path,
+    bbox: GeoBoundingBox,
+    start_date: str | None,
+    end_date: str | None,
+    selected_bands: list[str] | None = None,
+    crs: CRS | None = None,
+    tile_shape: int = 500,
+    resolution: int = 10,
+    filter_polygon: shapely.Geometry | None = None,
+    format: Format = Format.CSV,
+    tile_range: tuple[float, float] | None = None,
+) -> None:
+    """Download GEDI vector points. Points are written in several .geojson files
+    to `data_dir`.
+
+    Parameters
+    ----------
+    data_dir : Path
+        Directory to write the downloaded files to.
+    bbox : GeoBoundingBox
+        The box defining the region of interest.
+    start_date : str | None
+        The start date of the time period of interest.
+    end_date : str | None
+        The end date of the time period of interest.
+    selected_bands : list[str] | None
+        The bands to download. If None, the default satellite bands are used.
+    crs : CRS | None
+        The CRS in which to download data. If None, AOI is split in UTM zones and
+        data is downloaded in their local UTM zones. Defaults to None.
+    tile_shape : int
+        Side length of a downloaded chip, in pixels. Defaults to 500.
+    resolution : int
+        Resolution of the downloaded data, in meters. Defaults to 10.
+    filter_polygon : shapely.Geometry | None
+        More fine-grained AOI than `bbox`. Defaults to None.
+    format : Format
+        Format in which to save the vector points. Defaults to Format.CSV.
+    tile_range: tuple[float, float] | None
+        Start (inclusive) and end (exclusive) tile percentage to download,
+        e.g. (0.5, 1.) will download the last half of all tiles.
+        If None, all tiles are downloaded. Defaults to None.
+    """
+    download(
+        data_dir=data_dir,
+        bbox=bbox,
+        satellite=GEDIL2Bvector(),
+        start_date=start_date,
+        end_date=end_date,
+        selected_bands=selected_bands,
+        crs=crs,
+        tile_shape=tile_shape,
+        resolution=resolution,
+        filter_polygon=filter_polygon,
+        in_parallel=False,
+        check_clean=False,
+        satellite_download_kwargs={"format": format},
+        tile_range=tile_range,
     )
 
 

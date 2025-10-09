@@ -57,6 +57,15 @@ def gedi(config, vector):
 
 @main.command()
 @config_option
+def gedi_l2b(config):
+    """Download GEDI L2B images."""
+    from .download_implementation import download_gedi_l2b
+
+    download_gedi_l2b(config)
+
+
+@main.command()
+@config_option
 def s1(config):
     """Download Sentinel-1 images."""
     from .download_implementation import download_s1
