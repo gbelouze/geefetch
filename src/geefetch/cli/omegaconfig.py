@@ -1,12 +1,19 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
 
-from geefetch.utils.enums import CompositeMethod, DType, Format, P2Orbit, ResamplingMethod, S1Orbit
+from geefetch.utils.enums import (
+    CompositeMethod,
+    DType,
+    Format,
+    P2Orbit,
+    ResamplingMethod,
+    S1Orbit,
+)
 
 __all__ = [
     "GeefetchConfig",
@@ -177,6 +184,49 @@ class GediConfig(SatelliteDefaultConfig):
 
 
 @dataclass
+class TerrainNormalizationConfig:
+    """The structured type to configure terrain normalization
+
+    Attributes
+    ----------
+    flattening_model : str
+        The radiometric terrain normalization model, either VOLUME or DIRECT
+    layover_shadow_buffer :  int
+        The additional buffer to account for the passive layover and shadow
+    dem : str
+        Digital elevation Model used for terrain corrections
+    """
+
+    flattening_model: str = "VOLUME"
+    layover_shadow_buffer: int = 3
+    dem: str = "USGS/SRTMGL1_003"
+
+
+@dataclass
+class SpeckleFilterConfig:
+    """The structured type for configuring speckle
+    Speckle filter configuration to apply to Sentinel-1
+
+    Attributes
+    ----------
+    framework : str
+        MONO for mono temporal filtering, MULTI for multi temporal.
+    filter_name : str
+        Name of the filter to use. BOXCAR, LEE, REFINED LEE, LEE SIGMA, GAMMA MAP.
+    kernel_size : int
+        Size of the filter kernel.
+    nr_of_images : int
+        If the MULTI framework is used, it will use this number of
+        temporal neighbouring images per filtered image.
+    """
+
+    framework: str = "MONO"
+    filter_name: str = "BOXCAR"
+    kernel_size: int = 3
+    nr_of_images: int = 10
+
+
+@dataclass
 class S1Config(SatelliteDefaultConfig):
     """The structured type for configuring Sentinel-1.
 
@@ -187,10 +237,24 @@ class S1Config(SatelliteDefaultConfig):
         Can be ASCENDING, DESCENDING, BOTH, or AS_BANDS
         to download ascending and descending composites as separate bands.
         Defaults to BOTH.
+    speckle_filter : SpeckleFilterConfig | Literal["default"] | None
+        Configuration dataclass for speckle filtering, or None for no speckle filtering.
+        Can also be "default" to use baseline speckle filtering parameters.
+        Defaults to None.
+    terrain_normalization : TerrainNormalizationConfig | Literal["default"] | None
+        Configuration dataclass for terrain normalization, or None for no terrain normalization.
+        Defaults to "default" which uses baseline terrain normalization parameters.
     """
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
     orbit: S1Orbit = S1Orbit.BOTH
+    speckle_filter: SpeckleFilterConfig | Literal["default"] | None = None
+    terrain_normalization: TerrainNormalizationConfig | Literal["default"] | None = "default"
+
+
+# using Any while https://github.com/omry/omegaconf/issues/144 is open
+S1Config.__annotations__["speckle_filter"] = Any
+S1Config.__annotations__["terrain_normalization"] = Any
 
 
 @dataclass
@@ -328,6 +392,28 @@ def _post_omegaconf_load(config: DictConfig | ListConfig) -> None:
         config.satellite_default,
         config.s1 if "s1" in config else {},
     )
+
+    # we have to convert Any typed fields ourselves, while
+    # https://github.com/omry/omegaconf/issues/144 is open
+    match config.s1.terrain_normalization:
+        case "default":
+            config.s1.terrain_normalization = TerrainNormalizationConfig()
+        case None:
+            config.s1.terrain_normalization = None
+        case _:
+            config.s1.terrain_normalization = OmegaConf.merge(
+                OmegaConf.structured(TerrainNormalizationConfig), config.s1.terrain_normalization
+            )
+    match config.s1.speckle_filter:
+        case "default":
+            config.s1.speckle_filter = TerrainNormalizationConfig()
+        case None:
+            config.s1.speckle_filter = None
+        case _:
+            config.s1.speckle_filter = OmegaConf.merge(
+                OmegaConf.structured(SpeckleFilterConfig), config.s1.speckle_filter
+            )
+
     config.s2 = OmegaConf.merge(
         OmegaConf.structured(S2Config),
         config.satellite_default,

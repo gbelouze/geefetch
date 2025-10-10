@@ -31,6 +31,11 @@ palsar2:
   orbit: DESCENDING
 s1:
   orbit: ASCENDING
+  terrain_normalization:
+    dem: 'USGS/SRTMGL1_003'
+    flattening_model: 'DIRECT'
+    layover_shadow_buffer: 0
+
 customs:
   chm_pauls:
     url: projects/worldwidemap/assets/canopyheight2020

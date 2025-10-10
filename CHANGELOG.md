@@ -16,6 +16,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Generic `resample_reproject_clip` method to ensure that operations done in correct order (according to GEE docs) [c4c37626](https://github.com/gbelouze/geefetch/commit/c4c3762623901dd1fa4f32fe3e5d99e4b2dc4b98)
 - Choose to apply refined lee filter to PALSAR-2 images [ac50c1e3](https://github.com/gbelouze/geefetch/commit/ac50c1e324a4f30d423895d87d963f365b4ad093)
 - Allow choice of resampling method for downloaded images [7c3da39f](https://github.com/gbelouze/geefetch/commit/7c3da39f5504baa2535bc8936dab33f767ade193)
+- 2 New data classes to configure speckle filtering and terrain flattening for s1 images [9a2cc37](https://github.com/gbelouze/geefetch/commit/9a2cc3782e4016c6e609ec68b17a1ad986d3db5b). This was done via the added dependency to [gee_s1_processing](https://github.com/LSCE-forest/gee_s1_processing) which is a fork of [gee_s1_ard](https://github.com/adugnag/gee_s1_ard)
 
 ### Changed
 
