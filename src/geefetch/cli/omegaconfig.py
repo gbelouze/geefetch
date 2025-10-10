@@ -239,7 +239,8 @@ class S1Config(SatelliteDefaultConfig):
         Defaults to BOTH.
     speckle_filter : SpeckleFilterConfig | Literal["default"] | None
         Configuration dataclass for speckle filtering, or None for no speckle filtering.
-        Defaults to "default" which uses baseline speckle filtering parameters.
+        Can also be "default" to use baseline speckle filtering parameters.
+        Defaults to None.
     terrain_normalization : TerrainNormalizationConfig | Literal["default"] | None
         Configuration dataclass for terrain normalization, or None for no terrain normalization.
         Defaults to "default" which uses baseline terrain normalization parameters.
@@ -247,7 +248,7 @@ class S1Config(SatelliteDefaultConfig):
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
     orbit: S1Orbit = S1Orbit.BOTH
-    speckle_filter: SpeckleFilterConfig | Literal["default"] | None = "default"
+    speckle_filter: SpeckleFilterConfig | Literal["default"] | None = None
     terrain_normalization: TerrainNormalizationConfig | Literal["default"] | None = "default"
 
 
