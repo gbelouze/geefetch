@@ -148,9 +148,6 @@ class SatelliteDefaultConfig:
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
-    tile_range : tuple[float, float] | None
-        Start and end tile percentage to download, e.g., (0.66, 1.) to download the last
-        third of all tiles. If None, all tiles are downloaded. Defaults to None.
     """
 
     aoi: AOIConfig
@@ -161,7 +158,6 @@ class SatelliteDefaultConfig:
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
     selected_bands: list[str] | None = None
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR
-    tile_range: tuple[float, float] | None = None
 
 
 @dataclass
