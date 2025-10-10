@@ -27,17 +27,17 @@ Refer to [`COPERNICUS/S1_GRD`](https://developers.google.com/earth-engine/datase
 
 ## Configuration Options
 
-See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-1-specific configuration. Additionnally, you may provide the following options.
+See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-1-specific configuration. Additionally, you may provide the following options.
 
 ::: geefetch.cli.omegaconfig.S1Config
 
     options:
-        show_source: false
-        show_signature: false
-        show_category_heading: false
-        show_docstring_description: false
-        show_bases: false
-        show_root_toc_entry: false
+      show_source: false
+      show_signature: false
+      show_category_heading: false
+      show_docstring_description: false
+      show_bases: false
+      show_root_toc_entry: false
 
 ## Example Usage
 
@@ -64,6 +64,15 @@ satellite_default:
   resolution: 10
 s1:
   orbit: ASCENDING
+  speckle_filter:
+    framework: "MONO"
+    filter_name: "BOXCAR"
+    kernel_size: 3
+    nr_of_images: 10
+  terrain_normalization:
+    flattening_model: "DIRECT"
+    layover_shadow_buffer: 0
+    dem: "USGS/SRTMGL1_003"
 ```
 
 then download with
@@ -71,6 +80,60 @@ then download with
 ```bash
 geefetch s1 -c config.yaml
 ```
+
+### Terrain Normalization
+
+S1 images can be preprocessed with terrain flattening algorithms. See the table below for the possible configurations.
+
+| Parameter             | Type    | Accepted Values                    | Description                                           |
+| --------------------- | ------- | ---------------------------------- | ----------------------------------------------------- |
+| dem                   | string  | The GEE snippet of any DEM dataset | Digital elevation Model used for terrain corrections. |
+| flattening_model      | string  | 'VOLUME', 'DIRECT'                 | The flattening model to be used.                      |
+| layover_shadow_buffer | integer | $i\in\mathbb{N}$                   | Layover and shadow buffer distance.                   |
+
+By default, **terrain normalization** will be implemented with the following configuration:
+
+```yaml
+terrain_normalization:
+  model: "VOLUME"
+  layover_shadow_buffer: 3
+  dem: "USGS/SRTMGL1_003"
+```
+
+which is equivalent to passing `terrain_normalization: default`.
+
+If you do not want any terrain normalization done you can explicitly deactivate it by setting the following:
+
+```yaml
+s1:
+  terrain_normalization: null
+```
+
+More detail on the functions and conventions [here](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Terrain_Normalization.md).
+
+### Speckle Filters
+
+S1 images can be preprocessed with speckle filtering. See the table bellow for the possible configurations.
+
+| Parameter    | Type    | Accepted Values                                          | Description                                                                                                                                     |
+| ------------ | ------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| framework    | string  | 'MONO', 'MULTI'                                          | Whether the speckle filter will be applied on a single image or to a temporal stack of images neighboring each image in the filtered collection |
+| nr_of_images | integer | $i\in\mathbb{N}$                                         | The number of images to be used by the multi temporal speckle filter framework                                                                  |
+| filter_name  | string  | 'BOXCAR', 'LEE', 'REFINED LEE', 'LEE SIGMA', 'GAMMA MAP' | The name of the speckle filter to use                                                                                                           |
+| kernel_size  | integer | $i\in\mathbb{N}$, $i$ odd                     | Size of the kernel that will be used to convolve the images.                                                                                    |
+
+By default, speckle filtering isn't applied. You can get baseline speckle filtering by passing `speckle_filter: default`, which is equivalent to
+
+```yaml
+s1:
+  speckle_filter:
+    framework: MONO
+    filter_name: BOXCAR
+    kernel_size: 3
+    nr_of_images: 10
+```
+
+More details on the filters and conventions [here](https://github.com/LSCE-forest/gee_s1_processing/blob/main/doc/Speckle_Filters.md).
 
 ### Python API
 

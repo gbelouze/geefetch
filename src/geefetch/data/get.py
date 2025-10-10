@@ -12,6 +12,7 @@ from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 from retry import retry
 
+from ..cli.omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig
 from ..utils.enums import (
     CompositeMethod,
     DType,
@@ -663,6 +664,8 @@ def download_s1(
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
+    speckle_filter_config: SpeckleFilterConfig | None = None,
+    terrain_normalization_config: TerrainNormalizationConfig | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
 ) -> None:
@@ -702,6 +705,10 @@ def download_s1(
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
+    speckle_filter_config : SpeckleFilterConfig | None
+        speckle_filtering configurations
+    terrain_normalization_config: TerrainNormalizationConfig | None
+        terrain_normalization configurations
     orbit : S1Orbit
         The orbit used to filter Sentinel-1 images. Defaults to S1Orbit.ASCENDING.
     resampling : ResamplingMethod
@@ -744,6 +751,8 @@ def download_s1(
             "selected_bands": selected_bands,
             "resampling": resampling,
             "resolution": resolution,
+            "speckle_filter_config": speckle_filter_config,
+            "terrain_normalization_config": terrain_normalization_config,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
