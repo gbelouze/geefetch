@@ -23,6 +23,7 @@ dynamic = ["version"]
 dependencies = [
     "click>=8.2.0",
     "earthengine-api",
+    "gee_s1_processing @ git+https://github.com/LSCE-forest/gee_s1_processing.git@main",
     "geedim<2.0.0",
     "geobbox>=0.1.0",
     "geopandas>=1.0.1",
@@ -36,8 +37,6 @@ dependencies = [
     "rich",
     "shapely>=2.0.6",
     "thefuzz",
-    "gee_s1_processing @ git+https://github.com/LSCE-forest/gee_s1_processing.git@main",
-    "dotenv"
 ]
 
 [tool.flit.module]
@@ -49,21 +48,22 @@ tracker = "https://github.com/gbelouze/geefetch/issues"
 
 [project.optional-dependencies]
 dev = [
+    "dotenv",
     "mypy",
-    "pytest",
     "pre-commit",
-    "ruff",
-    "types-retry",
-    "types-requests",
     "pydoclint[flake8]",
+    "pytest",
+    "ruff",
+    "types-requests",
+    "types-retry",
 ]
 doc = [
-    "mkdocs>=1.6.1",
     "mkdocs-git-revision-date-localized-plugin>=1.4.1",
-    "mkdocs-material>=9.6.7",
-    "mkdocstrings>=0.28.2",
-    "mkdocstrings-python>=1.16.2",
     "mkdocs-include-markdown-plugin>=7.1.5",
+    "mkdocs-material>=9.6.7",
+    "mkdocs>=1.6.1",
+    "mkdocstrings-python>=1.16.2",
+    "mkdocstrings>=0.28.2",
 ]
 
 [project.scripts]
