@@ -10,6 +10,8 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ## pre-release
 
+## [0.5.3](https://github.com/gbelouze/geefetch/compare/v0.5.3...v0.5.2) (2025-10-10)
+
 ### Added
 
 - Option to download only a range of tiles (e.g. only the first half) in order to support manual parallelization [a225ad3](https://github.com/gbelouze/geefetch/commit/a225ad37f7b7bd00aea80c6f3adc097dfb7843d3)
@@ -43,7 +45,6 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - Don't scale bands if the range of value fits within the dtype-representable range [ac2321e](https://github.com/gbelouze/geefetch/commit/ac2321ed7bfad78ea9ddb40fd589b903d8b4af5a)
 - Remove the necessity to write `satellite: {}` in the config [803c13e](https://github.com/gbelouze/geefetch/commit/803c13e9d59adde54ffab52abeebe573dd6d9a58)
 - Migrated the docs to `mkdocs` [607050c](https://github.com/gbelouze/geefetch/commit/607050ca244cdd3865de967e67d2d20d6fb56d47)
-
 
 ### Fixed
 
