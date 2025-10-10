@@ -29,7 +29,7 @@ class GEEConfig:
 
     Attributes
     ----------
-    ee_project_id : str | list[str]
+    ee_project_ids : list[str]
         One or more GEE project id, to connect to the API. More project ids allow `geefetch`
         to process downloads in parallel.
 

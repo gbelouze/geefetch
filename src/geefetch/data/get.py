@@ -4,10 +4,9 @@ import multiprocessing as mp
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import cycle, repeat
-from multiprocessing.queues import Queue
 from os import getpid
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import shapely
 from geobbox import GeoBoundingBox
@@ -29,6 +28,12 @@ from ..utils.log_multiprocessing import (
     init_log_queue_for_children,
 )
 from ..utils.progress import default_bar
+from ..utils.progress_multiprocessing import (
+    ProgressProtocol,
+    ProgressQueue,
+    ProgressQueueConsumer,
+    QueuedProgress,
+)
 from ..utils.rasterio import create_vrt
 from .process import (
     geofile_is_clean,
@@ -107,7 +112,7 @@ def download_chip_ts(
     scale: int,
     out: Path,
     selected_bands: list[str] | None = None,
-    progress_queue: Queue | None = None,
+    progress: ProgressProtocol | None = None,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
@@ -122,6 +127,7 @@ def download_chip_ts(
             region=bbox,
             bands=bands,
             scale=scale,
+            progress=progress,
             **kwargs,
         )
         log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
@@ -140,7 +146,7 @@ def download_chip(
     out: Path,
     selected_bands: list[str] | None = None,
     check_clean: bool = True,
-    progress_queue: Queue | None = None,
+    progress: ProgressProtocol | None = None,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
@@ -162,6 +168,7 @@ def download_chip(
             region=bbox,
             bands=bands,
             scale=scale,
+            progress=progress,
             **kwargs,
         )
         log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
@@ -286,10 +293,12 @@ def download_time_series(
             repeat(ee_project_ids) if isinstance(ee_project_ids, str) else cycle(ee_project_ids)
         )
         with mp.Manager() as manager:
-            log_queue: LogQueue = manager.Queue()
-            progress_queue = manager.Queue()
+            log_queue = cast(LogQueue, manager.Queue())
+            progress_queue = cast(ProgressQueue, manager.Queue())
+            progress_mp = QueuedProgress(progress_queue)
             with (
                 LogQueueConsumer(log_queue) as _,
+                ProgressQueueConsumer(progress_queue, progress) as _,
                 ProcessPoolExecutor(
                     max_workers=max_workers,
                     initializer=init_log_queue_for_children,
@@ -319,10 +328,9 @@ def download_time_series(
                         tile,
                         resolution,
                         tile_path,
-                        # progress=progress,
+                        progress=progress_mp,
                         selected_bands=selected_bands,
                         max_tile_size=max_tile_size,
-                        progress_queue=progress_queue,
                         **satellite_download_kwargs,
                     )
                     futures.append(future)
@@ -453,10 +461,12 @@ def download(
             repeat(ee_project_ids) if isinstance(ee_project_ids, str) else cycle(ee_project_ids)
         )
         with mp.Manager() as manager:
-            log_queue: LogQueue = manager.Queue()
-            progress_queue = manager.Queue()
+            log_queue = cast(LogQueue, manager.Queue())
+            progress_queue = cast(ProgressQueue, manager.Queue())
+            progress_mp = QueuedProgress(progress_queue)
             with (
                 LogQueueConsumer(log_queue) as _,
+                ProgressQueueConsumer(progress_queue, progress),
                 ProcessPoolExecutor(
                     max_workers=max_workers,
                     initializer=init_log_queue_for_children,
@@ -486,11 +496,10 @@ def download(
                         tile,
                         resolution,
                         tile_path,
-                        # progress=progress,
+                        progress=progress_mp,
                         selected_bands=selected_bands,
                         max_tile_size=max_tile_size,
                         check_clean=check_clean,
-                        progress_queue=progress_queue,
                         **satellite_download_kwargs,
                     )
                     futures.append(future)
