@@ -16,7 +16,7 @@ from geefetch import data
 from geefetch.utils.config import git_style_diff
 from geefetch.utils.gee import auth
 
-from .omegaconfig import TerrainNormalizationConfig, load
+from .omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig, load
 
 log = logging.getLogger(__name__)
 
@@ -160,8 +160,12 @@ def download_s1(config_path: Path) -> None:
     auth(config.s1.gee.ee_project_id)
     bounds = config.s1.aoi.spatial.as_bbox()
 
-    if not config.s1.terrain_normalization and config.s1.apply_default_terrain_normalization:
-        config.s1.terrain_normalization = TerrainNormalizationConfig()
+    assert config.s1.terrain_normalization is None or isinstance(
+        config.s1.terrain_normalization, TerrainNormalizationConfig
+    )
+    assert config.s1.speckle_filter is None or isinstance(
+        config.s1.speckle_filter, SpeckleFilterConfig
+    )
 
     data.get.download_s1(
         data_dir,
