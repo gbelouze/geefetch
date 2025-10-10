@@ -7,7 +7,7 @@ channels:
 # the purpose of this file is to:
 # specify the python version & install non-pip dependencies
 dependencies:
-  - python>=3.11
+  - python==3.11
   - gdal>=3.6
   - pip
   - rasterio>=1.3
