@@ -171,7 +171,7 @@ def download_time_series(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
@@ -205,7 +205,7 @@ def download_time_series(
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error.
         Defaults to 10 Mb.
@@ -294,7 +294,7 @@ def download(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
     check_clean: bool = True,
@@ -329,7 +329,7 @@ def download(
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error.
         Defaults to 10 Mb.
@@ -474,7 +474,7 @@ def download_gedi(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -502,7 +502,7 @@ def download_gedi(
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod
@@ -616,7 +616,7 @@ def download_s1(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -648,7 +648,7 @@ def download_s1(
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod
@@ -727,7 +727,7 @@ def download_s2(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -758,7 +758,7 @@ def download_s2(
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod
@@ -822,7 +822,7 @@ def download_dynworld(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -851,7 +851,7 @@ def download_dynworld(
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod
@@ -908,7 +908,7 @@ def download_landsat8(
     crs: CRS | None = None,
     resolution: int = 30,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -937,7 +937,7 @@ def download_landsat8(
         Resolution of the downloaded data, in meters. Defaults to 30.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod
@@ -992,7 +992,7 @@ def download_palsar2(
     crs: CRS | None = None,
     resolution: int = 30,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -1023,7 +1023,7 @@ def download_palsar2(
         Resolution of the downloaded data, in meters. Defaults to 30.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod
@@ -1083,7 +1083,7 @@ def download_nasadem(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 5,
+    max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
@@ -1108,7 +1108,7 @@ def download_nasadem(
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod
@@ -1164,7 +1164,7 @@ def download_custom(
     crs: CRS | None = None,
     resolution: int = 10,
     tile_shape: int = 500,
-    max_tile_size: int = 10,
+    max_tile_size: float = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Polygon | None = None,
@@ -1194,7 +1194,7 @@ def download_custom(
         Resolution of the downloaded data, in meters. Defaults to 10.
     tile_shape : int
         Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
+    max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
     composite_method : CompositeMethod

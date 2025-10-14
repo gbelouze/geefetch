@@ -27,6 +27,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Fixed
 
+- changed typing of max_tile_size to float.
 - download 'all' downloads all satellites listed in config file instead of all geefetch-supported satellites
 - allow user to download just VH or HV Sentinel-1 bands
 - stop trying to create vrt files with partially downloaded tifs
