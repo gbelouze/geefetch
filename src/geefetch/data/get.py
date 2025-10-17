@@ -104,39 +104,6 @@ def auth_and_log(ee_project_id: str) -> None:
     log.info(f"Process {getpid()} authentified with {ee_project_id}")
 
 
-# @retry(exceptions=DownloadError, tries=5)
-def download_chip_ts(
-    satellite: SatelliteABC,
-    data_get_kwargs: dict[Any, Any],
-    bbox: GeoBoundingBox,
-    scale: int,
-    out: Path,
-    selected_bands: list[str] | None = None,
-    progress: ProgressProtocol | None = None,
-    **kwargs: Any,
-) -> Path:
-    """Download a specific chip of data from the satellite."""
-    bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
-    satellite.check_selected_bands(bands)
-    data = satellite.get_time_series(**data_get_kwargs)
-
-    try:
-        data.download(
-            out,
-            crs=bbox.crs,
-            region=bbox,
-            bands=bands,
-            scale=scale,
-            progress=progress,
-            **kwargs,
-        )
-        log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
-    except Exception as e:
-        log.error(f"Failed to download chip to {out}: {e}")
-        raise DownloadError from e
-    return out
-
-
 @retry(exceptions=DownloadError, tries=5)
 def download_chip(
     satellite: SatelliteABC,
@@ -147,6 +114,7 @@ def download_chip(
     selected_bands: list[str] | None = None,
     check_clean: bool = True,
     progress: ProgressProtocol | None = None,
+    as_time_series: bool = False,
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
@@ -159,7 +127,11 @@ def download_chip(
         else:
             log.debug(f"File {out} does not seem corrupted. Skipping download.")
             return out
-    data = satellite.get(**data_get_kwargs)
+    data = (
+        satellite.get(**data_get_kwargs)
+        if not as_time_series
+        else satellite.get_time_series(**data_get_kwargs)
+    )
 
     try:
         data.download(
@@ -175,177 +147,13 @@ def download_chip(
     except Exception as e:
         log.error(f"Failed to download chip to {out}: {e}")
         raise DownloadError from e
-    if satellite.is_raster and not tif_is_clean(out):
-        if check_clean:
-            log.error(f"Tif file {out} contains missing data.")
-            raise BadDataError
-        else:
-            log.warning(f"Tif file {out} contains missing data")
-    if satellite.is_vector and not vector_is_clean(out):
-        if check_clean:
-            log.error(f"Vector file {out} contains no data.")
-            raise BadDataError
-        else:
-            log.warning(f"Vector file {out} contains no data.")
+    if satellite.is_raster and check_clean and not tif_is_clean(out):
+        log.error(f"Tif file {out} contains missing data.")
+        raise BadDataError
+    if satellite.is_vector and check_clean and not vector_is_clean(out):
+        log.error(f"Vector file {out} contains no data.")
+        raise BadDataError
     return out
-
-
-def download_time_series(
-    data_dir: Path,
-    ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
-    satellite: SatelliteABC,
-    start_date: str | None,
-    end_date: str | None,
-    selected_bands: list[str] | None = None,
-    crs: CRS | None = None,
-    resolution: int = 10,
-    tile_shape: int = 500,
-    max_tile_size: int = 5,
-    satellite_get_kwargs: dict[str, Any] | None = None,
-    satellite_download_kwargs: dict[str, Any] | None = None,
-    check_clean: bool = True,
-    filter_polygon: shapely.Geometry | None = None,
-    **kwargs: Any,
-) -> None:
-    """Download time series of images from a specific satellite. Images are written in several .tif
-    chips grouped in subdirectories in `dir`. Each subdirectory contains the time series of images
-    of a single spatial tile.
-
-    Parameters
-    ----------
-    data_dir : Path
-        Directory or file name to write the downloaded files to. If a directory,
-        the default `satellite` name is used as a base name.
-    ee_project_ids : str | list[str]
-        One or more GEE project id for authentification. More than one id allows `geefetch`
-        to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
-    satellite : SatelliteABC
-        The satellite which the images should originate from.
-    start_date : str | None
-        The start date of the time period of interest.
-    end_date : str | None
-        The end date of the time period of interest.
-    selected_bands : list[str] | None
-        The bands to download. If None, the default satellite bands are used.
-    crs : CRS | None
-        The CRS in which to download data. If None, AOI is split in UTM zones and
-        data is downloaded in their local UTM zones. Defaults to None.
-    resolution : int
-        Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
-        Side length of a downloaded chip, in pixels. Defaults to 500.
-    max_tile_size : int
-        Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
-        Choose the highest possible that doesn't raise a User Memory Excess error.
-        Defaults to 10 Mb.
-    satellite_get_kwargs : dict[str, Any] | None
-        Satellite-dependent parameters for getting data. Defaults to None.
-    satellite_download_kwargs : dict[str, Any] | None
-        Satellite-dependent parameters for downloading data. Defaults to None.
-    check_clean : bool
-        Whether to check if the data is clean. Defaults to True.
-    filter_polygon : shapely.Geometry | None
-        More fine-grained AOI than `bbox`. Defaults to None.
-    **kwargs : Any
-        Accepted but ignored additional arguments.
-    """
-    for kwarg in kwargs:
-        log.warning(f"Argument {kwarg} is ignored.")
-    if not data_dir.is_dir():
-        raise ValueError(f"Invalid path {data_dir}. Expected an existing directory.")
-    satellite_get_kwargs = satellite_get_kwargs if satellite_get_kwargs is not None else {}
-    satellite_download_kwargs = (
-        satellite_download_kwargs if satellite_download_kwargs is not None else {}
-    )
-    tiler = Tiler()
-    tracker = TileTracker(satellite, data_dir)
-
-    with default_bar() as progress:
-        tiles = list(
-            tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
-        )
-        log.info("Downloading all tiles")
-        overall_task = progress.add_task(
-            f"[magenta]Downloading {satellite.full_name} chips...[/]",
-            total=len(tiles),
-        )
-
-        max_workers = len(ee_project_ids) if isinstance(ee_project_ids, list) else 1
-        ee_project_ids_cycle = (
-            repeat(ee_project_ids) if isinstance(ee_project_ids, str) else cycle(ee_project_ids)
-        )
-        with mp.Manager() as manager:
-            log_queue = cast(LogQueue, manager.Queue())
-            progress_queue = cast(ProgressQueue, manager.Queue())
-            progress_mp = QueuedProgress(progress_queue)
-            with (
-                LogQueueConsumer(log_queue) as _,
-                ProgressQueueConsumer(progress_queue, progress) as _,
-                ProcessPoolExecutor(
-                    max_workers=max_workers,
-                    initializer=init_log_queue_for_children,
-                    initargs=(log_queue,),
-                ) as executor,
-            ):
-                futures = []
-                for ee_project_id, _ in zip(ee_project_ids_cycle, range(max_workers), strict=False):
-                    # hacky authentification for the pool processes
-                    executor.submit(auth_and_log, ee_project_id)
-                for tile in tiles:
-                    data_get_kwargs = (
-                        dict(
-                            aoi=tile,
-                            start_date=start_date,
-                            end_date=end_date,
-                        )
-                        | satellite_get_kwargs
-                    )
-                    tile_path = tracker.get_path(
-                        tile, format=satellite_download_kwargs.get("format", None)
-                    )
-                    future = executor.submit(
-                        download_chip_ts,
-                        satellite,
-                        data_get_kwargs,
-                        tile,
-                        resolution,
-                        tile_path,
-                        progress=progress_mp,
-                        selected_bands=selected_bands,
-                        max_tile_size=max_tile_size,
-                        **satellite_download_kwargs,
-                    )
-                    futures.append(future)
-
-                n_failures = 0
-                try:
-                    for future in as_completed(futures):
-                        try:
-                            future.result()
-                        except Exception as e:
-                            n_failures += 1
-                            log.error(f"Download error: {e}")
-                            raise
-                        finally:
-                            progress.update(overall_task, advance=1)
-                except KeyboardInterrupt:
-                    executor.shutdown(wait=False, cancel_futures=True)
-                    log.error(
-                        "Keyboard interrupt. "
-                        "Please wait while current download finish (up to a few minutes)."
-                    )
-                    raise
-                if n_failures > 0:
-                    raise DownloadError(f"Failed to download {n_failures} tiles.")
-
-        if satellite.is_raster:
-            _create_vrts(tracker)
-    log.info(
-        f"[green]Finished[/] downloading {satellite.full_name} chips to [cyan]{tracker.root}[/]"
-    )
 
 
 def download(
@@ -362,6 +170,7 @@ def download(
     max_tile_size: int = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
+    as_time_series: bool = False,
     check_clean: bool = True,
     filter_polygon: shapely.Geometry | None = None,
 ) -> None:
@@ -402,6 +211,9 @@ def download(
         Satellite-dependent parameters for getting data. Defaults to None.
     satellite_download_kwargs : dict[str, Any] | None
         Satellite-dependent parameters for downloading data. Defaults to None.
+    as_time_series : bool
+        If True, data is downloaded as time series, if False, it is composited as a mosaic.
+        Defaults to False.
     check_clean : bool
         Whether to check if the data is clean. Defaults to True.
     filter_polygon : shapely.Geometry | None
@@ -413,6 +225,8 @@ def download(
     satellite_download_kwargs = (
         satellite_download_kwargs if satellite_download_kwargs is not None else {}
     )
+
+    check_clean = check_clean and not as_time_series
     tiler = Tiler()
     tracker = TileTracker(satellite, data_dir)
     with default_bar() as progress:
@@ -435,7 +249,7 @@ def download(
             progress_queue = cast(ProgressQueue, manager.Queue())
             progress_mp = QueuedProgress(progress_queue)
             with (
-                LogQueueConsumer(log_queue) as _,
+                LogQueueConsumer(log_queue),
                 ProgressQueueConsumer(progress_queue, progress),
                 ProcessPoolExecutor(
                     max_workers=max_workers,
@@ -470,6 +284,7 @@ def download(
                         selected_bands=selected_bands,
                         max_tile_size=max_tile_size,
                         check_clean=check_clean,
+                        time_series=as_time_series,
                         **satellite_download_kwargs,
                     )
                     futures.append(future)
@@ -493,9 +308,9 @@ def download(
                     raise
                 if n_failures > 0:
                     raise DownloadError(f"Failed to download {n_failures} tiles.")
-    if satellite.is_raster:
+    if not as_time_series and satellite.is_raster:
         _create_vrts(tracker)
-    if satellite.is_vector and "format" in satellite_download_kwargs:
+    if not as_time_series and satellite.is_vector and "format" in satellite_download_kwargs:
         match satellite_download_kwargs["format"]:
             case Format.PARQUET:
                 merge_tracked_parquet(
@@ -565,10 +380,7 @@ def download_gedi(
     filter_polygon : shapely.Geometry | None
         More fine-grained AOI than `bbox`. Defaults to None.
     """
-    download_func = (
-        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
-    )
-    download_func(
+    download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
         bbox=bbox,
@@ -586,6 +398,7 @@ def download_gedi(
             "composite_method": composite_method,
             "dtype": dtype,
         },
+        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
@@ -716,9 +529,6 @@ def download_s1(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     """
-    download_func = (
-        download_time_series if (composite_method == CompositeMethod.TIMESERIES) else download
-    )
 
     download_selected_bands: list[str] | None
     if orbit == S1Orbit.AS_BANDS and composite_method != CompositeMethod.TIMESERIES:
@@ -731,7 +541,7 @@ def download_s1(
         ]
     else:
         download_selected_bands = selected_bands
-    download_func(
+    download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
         bbox=bbox,
@@ -755,6 +565,7 @@ def download_s1(
             "terrain_normalization_config": terrain_normalization_config,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
 
@@ -822,10 +633,7 @@ def download_s2(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     """
-    download_func = (
-        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
-    )
-    download_func(
+    download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
         bbox=bbox,
@@ -847,6 +655,7 @@ def download_s2(
             "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
 
@@ -907,10 +716,7 @@ def download_dynworld(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     """
-    download_func = (
-        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
-    )
-    download_func(
+    download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
         bbox=bbox,
@@ -930,6 +736,7 @@ def download_dynworld(
             "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
 
@@ -990,10 +797,7 @@ def download_landsat8(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     """
-    download_func = (
-        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
-    )
-    download_func(
+    download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
         bbox=bbox,
@@ -1013,6 +817,7 @@ def download_landsat8(
             "resolution": resolution,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
 
@@ -1080,10 +885,7 @@ def download_palsar2(
         Whether to apply the Refined Lee filter to reduce speckle noise.
         Defaults to True.
     """
-    download_func = (
-        download_time_series if composite_method == CompositeMethod.TIMESERIES else download
-    )
-    download_func(
+    download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
         bbox=bbox,
@@ -1105,6 +907,7 @@ def download_palsar2(
             "refined_lee": refined_lee,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
+        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
 
@@ -1243,7 +1046,7 @@ def download_custom(
         Defaults to ResamplingMethod.BILINEAR.
     """
     if composite_method == CompositeMethod.TIMESERIES:
-        raise ValueError("Time series is not relevant for Custom Satellites.")
+        raise ValueError("Time series is not implemented for Custom Satellites.")
     download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
