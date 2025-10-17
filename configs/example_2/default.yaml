@@ -13,5 +13,5 @@ satellite_default:
       start_date: "2020-01-01"
       end_date: "2020-01-31"
   gee:
-    ee_project_id: "ee-project-id"
+    ee_project_ids: ["ee-project-id1", "ee-project-id2"] # one or more
     max_tile_size: 8 # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.

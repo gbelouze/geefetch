@@ -29,7 +29,7 @@ def paris_config_path(
 ) -> Generator[Path]:
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
-    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
 
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
@@ -41,7 +41,7 @@ def paris_config_path(
 def paris_speckle_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str):
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
-    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
     raw_paris_config.s1.speckle_filter = SpeckleFilterConfig()
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
@@ -54,7 +54,7 @@ def paris_speckle_timeseries_path(
 ):
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
-    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
     raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
     raw_paris_config.s1.speckle_filter = SpeckleFilterConfig()
     conf_path = tmp_path / "config.yaml"
@@ -68,7 +68,7 @@ def paris_timeseriesconfig_path(
 ) -> Path:
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
-    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
     raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
 
     conf_path = tmp_path / "config.yaml"
@@ -82,7 +82,7 @@ def paris_config_selected_bands_path(
 ) -> Path:
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
-    raw_paris_config.satellite_default.gee.ee_project_id = gee_project_id
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
     raw_paris_config["s1"] = {"selected_bands": ["VV", "VH", "angle"]} | dict(
         raw_paris_config.get("s1", {})
     )

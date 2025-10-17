@@ -59,7 +59,7 @@ satellite_default:
       start_date: "2024-06-01"
       end_date: "2024-06-30"
   gee:
-    ee_project_id: "your-gee-id"
+    ee_project_ids: ["your-gee-id"]
   tile_size: 2000
   resolution: 10
 palsar2:

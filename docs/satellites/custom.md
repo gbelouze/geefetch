@@ -47,7 +47,7 @@ satellite_default:
       top: 49
       epsg: 4326
   gee:
-    ee_project_id: "your-gee-id"
+    ee_project_ids: ["your-gee-id"]
   tile_size: 2000
   resolution: 10
 
