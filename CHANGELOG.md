@@ -18,6 +18,10 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 - Config must provide `gee_project_ids` instead of `gee_project_id` [922d335](https://github.com/gbelouze/geefetch/commit/922d33518f1a9d6a2d4cf6f79317125261002900)
 
+### Fixed
+
+- Palsar selected bands was ignored [249cd2d](https://github.com/gbelouze/geefetch/commit/249cd2de80ed4114b2b42fa6fd2812eb35e7b863)
+
 ## [0.5.3](https://github.com/gbelouze/geefetch/compare/v0.5.3...v0.5.2) (2025-10-10)
 
 ### Added
