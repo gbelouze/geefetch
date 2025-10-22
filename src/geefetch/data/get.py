@@ -2,7 +2,6 @@ import logging
 import multiprocessing as mp
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from itertools import cycle, repeat
 from os import getpid
 from pathlib import Path
 from typing import Any, cast
@@ -240,10 +239,9 @@ def download(
             total=len(tiles),
         )
 
-        max_workers = len(ee_project_ids) if isinstance(ee_project_ids, list) else 1
-        ee_project_ids_cycle = (
-            repeat(ee_project_ids) if isinstance(ee_project_ids, str) else cycle(ee_project_ids)
-        )
+        ee_project_ids = [ee_project_ids] if isinstance(ee_project_ids, str) else ee_project_ids
+        max_workers = len(ee_project_ids)
+
         with mp.Manager() as manager:
             log_queue = cast(LogQueue, manager.Queue())
             progress_queue = cast(ProgressQueue, manager.Queue())
@@ -258,7 +256,7 @@ def download(
                 ) as executor,
             ):
                 futures = []
-                for ee_project_id, _ in zip(ee_project_ids_cycle, range(max_workers), strict=False):
+                for ee_project_id, _ in zip(ee_project_ids, range(max_workers), strict=False):
                     # hacky authentification for the pool processes
                     executor.submit(auth_and_log, ee_project_id)
                 for tile in tiles:
