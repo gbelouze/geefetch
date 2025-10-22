@@ -139,7 +139,7 @@ class TestDownloadSentinel1:
     def test_download_s1_with_speckle_filter(self, paris_speckle_path: Path):
         download_s1(paris_speckle_path)
         conf = load(paris_speckle_path)
-        downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+        downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.tif")))
         assert len(downloaded_files) == 1
         assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
 
@@ -148,8 +148,9 @@ class TestDownloadSentinel1:
     ):
         download_s1(paris_speckle_timeseries_path)
         conf = load(paris_speckle_timeseries_path)
-        downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+        downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.tif")))
         assert len(downloaded_files) == 5
+        breakpoint()
         assert downloaded_files[0].parts[-3:] == (
             "s1",
             "s1_EPSG2154_650000_6860000",
