@@ -16,7 +16,7 @@ satellite_default:
       start_date: 2020-01-01
       end_date: 2020-01-31
   gee:
-    ee_project_id: ee-project-id # add your Earth Engine project id here.
+    ee_project_ids: [ee-project-id] # add one or more Earth Engine project id here.
     max_tile_size: 8 # in MB, decrease if User Memory Excess Error, choose highest possible otherwise.
 s1:
   composite_method: MEAN

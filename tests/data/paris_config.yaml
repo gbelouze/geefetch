@@ -16,7 +16,7 @@ satellite_default:
       end_date: 2020-01-31
     country: France
   gee:
-    ee_project_id: your-gee-id
+    ee_project_ids: [your-gee-id]
     max_tile_size: 5
 gedi:
   aoi:

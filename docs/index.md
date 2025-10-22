@@ -50,7 +50,7 @@ satellite_default:
       start_date: "2023-06-01"
       end_date: "2023-08-31"
   gee:
-    ee_project_id: "my-ee-project"
+    ee_project_ids: ["my-ee-project"]  # can be more to increase throughput
     max_tile_size: 10
   tile_size: 1000
   resolution: 10

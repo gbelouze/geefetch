@@ -50,87 +50,27 @@ def rangeContains(band: Image, mini: int | float, maxi: int | float) -> Image:
     return band.gte(mini).And(band.lte(maxi))
 
 
-def qualityFilter(strict: bool = False) -> Filter:
+def qualityFilter() -> Filter:
     filter = Filter.And(
         Filter.rangeContains("rh98", 0, 80),
         Filter.eq("quality_flag", 1),
         Filter.eq("degrade_flag", 0),
-        Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
-        Filter.eq("elevation_bias_flag", 0),
-        Filter.gte("sensitivity", 0.98),
-    )
-
-    if strict:
-        filter = Filter.And(
-            filter,
-            Filter.Or(
-                Filter.rangeContains("solar_azimuth", 70, 120),
-                Filter.rangeContains("solar_azimuth", 240, 290),
-            ),
-            Filter.lte("solar_elevation", -10),
-            Filter.gte("energy_total", 5_000),
-        )
-    return filter  # type: ignore[no-any-return]
-
-
-def relaxedQualityFilter() -> Filter:
-    filter = Filter.And(
-        Filter.rangeContains("rh98", 0, 80),
-        Filter.eq("quality_flag", 1),
-        Filter.eq("degrade_flag", 0),
-        Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
-        Filter.eq("elevation_bias_flag", 0),
-        Filter.Or(
-            Filter.And(
-                Filter.rangeContains("rh98", 0, 5.0),
-                Filter.gte("sensitivity", 0.9),
-            ),
-            Filter.And(
-                Filter.rangeContains("rh98", 5, 80),
-                Filter.gte("sensitivity", 0.97),
-            ),
-        ),
+        # Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
+        Filter.lte("solar_elevation", 0),
+        Filter.gte("sensitivity", 0.9),
     )
     return filter  # type: ignore[no-any-return]
 
 
-def qualityMask(data: Image, esa: Image | None = None, strict: bool = False) -> Image:
-    rh98 = data.select("rh98")
+def qualityMask(data: Image) -> Image:
     data = data.updateMask(
-        rangeContains(rh98, 0, 80)
+        rangeContains(data.select("rh98"), 0, 80)
         .And(data.select("quality_flag").eq(1))
         .And(data.select("degrade_flag").eq(0))
-        .And(inList(data.select("beam"), [5, 6, 8, 11]))
-        .And(data.select("elevation_bias_flag").eq(0))
-        .And(data.select("sensitivity").gte(0.98))
+        # .And(inList(data.select("beam"), [5, 6, 8, 11]))
+        .And(data.select("solar_elevation").lte(0))
+        .And(data.select("sensitivity").gte(0.9))
     )
-    if strict:
-        data = data.updateMask(
-            data.select("modis_treecover")
-            .gte(0.01)
-            .And(
-                rangeContains(data.select("solar_azimuth"), 70, 120).Or(
-                    rangeContains(data.select("solar_azimuth"), 240, 290)
-                )
-            )
-            .And(data.select("solar_elevation").gte(10))
-            .And(data.select("energy_total").gte(5_000))
-        )
-    if esa is not None:
-        selected_alg = data.select("selected_algorithm")
-        data = data.updateMask(
-            (
-                esa.eq(EsaClass.TREE_COVER)
-                .Or(esa.eq(EsaClass.GRASS_COVER).And(rh98.lt(5)))
-                .Or(esa.eq(EsaClass.SHRUB_COVER))
-                .Or(esa.eq(EsaClass.BUILD_UP).And(rh98.lt(5)))
-                .Or(esa.eq(EsaClass.CROP_COVER).And(rh98.lt(5)))
-            ).And(
-                selected_alg.eq(2).Or(
-                    selected_alg.eq(1).And(esa.eq(EsaClass.TREE_COVER).And(rh98.gte(10)))
-                )
-            )
-        )
     return data
 
 
@@ -213,7 +153,7 @@ class GEDIvector(SatelliteABC):
         gedi_ids = [
             feature["properties"]["table_id"] for feature in table_ids.getInfo()["features"]
         ]
-        gedi_filter = relaxedQualityFilter()
+        gedi_filter = qualityFilter()
         collections = [
             (FeatureCollection(gedi_id).filterBounds(aoi.to_ee_geometry()).filter(gedi_filter))
             for gedi_id in gedi_ids

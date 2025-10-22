@@ -1,9 +1,9 @@
 import logging
+import os
 import re
 import threading
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
@@ -20,7 +20,7 @@ from rich.progress import Progress
 from shapely import Polygon
 
 from ...utils.geedim import bounds_to_polygon, transform_polygon
-from ...utils.progress import default_bar
+from ...utils.progress_multiprocessing import ProgressProtocol
 from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
@@ -62,10 +62,11 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         num_threads: int | None = None,
         max_tile_size: float | None = None,
         max_tile_dim: int | None = None,
-        progress: Progress | None = None,
+        progress: ProgressProtocol | None = None,
         **kwargs: Any,
     ) -> None:
-        max_threads = 39
+        max_threads = num_threads or min(10, (os.cpu_count() or 1) + 4)
+        max_threads = 35
         geedim_log.debug(f"Using {max_threads} threads for download.")
         out_lock = threading.Lock()
         filename = Path(filename)
@@ -237,7 +238,7 @@ class DownloadableGeedimImage(DownloadableABC):
         num_threads: int | None = None,
         scale: int | None = None,
         dtype: str = "float32",
-        progress: Progress | None = None,
+        progress: ProgressProtocol | None = None,
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
@@ -273,7 +274,7 @@ class DownloadableGeedimImageCollection(DownloadableABC):
         num_threads: int | None = None,
         scale: int | None = None,
         dtype: str = "float32",
-        progress: Progress | None = None,
+        progress: ProgressProtocol | None = None,
         **kwargs: Any,
     ) -> None:
         for key in kwargs:
@@ -285,33 +286,35 @@ class DownloadableGeedimImageCollection(DownloadableABC):
         if not out.is_dir():
             raise ValueError(f"Path {out} was expected to be a directory.")
 
-        with ExitStack() as stack:
-            if progress is None:
-                progress = stack.enter_context(default_bar())
-            task = progress.add_task(
+        task = (
+            progress.add_task(
                 f"[magenta]Downloading time series to [cyan]{out}[/]",
                 total=len(self.id_to_images),
             )
-            for id_, image in self.id_to_images.items():
-                if not re.fullmatch(DownloadableGeedimImageCollection.IMAGE_ID_REGEXP, id_):
-                    raise ValueError(
-                        f"Image id {id_} is not valid "
-                        "(should be alphanumeric, optionally using underscores/dashes)."
-                    )
-                dst_path = out / f"{id_}.tif"
-                if dst_path.exists():
-                    log.debug(f"Found existing {dst_path}. Skipping download.")
-                    continue
-                image.download(
-                    dst_path,
-                    region=region.to_ee_geometry(),
-                    crs=f"EPSG:{crs.to_epsg()}",
-                    bands=bands,
-                    max_tile_size=max_tile_size,
-                    num_threads=num_threads,
-                    scale=scale,
-                    dtype=dtype,
-                    progress=progress,
+            if progress is not None
+            else None
+        )
+        for id_, image in self.id_to_images.items():
+            if not re.fullmatch(DownloadableGeedimImageCollection.IMAGE_ID_REGEXP, id_):
+                raise ValueError(
+                    f"Image id {id_} is not valid "
+                    "(should be alphanumeric, optionally using underscores/dashes)."
                 )
-                log.debug(f"Downloaded image to {dst_path}.")
+            dst_path = out / f"{id_}.tif"
+            if dst_path.exists():
+                log.debug(f"Found existing {dst_path}. Skipping download.")
+                continue
+            image.download(
+                dst_path,
+                region=region.to_ee_geometry(),
+                crs=f"EPSG:{crs.to_epsg()}",
+                bands=bands,
+                max_tile_size=max_tile_size,
+                num_threads=num_threads,
+                scale=scale,
+                dtype=dtype,
+                progress=progress,
+            )
+            log.debug(f"Downloaded image to {dst_path}.")
+            if progress is not None:
                 progress.advance(task)

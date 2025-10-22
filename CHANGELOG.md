@@ -10,28 +10,38 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ## pre-release
 
+### Added
+
+- Option to provide several GEE project ids for almost linear speed up [922d335](https://github.com/gbelouze/geefetch/commit/922d33518f1a9d6a2d4cf6f79317125261002900)
+
+### Changed
+
+- Config must provide `gee_project_ids` instead of `gee_project_id` [922d335](https://github.com/gbelouze/geefetch/commit/922d33518f1a9d6a2d4cf6f79317125261002900)
+
 ## [0.5.3](https://github.com/gbelouze/geefetch/compare/v0.5.3...v0.5.2) (2025-10-10)
 
 ### Added
 
-- Option to download only a range of tiles (e.g. only the first half) in order to support manual parallelization [a225ad3](https://github.com/gbelouze/geefetch/commit/a225ad37f7b7bd00aea80c6f3adc097dfb7843d3)
 - Generic `resample_reproject_clip` method to ensure that operations done in correct order (according to GEE docs) [c4c37626](https://github.com/gbelouze/geefetch/commit/c4c3762623901dd1fa4f32fe3e5d99e4b2dc4b98)
 - Choose to apply refined lee filter to PALSAR-2 images [ac50c1e3](https://github.com/gbelouze/geefetch/commit/ac50c1e324a4f30d423895d87d963f365b4ad093)
 - Allow choice of resampling method for downloaded images [7c3da39f](https://github.com/gbelouze/geefetch/commit/7c3da39f5504baa2535bc8936dab33f767ade193)
-- 2 New data classes to configure speckle filtering and terrain flattening for s1 images [9a2cc37](https://github.com/gbelouze/geefetch/commit/9a2cc3782e4016c6e609ec68b17a1ad986d3db5b). This was done via the added dependency to [gee_s1_processing](https://github.com/LSCE-forest/gee_s1_processing) which is a fork of [gee_s1_ard](https://github.com/adugnag/gee_s1_ard)
+- Add Sentinel-1 speckle filtering and terrain flattening for s1 images based on [gee_s1_processing](https://github.com/LSCE-forest/gee_s1_processing) [9a2cc37](https://github.com/gbelouze/geefetch/commit/9a2cc3782e4016c6e609ec68b17a1ad986d3db5b)
 
 ### Changed
 
 - `before_composite` and `after_composite` logic to ensure that operations are done in power scale for Palsar-2 and Sentinel-1 [e4e418b4](https://github.com/gbelouze/geefetch/commit/e4e418b489f34bfb5fa61055cf4827a32f0f8ae2)
 - By default, all satellite data will be resampled using bilinear interpolation (previously it was nearest neighbour) [7c3da39f](https://github.com/gbelouze/geefetch/commit/7c3da39f5504baa2535bc8936dab33f767ade193)
+- GEE project id must provided as a list in `gee_project_ids` config field [922d335](https://github.com/gbelouze/geefetch/commit/922d33518f1a9d6a2d4cf6f79317125261002900)
+- GEDI is less agressively filtered [a770420](https://github.com/gbelouze/geefetch/commit/a77042096442efc80b94d42c490318343c7146a5)
 
 ### Fixed
 
-- changed typing of max_tile_size to float.
-- download 'all' downloads all satellites listed in config file instead of all geefetch-supported satellites
-- allow user to download just VH or HV Sentinel-1 bands
-- stop trying to create vrt files with partially downloaded tifs
-- improve error logging (avoid silent failures)
+- Download 'all' downloads all satellites listed in config file instead of all geefetch-supported satellites
+- Allow user to download just VH or HV Sentinel-1 bands
+- Don't create vrt files with partially downloaded tifs
+- Improve error logging (avoid silent failures)
+- Don't check custom satellites cleanliness [e3ef4cd](https://github.com/gbelouze/geefetch/commit/e3ef4cd0867a683a68c9e9c0bde5770d0b3ed2b2)
+- Change typing of max_tile_size to float.
 - `geedim v2.0.0` causes breaking changes with the `PatchedBaseImage` class. The `pyproject.toml` has been adjusted to request versions `<2.0.0`
 
 ## [0.5.2](https://github.com/gbelouze/geefetch/compare/v0.5.2...v0.5.1) (2025-04-15)

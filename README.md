@@ -96,3 +96,15 @@ Contributions are welcome! If you encounter issues or have suggestions for impro
 ## License
 
 This project is licensed under the BSD-2-Clause License. See the [LICENSE](https://github.com/gbelouze/geefetch/blob/main/LICENSE) file for more details.
+
+# How to cite us ?
+
+```
+@misc{geefetch2025,
+  author = {G. Belouze, D. Purnell, H. Rechatin},
+  title = {GeeFetch},
+  year = {2025},
+  url = {https://github.com/gbelouze/geefetch},
+  note = {v0.5.3}
+}
+```
