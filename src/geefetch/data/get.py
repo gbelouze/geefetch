@@ -271,6 +271,8 @@ def download(
                     tile_path = tracker.get_path(
                         tile, format=satellite_download_kwargs.get("format", None)
                     )
+                    if as_time_series:
+                        tile_path = tile_path.with_name(tile_path.stem)
                     future = executor.submit(
                         download_chip,
                         satellite,
@@ -282,7 +284,7 @@ def download(
                         selected_bands=selected_bands,
                         max_tile_size=max_tile_size,
                         check_clean=check_clean,
-                        time_series=as_time_series,
+                        as_time_series=as_time_series,
                         **satellite_download_kwargs,
                     )
                     futures.append(future)
