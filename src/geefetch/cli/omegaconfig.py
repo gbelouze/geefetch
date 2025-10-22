@@ -41,14 +41,14 @@ class GEEConfig:
         to process downloads in parallel.
 
         .. see also:: https://developers.google.com/earth-engine/apidocs/ee-initialize
-    max_tile_size : int
+    max_tile_size : float
         Size constraint in MB for the request sent to GEE. This is heuristical and depends
         in general on what satellite you are interested in.
         Decrease if User Memory Excess Error, but choose highest possible otherwise. Defaults is 10.
     """
 
     ee_project_ids: list[str] = field(default_factory=list)
-    max_tile_size: int = 10
+    max_tile_size: float = 10
 
 
 @dataclass
