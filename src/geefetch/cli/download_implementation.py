@@ -152,13 +152,13 @@ def download_gedi_l2b(config_path: Path) -> None:
             """
         )
     data_dir = Path(config.data_dir)
-    auth(config.gedi_l2b.gee.ee_project_id)
     bounds = config.gedi_l2b.aoi.spatial.as_bbox()
     if config.gedi_l2b.selected_bands is None:
         config.gedi_l2b.selected_bands = satellites.GEDIvector().default_selected_bands
     save_config(config.gedi_l2b, config.data_dir / "gedi_l2b_vector")
     data.get.download_gedi_l2b_vector(
         data_dir,
+        config.gedi_l2b.gee.ee_project_ids,
         bounds,
         config.gedi_l2b.aoi.temporal.start_date
         if config.gedi_l2b.aoi.temporal is not None
@@ -178,7 +178,6 @@ def download_gedi_l2b(config_path: Path) -> None:
             else load_country_filter_polygon(config.gedi_l2b.aoi.country)
         ),
         format=config.gedi_l2b.format,
-        tile_range=config.gedi_l2b.tile_range,
     )
 
 
