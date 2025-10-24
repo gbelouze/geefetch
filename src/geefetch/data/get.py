@@ -466,6 +466,7 @@ def download_gedi_vector(
 
 def download_gedi_l2b_vector(
     data_dir: Path,
+    ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
     start_date: str | None,
     end_date: str | None,
@@ -475,7 +476,6 @@ def download_gedi_l2b_vector(
     resolution: int = 10,
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
-    tile_range: tuple[float, float] | None = None,
 ) -> None:
     """Download GEDI vector points. Points are written in several .geojson files
     to `data_dir`.
@@ -484,6 +484,9 @@ def download_gedi_l2b_vector(
     ----------
     data_dir : Path
         Directory to write the downloaded files to.
+    ee_project_ids : str | list[str]
+        One or more GEE project id for authentification. More than one id allows `geefetch`
+        to process downloads in parallel.
     bbox : GeoBoundingBox
         The box defining the region of interest.
     start_date : str | None
@@ -503,13 +506,10 @@ def download_gedi_l2b_vector(
         More fine-grained AOI than `bbox`. Defaults to None.
     format : Format
         Format in which to save the vector points. Defaults to Format.CSV.
-    tile_range: tuple[float, float] | None
-        Start (inclusive) and end (exclusive) tile percentage to download,
-        e.g. (0.5, 1.) will download the last half of all tiles.
-        If None, all tiles are downloaded. Defaults to None.
     """
     download(
         data_dir=data_dir,
+        ee_project_ids=ee_project_ids,
         bbox=bbox,
         satellite=GEDIL2Bvector(),
         start_date=start_date,
@@ -519,10 +519,8 @@ def download_gedi_l2b_vector(
         tile_shape=tile_shape,
         resolution=resolution,
         filter_polygon=filter_polygon,
-        in_parallel=False,
         check_clean=False,
         satellite_download_kwargs={"format": format},
-        tile_range=tile_range,
     )
 
 
