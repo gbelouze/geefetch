@@ -199,7 +199,7 @@ class GEDIL2Araster(SatelliteABC):
     def get_col(
         self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
     ) -> ImageCollection:
-        """Get GEDI L2A image ollection.
+        """Get GEDI L2A image collection.
 
         Parameters
         ----------
@@ -368,7 +368,7 @@ class GEDIL2Bvector(SatelliteABC):
         end_date: str | None = None,
         **kwargs: Any,
     ) -> DownloadableGEECollection:
-        """Get a downloadable collection of GEDI L2B vectoir points.
+        """Get a downloadable collection of GEDI L2B vector points.
 
         Parameters
         ----------

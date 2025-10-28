@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Global Ecosystem Dynamics Investigation **GEDI** misson helps characterize ecosystem structure and dynamics such as canopy heights and plante area indices. It is attached to the ISS and collects data globally between 51.6° N and 51.6° S latitudes. It obtains it's metrics via 8 beams that collect metric at a **25 m/pixel** resolution.
+The Global Ecosystem Dynamics Investigation **GEDI** mission helps characterize ecosystem structure and dynamics such as canopy heights and plant area indices. It is attached to the ISS and collects data globally between 51.6° N and 51.6° S latitudes. It obtains it's metrics via 8 beams that collect metric at a **25 m/pixel** resolution.
 
 The data collections contain sparse information relative to the aoi's you would work on.
 
@@ -48,7 +48,7 @@ In GeeFetch, GEDI data is accessed via the Google Earth Engine collections - [`L
 | selected_algorithm  | Identifier of algorithm selected as identifying the lowest non-noise mode|yes|
 | selected_mode   | Identifier of mode selected as lowest non-noise mode|no|
 | selected_mode_flag  | Flag indicating status of selected_mode|no|
-| sensitivity| Maxmimum canopy cover that can be penetrated. Valid range is [0, 1]. Values outside of this range may be present but must be ignored. They represent noise and non-land surface waveforms.|yes|
+| sensitivity| Maximum canopy cover that can be penetrated. Valid range is [0, 1]. Values outside of this range may be present but must be ignored. They represent noise and non-land surface waveforms.|yes|
 | solar_azimuth   | The azimuth of the sun position vector from the laser bounce point position in the local ENU frame. The angle is measured from North and is positive towards East.|yes|
 | solar_elevation | The elevation of the sun position vector from the laser bounce point position in the local ENU frame. The angle is measured from the East-North plane and is positive Up.  |yes|
 | surface_flag| Indicates elev_lowestmode is within 300m of Digital Elevation Model (DEM) or Mean Sea Surface (MSS) elevation|no|
@@ -59,7 +59,7 @@ In GeeFetch, GEDI data is accessed via the Google Earth Engine collections - [`L
 | shot_number_within_beam | Shot number within beam|no|
 | local_beam_azimuth  | Azimuth in radians of the unit pointing vector for the laser in the local ENU frame. The angle is measured from North and positive towards East.|no|
 | local_beam_elevation||no|
-|rh98|Relative height metrics at 98% (at this height, only 2% of the beam has been reflected, this value is often used as a proxy for canoupy height label)|yes|
+|rh98|Relative height metrics at 98% (at this height, only 2% of the beam has been reflected, this value is often used as a proxy for canopy height label)|yes|
 |rh0-97 & 99-100|Relative height metrics at n%|no|
 
 
@@ -81,7 +81,7 @@ Refer to [`LARSE_GEDI_GEDI02_A_002_MONTHLY`](https://developers.google.com/earth
 | pgap_theta  | Total Gap Probability (theta)|no|
 | selected_l2a_algorithm  | Selected L2A algorithm setting|yes|
 | selected_rg_algorithm   | Selected R (ground) algorithm|no|
-| sensitivity | Maxmimum canopy cover that can be penetrated. Valid range is [0, 1]. Values outside of this range may be present but must be ignored. They represent noise and non-land surface waveforms.|yes|
+| sensitivity | Maximum canopy cover that can be penetrated. Valid range is [0, 1]. Values outside of this range may be present but must be ignored. They represent noise and non-land surface waveforms.|yes|
 | solar_azimuth    | The azimuth of the sun position vector from the laser bounce point position in the local ENU frame measured from North and is positive towards East.|yes|
 | solar_elevation  | The elevation of the sun position vector from the laser bounce point position in the local ENU frame measured from the East-North plane and is positive Up.|yes|
 | shot_number | Shot number, a unique identifier. This field has the format of OOOOOBBRRGNNNNNNNN, where: OOOOO: Orbit number BB: Beam number RR: Reserved for future use G: Sub-orbit granule number NNNNNNNN: Shot index|yes|
@@ -95,7 +95,7 @@ Refer to [`LARSE_GEDI_GEDI02_B_002_MONTHLY`](https://developers.google.com/earth
 
 ## Configuration Options
 
-See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non GEDI-specific configuration. Additionnally, you may provide the following options.
+See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non GEDI-specific configuration. Additionally, you may provide the following options.
 
 ### GEDI L2A Configuration Options
 
@@ -159,7 +159,7 @@ then download GEDI L2A with
 geefetch gedi-l2a --vector -c config.yaml
 ```
 
-The *vector* parameter indicates wheter you whish to download the data as vectors or rasters.
+The *vector* parameter indicates whether you whish to download the data as vectors or rasters.
 
 Download GEDI L2B with
 
@@ -167,7 +167,7 @@ Download GEDI L2B with
 geefetch gedi-l2b -c config.yaml
 ```
 
-GEDI L2B only has a vector implementation. It therfore does not have any specific CLI parameters.
+GEDI L2B only has a vector implementation. It therefore does not have any specific CLI parameters.
 
 ### Python API
 
