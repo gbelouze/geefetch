@@ -3,7 +3,8 @@ similar to what `geedim` provides for Image and ImageCollection."""
 
 import logging
 import tempfile
-import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
@@ -12,15 +13,27 @@ import requests
 from ee.featurecollection import FeatureCollection
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
+from rich.progress import Progress
+
+from geefetch.utils.progress_multiprocessing import add_task_finally_remove
 
 from ...utils.enums import Format
-from ...utils.geopandas import merge_geojson
+from ...utils.geopandas import merge_geojson, merge_parquet
 from ...utils.rasterio import WGS84
+from ...utils.split import approximate_split
 from .abc import DownloadableABC
 
 log = logging.getLogger(__name__)
 
 __all__: list[str] = []
+
+
+class DownloadError(Exception):
+    pass
+
+
+def _tile_name(tile: GeoBoundingBox) -> str:
+    return f"{int(tile.left):_}_{int(tile.right):_}_{int(tile.bottom):_}_{int(tile.top):_}"
 
 
 class DownloadableGEECollection(DownloadableABC):
@@ -31,15 +44,11 @@ class DownloadableGEECollection(DownloadableABC):
     collection requests to handle Earth Engine compute limits, with recursive retries
     when a download fails.
 
-    It is thread safe.
-
     Parameters
     ----------
     collection : FeatureCollection
         The Earth Engine FeatureCollection to download.
     """
-
-    _lock = threading.Lock()
 
     def __init__(self, collection: FeatureCollection):
         self.collection = collection
@@ -48,9 +57,8 @@ class DownloadableGEECollection(DownloadableABC):
         self, collection: FeatureCollection, format: Format
     ) -> tuple[requests.Response, str]:
         """Get tile download url and response."""
-        with self._lock:
-            url = collection.getDownloadURL(filetype=format.to_str())
-            return requests.get(url, stream=True), url
+        url = collection.getDownloadURL(filetype=format.to_str())
+        return requests.get(url, stream=True), url
 
     def download(
         self,
@@ -59,6 +67,7 @@ class DownloadableGEECollection(DownloadableABC):
         crs: CRS,
         bands: list[str],
         format: Format = Format.GEOJSON,
+        progress: Progress | None = None,
         **kwargs: Any,
     ) -> None:
         """Download a FeatureCollection in one go.
@@ -68,27 +77,156 @@ class DownloadableGEECollection(DownloadableABC):
         Parameters
         ----------
         out : Path
-            Path to the geojson file to download the collection to.
+            Path to the file to download the collection to.
         region : GeoBoundingBox
-            The ROI.
+            The Region Of Interest.
         crs : CRS
             The CRS to use for the features' geometries.
         bands : list[str]
             Properties of the collection to select for download.
         format : Format
             The desired filetype.
+        progress : Progress | None
+            An optional rich progress object to track download. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
         """
         for key in kwargs:
             if key not in ["scale", "progress", "max_tile_size"]:
                 log.warning(f"Argument {key} is ignored.")
+
+        old_crs = crs
+        if format == Format.GEOJSON and crs != WGS84:
+            log.warning(f".geojson files must be in WGS84. Ignoring argument {crs=}.")
+            crs = WGS84
+        elif format == Format.PARQUET:
+            # we have to download as GEOJSON and convert as parquet later
+            crs = WGS84
+
+        # don't use too any workers or we reach a number of requests per minute GEE quota limit
+        max_workers = 15
+
+        downloaded_paths = []
+        with (
+            tempfile.TemporaryDirectory() as tmpdir,
+            ThreadPoolExecutor(max_workers=max_workers) as executor,
+            ExitStack() as stack,
+        ):
+            split_tiles = list(
+                approximate_split(
+                    region,
+                    minimal_size=10_000
+                    if region.crs.is_projected
+                    else 0.1,  # approximately 10km in m or in deg
+                )
+            )
+
+            n_tiles_download = len(split_tiles)
+            if n_tiles_download > 1_000:
+                raise ValueError(f"Region is split in too many tiles {n_tiles_download=}.")
+
+            task = None
+            if progress is not None:
+                task = stack.enter_context(
+                    add_task_finally_remove(
+                        progress, f"[magenta]Downloading {out.name}[/]", total=n_tiles_download
+                    )
+                )
+
+            futures = []
+            for tile in split_tiles:
+                tile_path = Path(tmpdir) / f"{_tile_name(tile)}{out.suffix}"
+                future = executor.submit(self._download, tile_path, tile, crs, bands, format)
+                futures.append(future)
+
+            recursive_depth = 0
+            while len(futures) > 0:
+                new_futures = []
+                for completed in as_completed(futures):
+                    response, tile_path, tile = completed.result()
+                    if response is None:
+                        downloaded_paths.append(tile_path)
+                        if progress is not None and task is not None:
+                            progress.advance(task)
+                        continue
+                    resp_dict = response.json()
+                    if not (
+                        "error" in resp_dict
+                        and "message" in resp_dict["error"]
+                        and resp_dict["error"]["message"]
+                        == "Unable to compute table: java.io.IOException: No space left on device"
+                    ):
+                        raise DownloadError(str(response.json()))
+                    msg = resp_dict["error"]["message"]
+                    if (
+                        tile.crs.is_projected
+                        and tile.area < 2_000**2 / 16
+                        or not tile.crs.is_projected
+                        and tile.area < 0.02**2 / 16
+                    ):
+                        log.error(
+                            "Attempted to split the download regions to less than 25 km². "
+                            "Still getting error. Aborting."
+                        )
+                        raise DownloadError(msg)
+
+                    split_width = min((tile.right - tile.left) / 2, (tile.top - tile.bottom) / 2)
+                    split_tiles = list(approximate_split(tile, split_width))
+
+                    log.debug(
+                        f"Caught GEE exception '[black]{msg}[/]' for tile {out}. "
+                        f"Attempting to split into smaller regions (side length = {split_width})."
+                    )
+
+                    for tile in split_tiles:
+                        tile_path = Path(tmpdir) / f"{_tile_name(tile)}{out.suffix}"
+                        future = executor.submit(
+                            self._download, tile_path, tile, crs, bands, format
+                        )
+                        new_futures.append(future)
+                futures = new_futures
+                recursive_depth += 1
+                if recursive_depth > 3:
+                    raise DownloadError(
+                        "Maximum recursive depth for collection download reached."
+                        "Try with a smaller AOI or check satellite data."
+                    )
+
+                if len(futures) > 0:
+                    log.debug(
+                        f"Queuing {len(futures)} additional downloads on smaller tiles "
+                        f"({recursive_depth=})."
+                    )
+                    n_tiles_download += len(futures)
+                    if progress is not None and task is not None:
+                        progress.update(task, total=n_tiles_download)
+
+            if progress is not None and task is not None:
+                progress.update(task, visible=False)
+
+            if format == Format.PARQUET:
+                gdf = merge_parquet(downloaded_paths)
+            elif format == Format.GEOJSON:
+                gdf = merge_geojson(downloaded_paths)
+            else:
+                raise ValueError(f"Don't how to merge files with format {format}")
+
         tmp_out = out.with_suffix(f".tmp{out.suffix}")
         tmp_out.unlink(missing_ok=True)
-        self._recursively_download(tmp_out, region, crs, bands, format)
+
+        if len(gdf) == 0:
+            log.warning(f"No data found for {out}. Skipping.")
+            return
+
+        if format == Format.PARQUET:
+            gdf.reset_index(inplace=True, drop=True)
+            gdf.to_crs(old_crs).to_parquet(tmp_out)
+        else:
+            gdf.to_file(tmp_out)
+
         tmp_out.replace(out)
 
-    def _recursively_download(
+    def _download(
         self,
         out: Path,
         region: GeoBoundingBox,
@@ -96,18 +234,7 @@ class DownloadableGEECollection(DownloadableABC):
         bands: list[str],
         format: Format = Format.GEOJSON,
         _split_recursion_depth: int = 0,
-        **kwargs: Any,
-    ) -> None:
-        for key in kwargs:
-            if key not in ["scale", "progress", "max_tile_size"]:
-                log.warning(f"Argument {key} is ignored.")
-        old_crs = crs
-        if format == Format.GEOJSON and crs != WGS84:
-            log.warning(f".geojson files must be in WGS84. Ignoring argument {crs=}.")
-            crs = WGS84
-        elif format == Format.PARQUET:
-            crs = WGS84
-
+    ) -> tuple[requests.Response | None, Path, GeoBoundingBox]:
         # get image download url and response
         collection = (
             self.collection.filterBounds(region.to_ee_geometry())
@@ -118,98 +245,21 @@ class DownloadableGEECollection(DownloadableABC):
             collection, Format.GEOJSON if format == Format.PARQUET else format
         )
 
-        def handle_error_response(response: requests.Response) -> None:
-            resp_dict = response.json()
-            if "error" in resp_dict and "message" in resp_dict["error"]:
-                msg = resp_dict["error"]["message"]
-                if msg == "Unable to compute table: java.io.IOException: No space left on device":
-                    if _split_recursion_depth > 3:
-                        log.error(
-                            "Attempted to split the download regions 3 times. "
-                            f"Still getting error: {msg}. Aborting."
-                        )
-                        raise OSError(msg)
-                    log.debug(
-                        f"Caught GEE exception '[black]{msg}[/]' for tile {out}. "
-                        f"Attempting to split into smaller regions ({_split_recursion_depth=})."
-                    )
-                    self._split_then_download(
-                        out,
-                        region,
-                        old_crs,
-                        bands,
-                        format,
-                        _split_recursion_depth=_split_recursion_depth + 1,
-                        **kwargs,
-                    )
-                    return
-                ex_msg = f"Error downloading tile: {msg}"
-            else:
-                ex_msg = str(response.json())
-            raise OSError(ex_msg)
-
         if not response.ok:
-            handle_error_response(response)
-            return
+            return response, out, region
 
         if format == Format.PARQUET:
             with tempfile.NamedTemporaryFile(suffix=".geojson", delete=False) as tmp_file:
                 for data in response.iter_content(chunk_size=1024):
                     tmp_file.write(data)
                 tmp_file.flush()
-                gdf = gpd.read_file(tmp_file.name).to_crs(old_crs)
+                gdf = gpd.read_file(tmp_file.name)
                 assert isinstance(gdf, gpd.GeoDataFrame)
                 Path(tmp_file.name).unlink()
             gdf.reset_index(inplace=True, drop=True)
             gdf.to_parquet(out)
-            return
+            return None, out, region
         with out.open("wb") as geojsonfile:
             for data in response.iter_content(chunk_size=1024):
                 geojsonfile.write(data)
-
-    def _split_then_download(
-        self,
-        out: Path,
-        region: GeoBoundingBox,
-        crs: CRS,
-        bands: list[str],
-        format: Format = Format.GEOJSON,
-        _split_recursion_depth: int = 0,
-        **kwargs: Any,
-    ) -> None:
-        match format:
-            case Format.GEOJSON | Format.PARQUET:
-                pass
-            case _:
-                raise NotImplementedError(
-                    f"Splitting and merging is not supported for download format {format}."
-                )
-        center_northing, center_easting = region.center
-        northings = [region.bottom, center_northing, region.top]
-        eastings = [region.left, center_easting, region.right]
-        regions = [
-            GeoBoundingBox(left, bottom, right, top, crs=region.crs)
-            for left, right in zip(eastings[:-1], eastings[1:], strict=True)
-            for bottom, top in zip(northings[:-1], northings[1:], strict=True)
-        ]
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_paths = []
-            for i, region in enumerate(regions):
-                tmp_path = Path(tmp_dir) / f"{i}.{format.to_str()}"
-                tmp_paths.append(tmp_path)
-                self._recursively_download(
-                    tmp_path,
-                    region,
-                    WGS84,
-                    bands,
-                    Format.GEOJSON,
-                    _split_recursion_depth,
-                    **kwargs,
-                )
-                log.debug(f"Downloaded [{i + 1}/4] split for {out}.")
-            gdf = merge_geojson(tmp_paths)
-        if format == Format.PARQUET:
-            gdf.to_crs(crs).to_parquet(out)
-        else:
-            gdf.to_file(out)
+        return None, out, region
