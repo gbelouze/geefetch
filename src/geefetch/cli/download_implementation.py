@@ -78,65 +78,75 @@ def save_config(
         log.debug(f"Config file is saved to {config_path}.")
 
 
-def download_gedi(config_path: Path, vector: bool) -> None:
-    "Download GEDI images."
+def download_gedi_l2a(config_path: Path, vector: bool) -> None:
+    "Download GEDI L2A images."
     config = load(config_path)
-    if config.gedi is None:
+    if config.gedi_l2a is None:
         raise RuntimeError(
-            "GEDI is not configured. Pass `gedi: {}` in the config file to use `satellite_default`."
+            """
+            GEDI L2A is not configured. Pass `gedi_l2a: {}`
+            in the config file to use `satellite_default`.
+            """
         )
     data_dir = Path(config.data_dir)
-    bounds = config.gedi.aoi.spatial.as_bbox()
+    bounds = config.gedi_l2a.aoi.spatial.as_bbox()
     if vector:
-        if config.gedi.selected_bands is None:
-            config.gedi.selected_bands = satellites.GEDIvector().default_selected_bands
+        if config.gedi_l2a.selected_bands is None:
+            config.gedi_l2a.selected_bands = satellites.GEDIL2Avector().default_selected_bands
 
-        save_config(config.gedi, config.data_dir / "gedi_vector")
-        data.get.download_gedi_vector(
+        save_config(config.gedi_l2a, config.data_dir / "gedi_l2a_vector")
+        data.get.download_gedi_l2a_vector(
             data_dir,
-            config.gedi.gee.ee_project_ids,
+            config.gedi_l2a.gee.ee_project_ids,
             bounds,
-            config.gedi.aoi.temporal.start_date if config.gedi.aoi.temporal is not None else None,
-            config.gedi.aoi.temporal.end_date if config.gedi.aoi.temporal is not None else None,
-            config.gedi.selected_bands,
+            config.gedi_l2a.aoi.temporal.start_date
+            if config.gedi_l2a.aoi.temporal is not None
+            else None,
+            config.gedi_l2a.aoi.temporal.end_date
+            if config.gedi_l2a.aoi.temporal is not None
+            else None,
+            config.gedi_l2a.selected_bands,
             crs=(
-                CRS.from_epsg(config.gedi.aoi.spatial.epsg)
-                if config.gedi.aoi.spatial.epsg != 4326
+                CRS.from_epsg(config.gedi_l2a.aoi.spatial.epsg)
+                if config.gedi_l2a.aoi.spatial.epsg != 4326
                 else None
             ),
-            resolution=config.gedi.resolution,
-            tile_shape=config.gedi.tile_size,
+            resolution=config.gedi_l2a.resolution,
+            tile_shape=config.gedi_l2a.tile_size,
             filter_polygon=(
                 None
-                if config.gedi.aoi.country is None
-                else load_country_filter_polygon(config.gedi.aoi.country)
+                if config.gedi_l2a.aoi.country is None
+                else load_country_filter_polygon(config.gedi_l2a.aoi.country)
             ),
-            format=config.gedi.format,
+            format=config.gedi_l2a.format,
         )
     else:
-        if config.gedi.selected_bands is None:
-            config.gedi.selected_bands = satellites.GEDIraster().default_selected_bands
-        save_config(config.gedi, config.data_dir / "gedi_raster")
-        data.get.download_gedi(
+        if config.gedi_l2a.selected_bands is None:
+            config.gedi_l2a.selected_bands = satellites.GEDIL2Araster().default_selected_bands
+        save_config(config.gedi_l2a, config.data_dir / "gedi_raster")
+        data.get.download_gedi_l2a_raster(
             data_dir,
-            config.gedi.gee.ee_project_ids,
+            config.gedi_l2a.gee.ee_project_ids,
             bounds,
-            config.gedi.aoi.temporal.start_date if config.gedi.aoi.temporal is not None else None,
-            config.gedi.aoi.temporal.end_date if config.gedi.aoi.temporal is not None else None,
-            config.gedi.selected_bands,
+            config.gedi_l2a.aoi.temporal.start_date
+            if config.gedi_l2a.aoi.temporal is not None
+            else None,
+            config.gedi_l2a.aoi.temporal.end_date
+            if config.gedi_l2a.aoi.temporal is not None
+            else None,
+            config.gedi_l2a.selected_bands,
             crs=(
-                CRS.from_epsg(config.gedi.aoi.spatial.epsg)
-                if config.gedi.aoi.spatial.epsg != 4326
+                CRS.from_epsg(config.gedi_l2a.aoi.spatial.epsg)
+                if config.gedi_l2a.aoi.spatial.epsg != 4326
                 else None
             ),
-            composite_method=config.gedi.composite_method,
-            dtype=config.gedi.dtype,
-            resolution=config.gedi.resolution,
-            tile_shape=config.gedi.tile_size,
+            dtype=config.gedi_l2a.dtype,
+            resolution=config.gedi_l2a.resolution,
+            tile_shape=config.gedi_l2a.tile_size,
             filter_polygon=(
                 None
-                if config.gedi.aoi.country is None
-                else load_country_filter_polygon(config.gedi.aoi.country)
+                if config.gedi_l2a.aoi.country is None
+                else load_country_filter_polygon(config.gedi_l2a.aoi.country)
             ),
         )
 
@@ -147,14 +157,14 @@ def download_gedi_l2b(config_path: Path) -> None:
     if config.gedi_l2b is None:
         raise RuntimeError(
             """
-            GEDI L2B is not configured. Pass `gedi_l2b: {}
-            ` in the config file to use `satellite_default`.
+                GEDI L2B is not configured. Pass `gedi_l2b: {}
+                ` in the config file to use `satellite_default`.
             """
         )
     data_dir = Path(config.data_dir)
     bounds = config.gedi_l2b.aoi.spatial.as_bbox()
     if config.gedi_l2b.selected_bands is None:
-        config.gedi_l2b.selected_bands = satellites.GEDIvector().default_selected_bands
+        config.gedi_l2b.selected_bands = satellites.GEDIL2Bvector().default_selected_bands
     save_config(config.gedi_l2b, config.data_dir / "gedi_l2b_vector")
     data.get.download_gedi_l2b_vector(
         data_dir,
@@ -501,9 +511,9 @@ def download_all(config_path: Path) -> None:
     if hasattr(config, "s2"):
         log.info("Downloading Sentinel-2 data.")
         download_s2(config_path)
-    if hasattr(config, "gedi"):
+    if hasattr(config, "gedi_l2a"):
         log.info("Downloading GEDI data.")
-        download_gedi(config_path, vector=True)
+        download_gedi_l2a(config_path, vector=True)
     if hasattr(config, "gedi_l2b"):
         log.info("Downloading GEDI L2B data.")
         download_gedi_l2b(config_path)

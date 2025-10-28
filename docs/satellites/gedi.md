@@ -90,22 +90,40 @@ Refer to [`LARSE_GEDI_GEDI02_A_002_MONTHLY`](https://developers.google.com/earth
 | pai_zn / $n\in[0,29]$| Plante area index profile at bin n.|no|
 | pavd_zn / $n\in[0,29]$| Plant Area Volume Density profile at bin n.|no|
 
+Refer to [`LARSE_GEDI_GEDI02_B_002_MONTHLY`](https://developers.google.com/earth-engine/datasets/catalog/LARSE_GEDI_GEDI02_B_002_MONTHLY#bands) for more details.
+
 
 ## Configuration Options
 
-See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non Sentinel-2-specific configuration. Additionnally, you may provide the following options.
+See [common configuration options](../api/cli/configuration.md#geefetch.cli.omegaconfig.SatelliteDefaultConfig) for non GEDI-specific configuration. Additionnally, you may provide the following options.
 
-::: geefetch.cli.omegaconfig.GediL2BConfig/GediConfig
+### GEDI L2A Configuration Options
+
+::: geefetch.cli.omegaconfig.GEDIL2AConfig
 
     options:
-        format: PARQUET
+      show_source: false
+      show_signature: false
+      show_category_heading: false
+      show_docstring_description: false
+      show_bases: false
+      show_root_toc_entry: false
 
+### GEDI L2A Configuration Options
+
+::: geefetch.cli.omegaconfig.GEDIL2BConfig
+
+    options:
+      show_source: false
+      show_signature: false
+      show_category_heading: false
+      show_docstring_description: false
+      show_bases: false
+      show_root_toc_entry: false
 
 ## Example Usage
 
 ### Command Line
-
-As it was added first, the command and configuration *gedi* corresponds to L2A data and gedi_2lb to 2LB. To avoid breaking any existing configuration files, it will be left as is for now.
 
 Write the following `config.yaml`
 
@@ -126,18 +144,19 @@ satellite_default:
     ee_project_id: "your-gee-id"
   tile_size: 2000
   resolution: 10
-gedi: # more scrict cloud filtering than the defaults
+gedi_l2a: # more srict cloud filtering than the defaults
     selected_bands:
     - rh98
     format: PARQUET
 gedi_l2b:
     selected_bands:
-    - rh98
+    - pai
 ```
+
 then download GEDI L2A with
 
 ```bash
-geefetch gedi --vector -c config.yaml
+geefetch gedi-l2a --vector -c config.yaml
 ```
 
 The *vector* parameter indicates wheter you whish to download the data as vectors or rasters.
@@ -145,7 +164,7 @@ The *vector* parameter indicates wheter you whish to download the data as vector
 Download GEDI L2B with
 
 ```bash
-geefetch gedi_l2b -c config.yaml
+geefetch gedi-l2b -c config.yaml
 ```
 
 GEDI L2B only has a vector implementation. It therfore does not have any specific CLI parameters.
@@ -161,7 +180,7 @@ from pathlib import Path
 
 from geobbox import GeoBoundingBox
 
-from geefetch.data.get import download_gedi, download_gedi_vector, download_gedi_l2b_vector
+from geefetch.data.get import download_gedi_l2a_raster, download_gedi_l2a_vector, download_gedi_l2b_vector
 from geefetch.utils.gee import auth
 from geefetch.utils.log import setup
 
@@ -172,7 +191,7 @@ data_dir.mkdir(exist_ok=True)
 
 auth("your-gee-id")
 
-download_gedi(
+download_gedi_l2a_raster(
     data_dir,
     bbox=GeoBoundingBox(2.2, 48.7, 2.5, 49),
     start_date="2023-06-01",
@@ -181,10 +200,12 @@ download_gedi(
 )
 ```
 
-See the API reference of [`geefetch.data.get.download_gedi`](../api/core/get.md#geefetch.data.get.gedi) for more details.
+See the API reference of [`geefetch.data.get.download_gedi`](../api/core/get.md#geefetch.data.get.gedi_l2a) for more details.
 
 ## Relevant library code
-
-[`GEDI L2A`](../../src/geefetch/data/satellites/gedi.py)
-
-[`GEDI L2B`](../../src/geefetch/data/satellites/gedi_2lb.py)
+[`GEDI L2A Raster`](../api/satellites.md#geefetch.data.satellites.GEDIL2Araster)
+[`GEDI L2A Vector`](../api/satellites.md#geefetch.data.satellites.GEDIL2Avector)
+[`GEDI L2B Vector`](../api/satellites.md#geefetch.data.satellites.GEDIL2Bvector)
+[`geefetch.data.get.download_gedi_l2a_raster](../api/core/get.md#geefetch.data.get.download_gedi_l2a_raster)
+[`geefetch.data.get.download_gedi_l2a_vector](../api/core/get.md#geefetch.data.get.download_gedi_l2a_vector)
+[`geefetch.data.get.download_gedi_l2b_vector](../api/core/get.md#geefetch.data.get.download_gedi_l2b_vector)

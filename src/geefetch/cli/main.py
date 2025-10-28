@@ -48,11 +48,11 @@ def all(config):
     default=True,
     help="Whether to use vectorized or rasterized data points.",
 )
-def gedi(config, vector):
-    """Download GEDI images."""
-    from .download_implementation import download_gedi
+def gedi_l2a(config, vector):
+    """Download GEDI L2A images."""
+    from .download_implementation import download_gedi_l2a
 
-    download_gedi(config, vector)
+    download_gedi_l2a(config, vector)
 
 
 @main.command()

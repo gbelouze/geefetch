@@ -79,7 +79,8 @@ Commands:
   all       Download all satellites given in the config.
   custom    Download Custom images.
   dynworld  Download Dynamic World images.
-  gedi      Download GEDI images.
+  gedi_l2a  Download GEDI L2A images.
+  gedi_l2b  Download GEDI L2B images.
   landsat8  Download Landsat 8 images.
   nasadem   Download NASA-DEM images.
   palsar2   Download Palsar-2 images.
