@@ -136,7 +136,7 @@ class SatelliteDefaultConfig:
     aoi : AOIConfig
         The temporal/spatial Area of Interest
     gee : GEEConfig
-        Google Earth Engine specific configurationss
+        Google Earth Engine specific configurations
     tile_size : int
         The pixel side length for downloaded images
     resolution : int
