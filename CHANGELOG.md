@@ -36,8 +36,8 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Added
 
-- GEDI L2B Satellite class. It is a seperate class and file to GEDI L2A data for now, they could be merged under a common GEDI parent class.
-- Configure with gedi_l2b
+- Added support for GEDI L2B product [cd16ff9f](https://github.com/gbelouze/geefetch/pull/85/commits/cd16ff9f51a458da6becceb289b84a4a4b222eb1)
+- Configure with gedi-l2b [cd16ff9f](https://github.com/gbelouze/geefetch/pull/85/commits/cd16ff9f51a458da6becceb289b84a4a4b222eb1)
 - Option to download only a range of tiles (e.g. only the first half) in order to support manual parallelization [a225ad3](https://github.com/gbelouze/geefetch/commit/a225ad37f7b7bd00aea80c6f3adc097dfb7843d3)
 - Generic `resample_reproject_clip` method to ensure that operations done in correct order (according to GEE docs) [c4c37626](https://github.com/gbelouze/geefetch/commit/c4c3762623901dd1fa4f32fe3e5d99e4b2dc4b98)
 - Choose to apply refined lee filter to PALSAR-2 images [ac50c1e3](https://github.com/gbelouze/geefetch/commit/ac50c1e324a4f30d423895d87d963f365b4ad093)

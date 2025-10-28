@@ -47,9 +47,9 @@ from .satellites import (
     S2,
     CustomSatellite,
     DynWorld,
+    GEDIL2Araster,
+    GEDIL2Avector,
     GEDIL2Bvector,
-    GEDIraster,
-    GEDIvector,
     Landsat8,
     Palsar2,
     SatelliteABC,
@@ -64,8 +64,9 @@ __all__ = [
     "BadDataError",
     "download_custom",
     "download_dynworld",
-    "download_gedi",
-    "download_gedi_vector",
+    "download_gedi_l2a_raster",
+    "download_gedi_l2a_vector",
+    "download_gedi_l2b_vector",
     "download_landsat8",
     "download_nasadem",
     "download_palsar2",
@@ -329,7 +330,7 @@ def download(
     )
 
 
-def download_gedi(
+def download_gedi_l2a_raster(
     data_dir: Path,
     ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
@@ -340,11 +341,10 @@ def download_gedi(
     resolution: int = 10,
     tile_shape: int = 500,
     max_tile_size: float = 5,
-    composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
 ) -> None:
-    """Download GEDI images fused as rasters. Images are written in several .tif chips
+    """Download GEDI L2A images fused as rasters. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `gedi.vrt` is written to combine all the chips.
 
     Parameters
@@ -372,10 +372,6 @@ def download_gedi(
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
         Choose the highest possible that doesn't raise a User Memory Excess error. Defaults to 10.
-    composite_method : CompositeMethod
-        The composite method to mosaic the image collection. Can be CompositeMethod.TIMESERIES to
-        download data as a time series instead of turning it into a mosaic.
-        Defaults to CompositeMethod.MEDIAN.
     dtype : DType
         The data type of the downloaded images. Defaults to DType.Float32.
     filter_polygon : shapely.Geometry | None
@@ -385,7 +381,7 @@ def download_gedi(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
         bbox=bbox,
-        satellite=GEDIraster(),
+        satellite=GEDIL2Araster(),
         start_date=start_date,
         end_date=end_date,
         selected_bands=selected_bands,
@@ -396,15 +392,13 @@ def download_gedi(
         check_clean=False,
         filter_polygon=filter_polygon,
         satellite_get_kwargs={
-            "composite_method": composite_method,
             "dtype": dtype,
         },
-        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
         satellite_download_kwargs={"dtype": dtype.to_str()},
     )
 
 
-def download_gedi_vector(
+def download_gedi_l2a_vector(
     data_dir: Path,
     ee_project_ids: str | list[str],
     bbox: GeoBoundingBox,
@@ -417,7 +411,7 @@ def download_gedi_vector(
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
 ) -> None:
-    """Download GEDI vector points. Points are written in several .geojson files
+    """Download GEDI L2A vector points. Points are written in several .geojson files
     to `data_dir`.
 
     Parameters
@@ -451,7 +445,7 @@ def download_gedi_vector(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
         bbox=bbox,
-        satellite=GEDIvector(),
+        satellite=GEDIL2Avector(),
         start_date=start_date,
         end_date=end_date,
         selected_bands=selected_bands,
@@ -477,7 +471,7 @@ def download_gedi_l2b_vector(
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
 ) -> None:
-    """Download GEDI vector points. Points are written in several .geojson files
+    """Download GEDI L2B vector points. Points are written in several .geojson files
     to `data_dir`.
 
     Parameters

@@ -25,7 +25,7 @@ from .abc import SatelliteABC
 
 log = logging.getLogger(__name__)
 
-__all__ = ["GEDIvector", "GEDIraster"]
+__all__ = ["GEDIL2Avector", "GEDIL2Araster", "GEDIL2Bvector"]
 
 
 class EsaClass(Enum):
@@ -50,7 +50,7 @@ def rangeContains(band: Image, mini: int | float, maxi: int | float) -> Image:
     return band.gte(mini).And(band.lte(maxi))
 
 
-def qualityFilter() -> Filter:
+def L2AQualityFilter() -> Filter:
     filter = Filter.And(
         Filter.rangeContains("rh98", 0, 80),
         Filter.eq("quality_flag", 1),
@@ -62,7 +62,17 @@ def qualityFilter() -> Filter:
     return filter  # type: ignore[no-any-return]
 
 
-def qualityMask(data: Image) -> Image:
+def L2BQualityFilter() -> Filter:
+    filter = Filter.And(
+        Filter.eq("l2b_quality_flag", 1),
+        Filter.eq("degrade_flag", 0),
+        Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
+        Filter.gte("sensitivity", 0.9),
+    )
+    return filter  # type: ignore[no-any-return]
+
+
+def L2AQualityMask(data: Image) -> Image:
     data = data.updateMask(
         rangeContains(data.select("rh98"), 0, 80)
         .And(data.select("quality_flag").eq(1))
@@ -74,7 +84,7 @@ def qualityMask(data: Image) -> Image:
     return data
 
 
-class GEDIvector(SatelliteABC):
+class GEDIL2Avector(SatelliteABC):
     @property
     def bands(self):
         raise NotImplementedError
@@ -114,7 +124,7 @@ class GEDIvector(SatelliteABC):
         end_date: str | None = None,
         **kwargs: Any,
     ) -> DownloadableGEECollection:
-        """Get a downloadable collection of GEDI points.
+        """Get a downloadable collection of GEDI L2A vector points.
 
         Parameters
         ----------
@@ -153,7 +163,7 @@ class GEDIvector(SatelliteABC):
         gedi_ids = [
             feature["properties"]["table_id"] for feature in table_ids.getInfo()["features"]
         ]
-        gedi_filter = qualityFilter()
+        gedi_filter = L2AQualityFilter()
         collections = [
             (FeatureCollection(gedi_id).filterBounds(aoi.to_ee_geometry()).filter(gedi_filter))
             for gedi_id in gedi_ids
@@ -162,7 +172,7 @@ class GEDIvector(SatelliteABC):
 
     @property
     def name(self) -> str:
-        return "gedi_vector"
+        return "gedi_l2a_vector"
 
     @property
     def full_name(self) -> str:
@@ -173,7 +183,7 @@ class GEDIvector(SatelliteABC):
         return False
 
 
-class GEDIraster(SatelliteABC):
+class GEDIL2Araster(SatelliteABC):
     @property
     def bands(self):
         return ee.ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY").first().bandNames().getInfo()
@@ -189,7 +199,7 @@ class GEDIraster(SatelliteABC):
     def get_col(
         self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
     ) -> ImageCollection:
-        """Get GEDI collection.
+        """Get GEDI L2A image ollection.
 
         Parameters
         ----------
@@ -211,7 +221,7 @@ class GEDIraster(SatelliteABC):
         if start_date is not None and end_date is not None:
             col = col.filterDate(start_date, end_date)
         return (  # type: ignore[no-any-return]
-            col.map(qualityMask).select(self.default_selected_bands)
+            col.map(L2AQualityMask).select(self.default_selected_bands)
         )
 
     def get_time_series(
@@ -222,7 +232,7 @@ class GEDIraster(SatelliteABC):
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        """Get GEDI collection.
+        """Get GEDI L2A time series collection.
 
         Parameters
         ----------
@@ -270,7 +280,7 @@ class GEDIraster(SatelliteABC):
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get GEDI collection.
+        """Get GEDI L2A Image.
 
         Parameters
         ----------
@@ -310,7 +320,7 @@ class GEDIraster(SatelliteABC):
 
     @property
     def name(self) -> str:
-        return "gedi_raster"
+        return "gedi_l2a_raster"
 
     @property
     def full_name(self) -> str:
@@ -319,3 +329,103 @@ class GEDIraster(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
+
+
+class GEDIL2Bvector(SatelliteABC):
+    @property
+    def bands(self):
+        raise NotImplementedError
+
+    @property
+    def default_selected_bands(self) -> list[str]:
+        return [
+            "pai",
+            "beam",
+            "degrade_flag",
+            "delta_time",
+            "shot_number",
+            "l2b_quality_flag",
+            "selected_l2a_algorithm",
+            "sensitivity",
+            "solar_azimuth",
+            "solar_elevation",
+        ]
+
+    def get_time_series(
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        dtype: DType = DType.Float32,
+        **kwargs: Any,
+    ) -> DownloadableGeedimImage:
+        raise NotImplementedError
+
+    def get(
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        **kwargs: Any,
+    ) -> DownloadableGEECollection:
+        """Get a downloadable collection of GEDI L2B vectoir points.
+
+        Parameters
+        ----------
+        aoi : GeoBoundingBox
+            Area of interest.
+        start_date : str | None
+            Start date in "YYYY-MM-DD" format.
+        end_date : str | None
+            End date in "YYYY-MM-DD" format.
+        **kwargs : Any
+            Accepted but ignored additional arguments.
+
+        Returns
+        -------
+        gedi_l2b_cols : DownloadableGEECollection
+            A collection of GEDI L2B points over the specified AOI and time period.
+        """
+        for key in kwargs:
+            log.warning(f"Argument {key} is ignored.")
+        aoi_wgs84 = aoi.transform(WGS84)
+        if aoi_wgs84.top > 51.6:
+            log.warning(
+                f"No GEDI data is collected above latitude 51.6°N."
+                f"Your AOI up to latitude {aoi_wgs84.top:.1f}° will not be fully represented."
+            )
+        if aoi_wgs84.bottom < -51.6:
+            log.warning(
+                f"No GEDI data is collected bellow latitude 51.6°S."
+                f"Your AOI down to latitude {aoi_wgs84.bottom:.1f}° will not be fully represented."
+            )
+        table_ids = (
+            FeatureCollection("LARSE/GEDI/GEDI02_B_002_INDEX")
+            .filterBounds(aoi.to_ee_geometry())
+            .filter(f'time_start > "{start_date}" && time_end < "{end_date}"')
+        )
+        gedi_l2b_ids = [
+            feature["properties"]["table_id"] for feature in table_ids.getInfo()["features"]
+        ]
+        gedi_l2b_filter = L2BQualityFilter()
+        collections = [
+            (
+                FeatureCollection(gedi_l2b_id)
+                .filterBounds(aoi.to_ee_geometry())
+                .filter(gedi_l2b_filter)
+            )
+            for gedi_l2b_id in gedi_l2b_ids
+        ]
+        return DownloadableGEECollection(FeatureCollection(eeList(collections)).flatten())
+
+    @property
+    def name(self) -> str:
+        return "gedi_l2b_vector"
+
+    @property
+    def full_name(self) -> str:
+        return "GEDI L2B (Vectorized)"
+
+    @property
+    def is_raster(self) -> bool:
+        return False

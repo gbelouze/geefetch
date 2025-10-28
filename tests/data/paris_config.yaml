@@ -18,7 +18,7 @@ satellite_default:
   gee:
     ee_project_ids: [your-gee-id]
     max_tile_size: 5
-gedi:
+gedi_l2a:
   aoi:
     temporal:
       start_date: 2020-07-01
