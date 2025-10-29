@@ -39,8 +39,10 @@ import time
 from multiprocessing.queues import Queue
 from typing import TYPE_CHECKING, Any, TypeAlias
 
+from geefetch.utils.multiprocessing import global_console_lock
+
 if TYPE_CHECKING:
-    LogQueue: TypeAlias = Queue[tuple[int, str, int, str]]  # pid, logger name, level, message
+    LogQueue: TypeAlias = Queue[tuple[int, str, str, str]]  # pid, logger name, level, message
 else:
     LogQueue: TypeAlias = Queue
 
@@ -57,27 +59,44 @@ class QueueLogger(logging.Logger):
     the parent consumes and replays them.
     """
 
-    def _log_to_queue_or_local(self, level: int, msg: str, *args: Any, **kwargs: Any) -> None:
+    def _log_to_queue_or_local(self, level: str, msg: str, *args: Any, **kwargs: Any) -> None:
         if log_queue is not None:
             log_queue.put((os.getpid(), self.name, level, msg % args if args else msg))
         else:
-            super().log(level, msg, *args, **kwargs)
+            match level:
+                case "debug":
+                    super().debug(f"{msg}", *args, **kwargs)
+                case "info":
+                    super().info(f"{msg}", *args, **kwargs)
+                case "warning":
+                    super().warning(f"{msg}", *args, **kwargs)
+                case "error":
+                    super().error(f"{msg}", *args, **kwargs)
+                case "exception":
+                    super().exception(f"{msg}", *args, **kwargs)
+                case "critical":
+                    super().critical(f"{msg}", *args, **kwargs)
+                case _:
+                    super().error(f"Unknown logger level {level}. Logging as error." f"{msg}")
 
     # Override the standard log methods
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.DEBUG, msg, *args, **kwargs)
+        self._log_to_queue_or_local("debug", msg, *args, **kwargs)
 
     def info(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.INFO, msg, *args, **kwargs)
+        self._log_to_queue_or_local("info", msg, *args, **kwargs)
 
     def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.WARNING, msg, *args, **kwargs)
+        self._log_to_queue_or_local("warning", msg, *args, **kwargs)
 
     def error(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.ERROR, msg, *args, **kwargs)
+        self._log_to_queue_or_local("error", msg, *args, **kwargs)
+
+    def exception(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
+        self._log_to_queue_or_local("exception", msg, *args, **kwargs)
 
     def critical(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.CRITICAL, msg, *args, **kwargs)
+        self._log_to_queue_or_local("critical", msg, *args, **kwargs)
 
 
 def init_log_queue_for_children(queue: LogQueue) -> None:
@@ -87,7 +106,14 @@ def init_log_queue_for_children(queue: LogQueue) -> None:
     """
     global log_queue
     log_queue = queue
-    logging.setLoggerClass(QueueLogger)  # patch the logger class
+    from .progress import geefetch_debug
+
+    if not geefetch_debug():
+        logging.setLoggerClass(QueueLogger)  # patch the logger class
+    else:
+        from .log import setup
+
+        setup(logging.DEBUG)
 
 
 class LogQueueConsumer:
@@ -129,6 +155,24 @@ class LogQueueConsumer:
         while not self.queue.empty():
             try:
                 process_pid, logger_name, level, msg = self.queue.get_nowait()
-                logging.getLogger(logger_name).log(level, f"[PID={process_pid}] {msg}")
+                with global_console_lock:
+                    match level:
+                        case "debug":
+                            logging.getLogger(logger_name).debug(f"[PID={process_pid}] {msg}")
+                        case "info":
+                            logging.getLogger(logger_name).info(f"[PID={process_pid}] {msg}")
+                        case "warning":
+                            logging.getLogger(logger_name).warning(f"[PID={process_pid}] {msg}")
+                        case "error":
+                            logging.getLogger(logger_name).error(f"[PID={process_pid}] {msg}")
+                        case "exception":
+                            logging.getLogger(logger_name).exception(f"[PID={process_pid}] {msg}")
+                        case "critical":
+                            logging.getLogger(logger_name).critical(f"[PID={process_pid}] {msg}")
+                        case _:
+                            logging.getLogger(logger_name).error(
+                                f"Unknown logger level {level}. Logging as error."
+                                f"[PID={process_pid}] {msg}"
+                            )
             except Exception:
                 break

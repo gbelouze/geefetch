@@ -9,13 +9,13 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 
-__all__ = ["default_bar", "disable_progress"]
+__all__ = ["default_bar", "geefetch_debug"]
 
 
 log = logging.getLogger(__name__)
 
 
-def disable_progress() -> bool:
+def geefetch_debug() -> bool:
     match os.getenv("GEEFETCH_DEBUG"):
         case "true":
             return True
@@ -26,7 +26,7 @@ def disable_progress() -> bool:
 
 
 def default_bar() -> Progress:
-    disabled = disable_progress()
+    disabled = geefetch_debug()
     if disabled:
         log.warning("progress bar is disabled.")
     return Progress(
@@ -40,4 +40,4 @@ def default_bar() -> Progress:
 
 
 if __name__ == "__main__":
-    log.info(f"{disable_progress()=}")
+    log.info(f"{geefetch_debug()=}")
