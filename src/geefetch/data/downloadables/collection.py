@@ -104,7 +104,7 @@ class DownloadableGEECollection(DownloadableABC):
             crs = WGS84
 
         # don't use too any workers or we reach a number of requests per minute GEE quota limit
-        max_workers = 15
+        max_workers = 25
 
         downloaded_paths = []
         with (
