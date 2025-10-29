@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fixed" and "Security".
 
+## pre-release
+
+### Added
+
+- Handle `GEEFETCH_DEBUG=1` flag to fall back to synchronous download, to help debugging. [3045a2a](https://github.com/gbelouze/geefetch/commit/3045a2ac4a90552bffbec600d84f67568c0b4458)
+
+### Fixed
+
+- Collections column names are now never cropped anymore (used to happen at random). [3045a2a](https://github.com/gbelouze/geefetch/commit/3045a2ac4a90552bffbec600d84f67568c0b4458)
+- Fix dtype conversion error in some downloads of GEDI for column "shot_number". [90e3a8c](https://github.com/gbelouze/geefetch/commit/90e3a8c4367cdc4d63b6487a26e21217793116e3)
+
+### Changed
+
+- `DownloadableGEECollection` now sends smaller requests in parallel and reports partial progress. [3045a2a](https://github.com/gbelouze/geefetch/commit/3045a2ac4a90552bffbec600d84f67568c0b4458)
+
 ## [0.6.0](https://github.com/gbelouze/geefetch/compare/v0.6.0...v0.5.3) (2025-10-23)
 
 ### Added
