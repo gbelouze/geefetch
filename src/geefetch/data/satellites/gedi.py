@@ -52,10 +52,10 @@ def rangeContains(band: Image, mini: int | float, maxi: int | float) -> Image:
 
 def qualityFilter() -> Filter:
     filter = Filter.And(
-        Filter.rangeContains("rh98", 0, 80),
+        Filter.rangeContains("rh98", 0, 50),
         Filter.eq("quality_flag", 1),
         Filter.eq("degrade_flag", 0),
-        # Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
+        Filter.inList("beam", [5, 6, 8, 11]),  # Full power beams
         Filter.lte("solar_elevation", 0),
         Filter.gte("sensitivity", 0.9),
     )
@@ -64,10 +64,10 @@ def qualityFilter() -> Filter:
 
 def qualityMask(data: Image) -> Image:
     data = data.updateMask(
-        rangeContains(data.select("rh98"), 0, 80)
+        rangeContains(data.select("rh98"), 0, 50)
         .And(data.select("quality_flag").eq(1))
         .And(data.select("degrade_flag").eq(0))
-        # .And(inList(data.select("beam"), [5, 6, 8, 11]))
+        .And(inList(data.select("beam"), [5, 6, 8, 11]))
         .And(data.select("solar_elevation").lte(0))
         .And(data.select("sensitivity").gte(0.9))
     )
@@ -184,35 +184,104 @@ class GEDIraster(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return 0, 100
+        return 0, 50
 
+    # def get_col(
+    #     self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
+    # ) -> ImageCollection:
+    #     """Get GEDI collection.
+
+    #     Parameters
+    #     ----------
+    #     aoi : GeoBoundingBox
+    #         Area of interest.
+    #     start_date : str | None
+    #         Start date in "YYYY-MM-DD" format.
+    #     end_date : str | None
+    #         End date in "YYYY-MM-DD" format.
+
+    #     Returns
+    #     -------
+    #     gedi_col : ImageCollection
+    #         A GEDI collection of the specified AOI and time range.
+    #     """
+    #     col = ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY").filterBounds(
+    #         aoi.buffer(10_000).to_ee_geometry()
+    #     )
+    #     if start_date is not None and end_date is not None:
+    #         col = col.filterDate(start_date, end_date)
+    #     return (  # type: ignore[no-any-return]
+    #         col.map(qualityMask).select(self.default_selected_bands)
+    #     )
     def get_col(
-        self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> ImageCollection:
-        """Get GEDI collection.
+        """Get GEDI collection with extended quality/landcover/slope filters (customized)."""
+        aoi_geom = aoi.buffer(10_000).to_ee_geometry()
 
-        Parameters
-        ----------
-        aoi : GeoBoundingBox
-            Area of interest.
-        start_date : str | None
-            Start date in "YYYY-MM-DD" format.
-        end_date : str | None
-            End date in "YYYY-MM-DD" format.
-
-        Returns
-        -------
-        gedi_col : ImageCollection
-            A GEDI collection of the specified AOI and time range.
-        """
-        col = ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY").filterBounds(
-            aoi.buffer(10_000).to_ee_geometry()
-        )
+        col = ImageCollection("LARSE/GEDI/GEDI02_A_002_MONTHLY").filterBounds(aoi_geom)
         if start_date is not None and end_date is not None:
             col = col.filterDate(start_date, end_date)
-        return (  # type: ignore[no-any-return]
-            col.map(qualityMask).select(self.default_selected_bands)
-        )
+
+        # --- aux layers (global, not clipped to avoid mask edge issues) ---
+        esa = ee.ImageCollection("ESA/WorldCover/v200").first()      # categorical LC map
+        srtm = ee.Image("CGIAR/SRTM90_V4").select("elevation")
+        slope = ee.Terrain.slope(srtm)
+
+        # ESA classes (for readability)
+        TREE, SHRUB, GRASS, CROP, BUILD, BARE, WATER = 10, 20, 30, 40, 50, 60, 80
+
+        def mask_fn(im: Image) -> Image:
+            # base quality (expand from your JS)
+            im = (
+                im.updateMask(im.select("quality_flag").eq(1))
+                .updateMask(im.select("degrade_flag").eq(0))
+                .updateMask(im.select("sensitivity").gte(0.98))
+                .updateMask(im.select("solar_elevation").lt(0))
+                .updateMask(im.select("num_detectedmodes").gt(0))
+                .updateMask(im.select("rh98").gte(0).And(im.select("rh98").lte(50)))
+                .updateMask(im.select("energy_total").gte(5000))
+                # full-power beams only (5,6,8,11)
+                .updateMask(
+                    im.select("beam").eq(5)
+                        .Or(im.select("beam").eq(6))
+                        .Or(im.select("beam").eq(8))
+                        .Or(im.select("beam").eq(11))
+                )
+            )
+
+            # ESA gating:
+            # allow shrub/bare/water/building/tree/crop + grass w/ energy≥15000 (as in your Spain script)
+            allowed = (
+                esa.eq(SHRUB)
+                .Or(esa.eq(BARE))
+                .Or(esa.eq(WATER))
+                .Or(esa.eq(BUILD))
+                .Or(esa.eq(TREE))
+                .Or(esa.eq(CROP))
+                .Or(esa.eq(GRASS).And(im.select("energy_total").gte(15000)))
+            )
+            im = im.updateMask(allowed)
+
+            # slope ≤ 10° (Spain script); change to 30 if you want the Italy variant
+            im = im.updateMask(slope.lte(10))
+
+            # replace built_up/water with 2.5, keep output band name 'rh98'
+            rh = im.select("rh98")
+            rh = rh.where(esa.eq(BUILD).Or(esa.eq(WATER)), 2.5)
+
+            # preserve the accumulated mask from 'im'
+            #return rh.updateMask(im.mask().reduce("min")).rename("rh98")
+            return (
+                rh.updateMask(im.mask().reduce("min"))
+                .rename("rh98")
+                .unmask(-1)  # <<< add this line
+            )
+        # map custom masking and return 1-band collection
+        return col.map(mask_fn).select(self.default_selected_bands)
 
     def get_time_series(
         self,
@@ -270,28 +339,9 @@ class GEDIraster(SatelliteABC):
         dtype: DType = DType.Float32,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
-        """Get GEDI collection.
-
-        Parameters
-        ----------
-        aoi : GeoBoundingBox
-            Area of interest.
-        start_date : str | None
-            Start date in "YYYY-MM-DD" format.
-        end_date : str | None
-            End date in "YYYY-MM-DD" format.
-        dtype: DType
-            The data type for the image.
-        **kwargs : Any
-            Accepted but ignored additional arguments.
-
-        Returns
-        -------
-        gedi_col : DownloadableGeedimImage
-            The GEDI collection of the specified AOI and time range.
-        """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
+
         aoi_wgs84 = aoi.transform(WGS84)
         if aoi_wgs84.top > 51.6:
             log.warning(
@@ -303,10 +353,21 @@ class GEDIraster(SatelliteABC):
                 f"No GEDI data is collected bellow latitude 51.6°S."
                 f"Your AOI down to latitude {aoi_wgs84.bottom:.1f}° will not be fully represented."
             )
+
         gedi_col = self.get_col(aoi, start_date, end_date)
-        gedi_im = gedi_col.mosaic()
+       
+        # Clip and ensure dtype
+        gedi_im = gedi_col.mosaic().clip(aoi.to_ee_geometry())
         gedi_im = self.convert_dtype(gedi_im, dtype)
+
+        # ✅ Set a footprint property directly on the EE image
+        #    (this creates a server-side metadata entry, which PatchedBaseImage will read)
+        gedi_im = gedi_im.set({'system:footprint': aoi.to_ee_geometry()})
+
+        # Wrap and return
         return DownloadableGeedimImage(PatchedBaseImage(gedi_im))
+
+
 
     @property
     def name(self) -> str:
