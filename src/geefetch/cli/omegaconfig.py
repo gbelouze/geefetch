@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
@@ -62,9 +62,10 @@ class SpatialAOIConfig:
     top : float
     bottom : float
     epsg : int
-        EPSG code for the CRS in which the boundaries are given. If given,
-        the downloaded data will be expressed in that same CRS.
+        EPSG code for the CRS in which the boundaries are given.
         Defaults is 4326, corresponding to WGS84 (latitude, longitude).
+        Note: this defines the AOI coordinate system; export CRS can be set separately via
+        `SatelliteDefaultConfig.output_epsg`.
     """
 
     left: float
@@ -139,7 +140,8 @@ class SatelliteDefaultConfig:
     tile_size : int
         The pixel side length for downloaded images
     resolution : int
-        The resolution for downloaded images, in meters
+        The resolution for downloaded images, in meters (projected CRS)
+        or degrees (when export CRS is EPSG:4326).
     dtype : DType
         The data type for downloaded images. Can be used to
         reduce file size and download speed at the cost of
@@ -155,6 +157,10 @@ class SatelliteDefaultConfig:
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    output_epsg : int | None
+        Optional explicit **export CRS** as EPSG code. If set, downloads are written in this CRS,
+        independent of the AOI CRS. If None (default), legacy behavior is kept:
+        use AOI EPSG when it is not 4326, otherwise let native CRS (e.g., UTM) pass through.
     """
 
     aoi: AOIConfig
@@ -165,6 +171,7 @@ class SatelliteDefaultConfig:
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
     selected_bands: list[str] | None = None
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR
+    output_epsg: Optional[int] = None
 
 
 @dataclass
