@@ -39,6 +39,8 @@ import time
 from multiprocessing.queues import Queue
 from typing import TYPE_CHECKING, TypeAlias
 
+from geefetch.utils.multiprocessing import global_console_lock
+
 if TYPE_CHECKING:
     LogQueue: TypeAlias = Queue[tuple[int, logging.LogRecord]]  # pid, record
 else:
@@ -134,6 +136,7 @@ class LogQueueConsumer:
             try:
                 pid, record = self.queue.get_nowait()
                 record.msg = f"[PID={pid}] {record.msg}"
-                logging.getLogger(record.name).handle(record)
+                with global_console_lock:
+                    logging.getLogger(record.name).handle(record)
             except Exception:
                 break
