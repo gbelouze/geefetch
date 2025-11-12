@@ -10,7 +10,7 @@ from ..utils.rasterio import WGS84
 log = logging.getLogger(__name__)
 
 
-def harmonize_dtypes(gdfs: list[pd.GeoDataFrame]) -> list[pd.GeoDataFrame]:
+def harmonize_dtypes(gdfs: list[gpd.GeoDataFrame]) -> list[gpd.GeoDataFrame]:
     all_cols = set().union(*(gdf.columns for gdf in gdfs))
     all_cols.discard("geometry")
     for col in all_cols:
