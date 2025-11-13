@@ -150,7 +150,6 @@ class TestDownloadSentinel1:
         conf = load(paris_speckle_timeseries_path)
         downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.tif")))
         assert len(downloaded_files) == 5
-        breakpoint()
         assert downloaded_files[0].parts[-3:] == (
             "s1",
             "s1_EPSG2154_650000_6860000",
