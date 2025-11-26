@@ -105,6 +105,6 @@ This project is licensed under the BSD-2-Clause License. See the [LICENSE](https
   title = {GeeFetch},
   year = {2025},
   url = {https://github.com/gbelouze/geefetch},
-  note = {v0.5.3}
+  note = {v0.6.0}
 }
 ```
