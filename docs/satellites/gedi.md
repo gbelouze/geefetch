@@ -109,7 +109,7 @@ See [common configuration options](../api/cli/configuration.md#geefetch.cli.omeg
       show_bases: false
       show_root_toc_entry: false
 
-### GEDI L2A Configuration Options
+### GEDI L2B Configuration Options
 
 ::: geefetch.cli.omegaconfig.GEDIL2BConfig
 
@@ -203,9 +203,7 @@ download_gedi_l2a_raster(
 See the API reference of [`geefetch.data.get.download_gedi`](../api/core/get.md#geefetch.data.get.gedi_l2a) for more details.
 
 ## Relevant library code
-[`GEDI L2A Raster`](../api/satellites.md#geefetch.data.satellites.GEDIL2Araster)
 [`GEDI L2A Vector`](../api/satellites.md#geefetch.data.satellites.GEDIL2Avector)
 [`GEDI L2B Vector`](../api/satellites.md#geefetch.data.satellites.GEDIL2Bvector)
-[`geefetch.data.get.download_gedi_l2a_raster](../api/core/get.md#geefetch.data.get.download_gedi_l2a_raster)
-[`geefetch.data.get.download_gedi_l2a_vector](../api/core/get.md#geefetch.data.get.download_gedi_l2a_vector)
-[`geefetch.data.get.download_gedi_l2b_vector](../api/core/get.md#geefetch.data.get.download_gedi_l2b_vector)
+[`geefetch.data.get.download_gedi_l2a_vector`](../api/core/get.md#geefetch.data.get.download_gedi_l2a_vector)
+[`geefetch.data.get.download_gedi_l2b_vector`](../api/core/get.md#geefetch.data.get.download_gedi_l2b_vector)
