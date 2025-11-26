@@ -20,6 +20,8 @@ class ProgressProtocol(Protocol):
 
     def refresh(self) -> None: ...
 
+    def remove_task(self, task_id: Any) -> None: ...
+
 
 if TYPE_CHECKING:
     ProgressQueue: TypeAlias = Queue[tuple[str, str, dict[str, Any]]]  # task_id, command, kwargs
@@ -72,6 +74,10 @@ class QueuedProgress:
     def advance(self, task_id: str, advance: float = 1.0) -> None:
         """Queue an advance for the specified task."""
         self.q.put(("advance", task_id, {"advance": advance}))
+
+    def remove_task(self, task_id: str) -> None:
+        """Queue a task removal if it exists."""
+        self.q.put(("remove_task", task_id, {}))
 
     def refresh(self) -> None:
         pass
