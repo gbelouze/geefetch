@@ -37,10 +37,10 @@ import os
 import threading
 import time
 from multiprocessing.queues import Queue
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 
 if TYPE_CHECKING:
-    LogQueue: TypeAlias = Queue[tuple[int, str, int, str]]  # pid, logger name, level, message
+    LogQueue: TypeAlias = Queue[tuple[int, logging.LogRecord]]  # pid, record
 else:
     LogQueue: TypeAlias = Queue
 
@@ -57,27 +57,19 @@ class QueueLogger(logging.Logger):
     the parent consumes and replays them.
     """
 
-    def _log_to_queue_or_local(self, level: int, msg: str, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, name):
+        super().__init__(name)
+
+    def handle(self, record: logging.LogRecord) -> None:
         if log_queue is not None:
-            log_queue.put((os.getpid(), self.name, level, msg % args if args else msg))
+            # Pre-format exception info so it's pickle-safe
+            if record.exc_info:
+                formatter = logging.Formatter()
+                record.exc_text = formatter.formatException(record.exc_info)
+                record.exc_info = None
+            log_queue.put((os.getpid(), record))
         else:
-            super().log(level, msg, *args, **kwargs)
-
-    # Override the standard log methods
-    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.DEBUG, msg, *args, **kwargs)
-
-    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.INFO, msg, *args, **kwargs)
-
-    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.WARNING, msg, *args, **kwargs)
-
-    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.ERROR, msg, *args, **kwargs)
-
-    def critical(self, msg: str, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
-        self._log_to_queue_or_local(logging.CRITICAL, msg, *args, **kwargs)
+            super().handle(record)
 
 
 def init_log_queue_for_children(queue: LogQueue) -> None:
@@ -87,7 +79,19 @@ def init_log_queue_for_children(queue: LogQueue) -> None:
     """
     global log_queue
     log_queue = queue
-    logging.setLoggerClass(QueueLogger)  # patch the logger class
+    from .progress import geefetch_debug
+
+    if not geefetch_debug():
+        logging.setLoggerClass(QueueLogger)  # patch the logger class
+
+        # make sure messages are allowed to go through the logging queue,
+        # even though they may be filtered out in the main process
+        logging.getLogger("geefetch").setLevel(logging.DEBUG)
+
+    else:
+        from .log import setup
+
+        setup(logging.DEBUG)
 
 
 class LogQueueConsumer:
@@ -128,7 +132,8 @@ class LogQueueConsumer:
     def _drain(self) -> None:
         while not self.queue.empty():
             try:
-                process_pid, logger_name, level, msg = self.queue.get_nowait()
-                logging.getLogger(logger_name).log(level, f"[PID={process_pid}] {msg}")
+                pid, record = self.queue.get_nowait()
+                record.msg = f"[PID={pid}] {record.msg}"
+                logging.getLogger(record.name).handle(record)
             except Exception:
                 break
