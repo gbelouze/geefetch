@@ -23,7 +23,7 @@ dynamic = ["version"]
 dependencies = [
     "click>=8.2.0",
     "earthengine-api",
-    "gee_s1_processing @ git+https://github.com/LSCE-forest/gee_s1_processing.git@v0.0.1",
+    "gee_s1_processing",
     "geedim<2.0.0",
     "geobbox>=0.1.0",
     "geopandas>=1.0.1",
