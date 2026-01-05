@@ -263,7 +263,8 @@ class GEDIL2Araster(SatelliteABC):
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
             footprint = PatchedBaseImage.from_id(id_).footprint
-            assert footprint is not None
+            if footprint is None:
+                raise RuntimeError(f"Could not retrieve footprint for GEE image with id {id_}.")
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)
@@ -314,7 +315,8 @@ class GEDIL2Araster(SatelliteABC):
                 f"Your AOI down to latitude {aoi_wgs84.bottom:.1f}° will not be fully represented."
             )
         gedi_col = self.get_col(aoi, start_date, end_date)
-        gedi_im = gedi_col.mosaic()
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+        gedi_im = gedi_col.mosaic().clip(bounds)
         gedi_im = self.convert_dtype(gedi_im, dtype)
         return DownloadableGeedimImage(PatchedBaseImage(gedi_im))
 

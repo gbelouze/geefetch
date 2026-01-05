@@ -87,7 +87,10 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
         # find raw size of the download data (less than the actual download size as the image data
         # is zipped in a compressed geotiff)
         raw_download_size = exp_image.size
-        assert raw_download_size is not None
+        if raw_download_size is None:
+            raise ValueError(
+                "Could not find download size of image. Check it has a fixed projection."
+            )
         if geedim_log.getEffectiveLevel() <= logging.DEBUG:
             dtype_size = np.dtype(exp_image.dtype).itemsize
             raw_tile_size = tile_shape[0] * tile_shape[1] * exp_image.count * dtype_size
@@ -130,7 +133,11 @@ class PatchedBaseImage(BaseImage):  # type: ignore[misc]
                 # Run the tile downloads in a thread pool
                 tiles = exp_image._tiles(tile_shape=tile_shape)
                 futures = []
-                assert self.footprint is not None
+                if self.footprint is None:
+                    raise ValueError(
+                        "Got an image with an empty footprint. "
+                        "Did you forget to `.clip(aoi)` the image ?"
+                    )
                 if "coordinates" in self.footprint and len(self.footprint["coordinates"]) > 0:
                     if "crs" in self.footprint:
                         crs = geedim.utils.rio_crs(self.footprint["crs"]["properties"]["name"])
