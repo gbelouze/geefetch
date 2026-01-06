@@ -50,6 +50,17 @@ def paris_speckle_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project
 
 
 @pytest.fixture
+def paris_spectral_indices_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str):
+    raw_paris_config = raw_paris_config.copy()
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
+    raw_paris_config.s2.spectral_indices = ["NDVI", "NBR"]
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
 def paris_speckle_timeseries_path(
     raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
 ):
@@ -58,6 +69,20 @@ def paris_speckle_timeseries_path(
     raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
     raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
     raw_paris_config.s1.speckle_filter = SpeckleFilterConfig()
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
+def paris_spectral_indices_timeseries_path(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+):
+    raw_paris_config = raw_paris_config.copy()
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
+    raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
+    raw_paris_config.s2.spectral_indices = ["NDVI", "NBR"]
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     return conf_path
@@ -239,6 +264,14 @@ class TestDownloadOtherSatellites:
 
     def test_download_timeseries_s2(self, paris_timeseriesconfig_path: Path):
         download_s2(paris_timeseriesconfig_path)
+
+    def test_download_timeseries_s2_with_spectral_indices(
+        self, paris_spectral_indices_timeseries_path: Path
+    ):
+        download_s2(paris_spectral_indices_timeseries_path)
+
+    def test_download_s2_with_spectral_indices(self, paris_spectral_indices_path: Path):
+        download_s2(paris_spectral_indices_path)
 
     def test_download_dynworld(self, paris_config_path: Path):
         download_dynworld(paris_config_path)

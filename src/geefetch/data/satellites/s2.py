@@ -10,6 +10,7 @@ from shapely import Polygon
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
+from ...utils.vegitation_index import SpectralIndex
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -102,6 +103,7 @@ class S2(SatelliteABC):
         end_date: str | None = None,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 30,
+        spectral_indices: list[SpectralIndex] | None = None,
     ) -> ImageCollection:
         """Get Sentinel-2 cloud free collection.
 
@@ -119,6 +121,9 @@ class S2(SatelliteABC):
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
             Defaults to 30.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
 
         Returns
         -------
@@ -159,7 +164,8 @@ class S2(SatelliteABC):
                 condition=Filter.equals(leftField="system:index", rightField="system:index"),
             )
         ).map(mask_s2_clouds)
-
+        for spectral_index in spectral_indices or []:
+            s2_cloudless = spectral_index.add_spectral_index_band_to_image_collection(s2_cloudless)
         return s2_cloudless  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -172,6 +178,7 @@ class S2(SatelliteABC):
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
         resolution: float = 10,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Sentinel-2 images.
@@ -195,6 +202,9 @@ class S2(SatelliteABC):
             Threshold for cloud probability above which a pixel is filtered out (%).
         resolution: float
             The resolution for the image.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -211,6 +221,7 @@ class S2(SatelliteABC):
             end_date,
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
+            spectral_indices=spectral_indices,
         )
 
         images = {}
@@ -247,6 +258,7 @@ class S2(SatelliteABC):
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
         resolution: float = 10,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Sentinel-2 images.
@@ -272,6 +284,9 @@ class S2(SatelliteABC):
             Threshold for cloud probability above which a pixel is filtered out (%).
         resolution: float
             The resolution for the image.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -289,6 +304,7 @@ class S2(SatelliteABC):
             end_date,
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
+            spectral_indices=spectral_indices,
         )
         # Apply resampling
         s2_cloudless = s2_cloudless.map(

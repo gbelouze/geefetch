@@ -40,6 +40,11 @@ s1:
     dem: 'USGS/SRTMGL1_003'
     flattening_model: 'DIRECT'
     layover_shadow_buffer: 0
+s2:
+  aoi:
+    temporal:
+      start_date: 2020-07-01
+      end_date: 2020-07-31
 
 customs:
   chm_pauls:
