@@ -6,7 +6,10 @@ from ee.filter import Filter
 from ee.image import Image
 from ee.imagecollection import ImageCollection
 from gee_s1_processing.border_noise_correction import f_mask_edges
-from gee_s1_processing.wrapper import speckle_filter_wrapper, terrain_normalization_wrapper
+from gee_s1_processing.wrapper import (
+    speckle_filter_wrapper,
+    terrain_normalization_wrapper,
+)
 from geobbox import GeoBoundingBox
 from shapely import Polygon
 
@@ -195,7 +198,10 @@ class S1(SatelliteABC):
                 id_ = feature.get("id")
                 footprint = PatchedBaseImage.from_id(id_).footprint
                 im = Image(id_)
-            assert footprint is not None
+            if footprint is None:
+                raise ValueError(
+                    "Ran into image with no footprint. Did you forget to `.clip(aoi)` ?"
+                )
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 # convert to power and resample

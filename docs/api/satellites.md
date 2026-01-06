@@ -20,8 +20,9 @@ Every satellite must conform to the following blueprint.
     options:
         members:
             - DynWorld
-            - GEDIraster
-            - GEDIvector
+            - GEDIL2Araster
+            - GEDIL2Avector
+            - GEDIL2Bvector
             - Landsat8
             - NASADEM
             - Palsar2

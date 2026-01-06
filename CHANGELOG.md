@@ -10,6 +10,14 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ## pre-release
 
+### Added
+
+- Added support for GEDI L2B product. [cd16ff9f](https://github.com/gbelouze/geefetch/pull/85/commits/cd16ff9f51a458da6becceb289b84a4a4b222eb1)
+-
+### Changed
+
+- Changed gedi functions to explicitly indicate which product they download or process (l2a or l2b). [2ad8fa03](https://github.com/gbelouze/geefetch/pull/85/commits/2ad8fa03e4a05eee3dba7759b191517433ba82f3)
+
 ### Fixed
 
 - Pass whole log records through multiprocessing queues, so that line numbers and modules are correctly reported [b1d2190](https://github.com/gbelouze/geefetch/commit/b1d2190da4a2da5a43b11cc917014fed65383714)
@@ -44,7 +52,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 ### Changed
 
 - `before_composite` and `after_composite` logic to ensure that operations are done in power scale for Palsar-2 and Sentinel-1 [e4e418b4](https://github.com/gbelouze/geefetch/commit/e4e418b489f34bfb5fa61055cf4827a32f0f8ae2)
-- By default, all satellite data will be resampled using bilinear interpolation (previously it was nearest neighbour) [7c3da39f](https://github.com/gbelouze/geefetch/commit/7c3da39f5504baa2535bc8936dab33f767ade193)
+- Change default resampling method to bilinear interpolation (previously it was nearest neighbor) [7c3da39f](https://github.com/gbelouze/geefetch/commit/7c3da39f5504baa2535bc8936dab33f767ade193)
 
 ### Fixed
 

@@ -11,7 +11,8 @@ from omegaconf import DictConfig, OmegaConf
 from geefetch.cli.download_implementation import (
     download_custom,
     download_dynworld,
-    download_gedi,
+    download_gedi_l2a,
+    download_gedi_l2b,
     download_landsat8,
     download_nasadem,
     download_palsar2,
@@ -86,8 +87,11 @@ def paris_config_selected_bands_path(
     raw_paris_config["s1"] = {"selected_bands": ["VV", "VH", "angle"]} | dict(
         raw_paris_config.get("s1", {})
     )
-    raw_paris_config["gedi"] = {"selected_bands": ["rh95", "rh98"]} | dict(
-        raw_paris_config.get("gedi", {})
+    raw_paris_config["gedi_l2a"] = {"selected_bands": ["rh95", "rh98"]} | dict(
+        raw_paris_config.get("gedi_l2a", {})
+    )
+    raw_paris_config["gedi_l2b"] = {"selected_bands": ["pai", "cover_z0", "cover_z29"]} | dict(
+        raw_paris_config.get("gedi_l2b", {})
     )
 
     conf_path = tmp_path / "config.yaml"
@@ -190,23 +194,42 @@ class TestDownloadSentinel1:
             assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
 
 
-class TestDownloadGedi:
-    def test_download_gedi_vector(self, paris_config_path: Path):
-        download_gedi(paris_config_path, vector=True)
+class TestDownloadGediL2A:
+    def test_download_gedi_l2a_vector(self, paris_config_path: Path):
+        download_gedi_l2a(paris_config_path, vector=True)
         conf = load(paris_config_path)
         downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.parquet")))
         assert len(downloaded_files) == 2
         assert downloaded_files[0].parts[-2:] == (
-            "gedi_vector",
-            "gedi_vector_EPSG2154_650000_6860000.parquet",
+            "gedi_l2a_vector",
+            "gedi_l2a_vector_EPSG2154_650000_6860000.parquet",
         )
 
-    def test_select_bands_gedi_vector(self, paris_config_selected_bands_path: Path):
-        download_gedi(paris_config_selected_bands_path, vector=True)
+    def test_select_bands_gedi_l2a_vector(self, paris_config_selected_bands_path: Path):
+        download_gedi_l2a(paris_config_selected_bands_path, vector=True)
         conf = load(paris_config_selected_bands_path)
-        downloaded_path = next(iter((Path(conf.data_dir) / "gedi_vector").glob("gedi_*.parquet")))
+        downloaded_path = next(
+            iter((Path(conf.data_dir) / "gedi_l2a_vector").glob("gedi_*.parquet"))
+        )
         gdf = gpd.read_parquet(downloaded_path)
         assert gdf.columns.to_list() == ["id", "rh95", "rh98", "geometry"]
+
+    def test_download_gedi_l2a_raster(self, paris_config_path: Path):
+        download_gedi_l2a(paris_config_path, vector=False)
+        conf = load(paris_config_path)
+        downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.tif")))
+        assert len(downloaded_files) == 2
+        assert downloaded_files[0].parts[-2:] == (
+            "gedi_l2a_raster",
+            "gedi_l2a_raster_EPSG2154_650000_6860000.tif",
+        )
+
+    def test_select_bands_gedi_l2a_raster(self, paris_config_selected_bands_path: Path):
+        download_gedi_l2a(paris_config_selected_bands_path, vector=False)
+        conf = load(paris_config_selected_bands_path)
+        downloaded_path = next(iter((Path(conf.data_dir) / "gedi_l2a_vector").glob("gedi_*.tif")))
+        with rio.open(downloaded_path) as src:
+            assert src.descriptions == ("id", "rh95", "rh98", "geometry")
 
 
 @pytest.mark.slow
@@ -223,14 +246,8 @@ class TestDownloadOtherSatellites:
     def test_download_timeseries_dynworld(self, paris_timeseriesconfig_path: Path):
         download_dynworld(paris_timeseriesconfig_path)
 
-    def test_download_timeseries_gedi_vector(self, paris_timeseriesconfig_path: Path):
-        download_gedi(paris_timeseriesconfig_path, vector=True)
-
-    def test_download_gedi_raster(self, paris_config_path: Path):
-        download_gedi(paris_config_path, vector=False)
-
-    def test_download_timeseries_gedi_raster(self, paris_timeseriesconfig_path: Path):
-        download_gedi(paris_timeseriesconfig_path, vector=False)
+    def test_download_gedi_l2b_vector(self, paris_config_path: Path):
+        download_gedi_l2b(paris_config_path)
 
     def test_download_landsat8(self, paris_config_path: Path):
         download_landsat8(paris_config_path)

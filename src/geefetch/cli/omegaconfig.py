@@ -23,7 +23,8 @@ __all__ = [
     "SpatialAOIConfig",
     "GEEConfig",
     "DynWorldConfig",
-    "GediConfig",
+    "GEDIL2AConfig",
+    "GEDIL2BConfig",
     "S1Config",
     "S2Config",
     "load",
@@ -135,7 +136,7 @@ class SatelliteDefaultConfig:
     aoi : AOIConfig
         The temporal/spatial Area of Interest
     gee : GEEConfig
-        Google Earth Engine specific configurationss
+        Google Earth Engine specific configurations
     tile_size : int
         The pixel side length for downloaded images
     resolution : int
@@ -168,9 +169,21 @@ class SatelliteDefaultConfig:
 
 
 @dataclass
-class GediConfig(SatelliteDefaultConfig):
-    """The structured type for configuring GEDI.
+class GEDIL2AConfig(SatelliteDefaultConfig):
+    """The structured type for configuring GEDI L2A.
 
+    Attributes
+    ----------
+    format : Format
+        Filetype for downloading vector GEDI. Defaults to Format.PARQUET
+    """
+
+    format: Format = Format.PARQUET
+
+
+@dataclass
+class GEDIL2BConfig(SatelliteDefaultConfig):
+    """The structured type for configuring GEDI L2B.
     Attributes
     ----------
     format : Format
@@ -339,8 +352,10 @@ class GeefetchConfig:
         The path to store downloaded data.
     satellite_default : SatelliteDefaultConfig
         Default satellite configuration.
-    gedi : GediConfig
+    gedi_l2a : GEDIL2AConfig
         GEDI specific configuration / variation to the default.
+    gedi_l2b : GEDIL2BConfig
+        GEDI L2B specific configuration / variation to the default.
     s1 : S1Config
         Sentinel-1 specific configuration / variation to the default.
     s2 : S2Config
@@ -359,7 +374,8 @@ class GeefetchConfig:
 
     data_dir: Path
     satellite_default: SatelliteDefaultConfig
-    gedi: GediConfig
+    gedi_l2a: GEDIL2AConfig
+    gedi_l2b: GEDIL2BConfig
     s1: S1Config
     s2: S2Config
     dynworld: DynWorldConfig
@@ -388,10 +404,15 @@ def _post_omegaconf_load(config: DictConfig | ListConfig) -> None:
     """
     OmegaConf.resolve(config)
 
-    config.gedi = OmegaConf.merge(
-        OmegaConf.structured(GediConfig),
+    config.gedi_l2a = OmegaConf.merge(
+        OmegaConf.structured(GEDIL2AConfig),
         config.satellite_default,
-        config.gedi if "gedi" in config else {},
+        config.gedi_l2a if "gedi_l2a" in config else {},
+    )
+    config.gedi_l2b = OmegaConf.merge(
+        OmegaConf.structured(GEDIL2BConfig),
+        config.satellite_default,
+        config.gedi_l2b if "gedi_l2b" in config else {},
     )
     config.s1 = OmegaConf.merge(
         OmegaConf.structured(S1Config),

@@ -137,7 +137,10 @@ class DynWorld(SatelliteABC):
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
             footprint = PatchedBaseImage.from_id(id_).footprint
-            assert footprint is not None
+            if footprint is None:
+                raise ValueError(
+                    "Ran into image with no footprint. Did you forget to `.clip(aoi)` ?"
+                )
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
                 # aoi intersects im
                 im = Image(id_)

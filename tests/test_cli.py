@@ -27,7 +27,7 @@ def test_fail_on_missing_config():
     runner = CliRunner()
     results = [
         runner.invoke(main, [satellite, "--config", "fakeconfig.yaml"])
-        for satellite in ["s1", "s2", "palsar2", "gedi", "dynworld", "landsat8"]
+        for satellite in ["s1", "s2", "palsar2", "gedi-l2a", "gedi-l2b", "dynworld", "landsat8"]
     ]
     for res in results:
         assert res.exit_code == 2
