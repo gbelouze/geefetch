@@ -15,6 +15,7 @@ import geefetch.data.satellites as satellites
 from geefetch import data
 from geefetch.utils.config import git_style_diff
 
+from ..utils.vegitation_index import S2_MAPPING, load_spectral_indices_from_conf
 from .omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig, load
 
 log = logging.getLogger(__name__)
@@ -252,6 +253,7 @@ def download_s2(config_path: Path) -> None:
         )
     if config.s2.selected_bands is None:
         config.s2.selected_bands = satellites.S2().default_selected_bands
+    spectral_indices = load_spectral_indices_from_conf(config=config.s2, mapping=S2_MAPPING)
     save_config(config.s2, config.data_dir / "s2")
 
     data_dir = Path(config.data_dir)
@@ -281,6 +283,7 @@ def download_s2(config_path: Path) -> None:
         cloudless_portion=config.s2.cloudless_portion,
         cloud_prb_thresh=config.s2.cloud_prb_threshold,
         resampling=config.s2.resampling,
+        spectral_indices=spectral_indices,
     )
 
 
