@@ -50,7 +50,7 @@ def rangeContains(band: Image, mini: int | float, maxi: int | float) -> Image:
     return band.gte(mini).And(band.lte(maxi))
 
 
-def L2AQualityFilter() -> Filter:
+def l2AQualityFilter() -> Filter:
     filter = Filter.And(
         Filter.rangeContains("rh98", 0, 80),
         Filter.eq("quality_flag", 1),
@@ -62,7 +62,7 @@ def L2AQualityFilter() -> Filter:
     return filter  # type: ignore[no-any-return]
 
 
-def L2BQualityFilter() -> Filter:
+def l2BQualityFilter() -> Filter:
     filter = Filter.And(
         Filter.eq("l2b_quality_flag", 1),
         Filter.eq("degrade_flag", 0),
@@ -72,7 +72,7 @@ def L2BQualityFilter() -> Filter:
     return filter  # type: ignore[no-any-return]
 
 
-def L2AQualityMask(data: Image) -> Image:
+def l2AQualityMask(data: Image) -> Image:
     data = data.updateMask(
         rangeContains(data.select("rh98"), 0, 80)
         .And(data.select("quality_flag").eq(1))
@@ -163,7 +163,7 @@ class GEDIL2Avector(SatelliteABC):
         gedi_ids = [
             feature["properties"]["table_id"] for feature in table_ids.getInfo()["features"]
         ]
-        gedi_filter = L2AQualityFilter()
+        gedi_filter = l2AQualityFilter()
         collections = [
             (FeatureCollection(gedi_id).filterBounds(aoi.to_ee_geometry()).filter(gedi_filter))
             for gedi_id in gedi_ids
@@ -221,7 +221,7 @@ class GEDIL2Araster(SatelliteABC):
         if start_date is not None and end_date is not None:
             col = col.filterDate(start_date, end_date)
         return (  # type: ignore[no-any-return]
-            col.map(L2AQualityMask).select(self.default_selected_bands)
+            col.map(l2AQualityMask).select(self.default_selected_bands)
         )
 
     def get_time_series(
@@ -409,7 +409,7 @@ class GEDIL2Bvector(SatelliteABC):
         gedi_l2b_ids = [
             feature["properties"]["table_id"] for feature in table_ids.getInfo()["features"]
         ]
-        gedi_l2b_filter = L2BQualityFilter()
+        gedi_l2b_filter = l2BQualityFilter()
         collections = [
             (
                 FeatureCollection(gedi_l2b_id)
