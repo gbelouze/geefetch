@@ -13,14 +13,18 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 ### Added
 
 - Added support for GEDI L2B product. [cd16ff9f](https://github.com/gbelouze/geefetch/pull/85/commits/cd16ff9f51a458da6becceb289b84a4a4b222eb1)
--
+
 ### Changed
 
 - Changed gedi functions to explicitly indicate which product they download or process (l2a or l2b). [2ad8fa03](https://github.com/gbelouze/geefetch/pull/85/commits/2ad8fa03e4a05eee3dba7759b191517433ba82f3)
+- Handle `GEEFETCH_DEBUG=1` flag to fall back to synchronous download, to help debugging. [3045a2a](https://github.com/gbelouze/geefetch/commit/3045a2ac4a90552bffbec600d84f67568c0b4458)
+- `DownloadableGEECollection` now sends smaller requests in parallel and reports partial progress. [3045a2a](https://github.com/gbelouze/geefetch/commit/3045a2ac4a90552bffbec600d84f67568c0b4458)
 
 ### Fixed
 
 - Pass whole log records through multiprocessing queues, so that line numbers and modules are correctly reported [b1d2190](https://github.com/gbelouze/geefetch/commit/b1d2190da4a2da5a43b11cc917014fed65383714)
+- Collections column names are now never cropped anymore (used to happen at random). [3045a2a](https://github.com/gbelouze/geefetch/commit/3045a2ac4a90552bffbec600d84f67568c0b4458)
+- Fix dtype conversion error in some downloads of GEDI for column "shot_number". [90e3a8c](https://github.com/gbelouze/geefetch/commit/90e3a8c4367cdc4d63b6487a26e21217793116e3)
 
 ## [0.6.0](https://github.com/gbelouze/geefetch/compare/v0.6.0...v0.5.3) (2025-10-23)
 

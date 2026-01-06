@@ -1,10 +1,14 @@
 import logging
 import threading
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from multiprocessing.queues import Queue
 from typing import TYPE_CHECKING, Any, Protocol, TypeAlias
 
-from rich.progress import Progress
+from rich.progress import Progress, TaskID
+
+from geefetch.utils.multiprocessing import global_console_lock
 
 log = logging.getLogger(__name__)
 
@@ -135,13 +139,59 @@ class ProgressQueueConsumer:
         while not self.queue.empty():
             try:
                 cmd, task_id, data = self.queue.get_nowait()
-
-                if cmd == "add_task":
-                    self._task_map[task_id] = self._progress.add_task(**data)
-                elif cmd == "update":
-                    self._progress.update(self._task_map[task_id], **data)
-                elif cmd == "advance":
-                    self._progress.advance(self._task_map[task_id], **data)
+                with global_console_lock:
+                    if cmd == "add_task":
+                        self._task_map[task_id] = self._progress.add_task(**data)
+                    elif cmd == "update":
+                        self._progress.update(self._task_map[task_id], **data)
+                    elif cmd == "advance":
+                        self._progress.advance(self._task_map[task_id], **data)
+                    elif cmd == "remove_task":
+                        self._progress.remove_task(self._task_map[task_id])
             except Exception as e:
                 log.error(f"Exception consuming progress queue : {e}")
                 break
+
+
+@contextmanager
+def add_task_finally_remove(progress: Progress, *args: Any, **kwargs: Any) -> Iterator[TaskID]:
+    """
+    Context manager that adds a progress task and ensures it is removed
+    when the context exits, regardless of success or failure.
+
+    Parameters
+    ----------
+    progress : Progress
+        A `rich.progress.Progress` instance managing the tasks.
+    *args : Any
+        Positional arguments passed to `progress.add_task`.
+    **kwargs : Any
+        Keyword arguments passed to `progress.add_task`.
+
+    Yields
+    ------
+    TaskID
+        The task ID returned by `progress.add_task`.
+
+    Notes
+    -----
+    - The task is first hidden (`visible=False`) and then removed from
+      the progress display when the context exits.
+    - Any exception raised within the context is propagated after
+      cleanup.
+
+    Examples
+    --------
+    >>> from rich.progress import Progress
+    >>> progress = Progress()
+    >>> with progress:
+    ...     with add_task_finally_remove(progress, "Processing", total=100) as task:
+    ...         for i in range(100):
+    ...             progress.update(task, advance=1)
+    """
+    try:
+        task = progress.add_task(*args, **kwargs)
+        yield task
+    finally:
+        progress.update(task, visible=False)
+        progress.remove_task(task)
