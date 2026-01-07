@@ -173,8 +173,7 @@ class S1(SatelliteABC):
             A Sentinel-1 time series collection of the specified AOI and time range.
         """
         for key in kwargs:
-            if key not in ("speckle_filter_config", "terrain_normalization_config"):
-                log.warning(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
 
         self.speckle_filter_config = speckle_filter_config
         self.terrain_normalization_config = terrain_normalization_config
@@ -259,8 +258,7 @@ class S1(SatelliteABC):
             A Sentinel-1 composite image of the specified AOI and time range.
         """
         for key in kwargs:
-            if key not in ("speckle_filter_config", "terrain_normalization_config"):
-                log.warning(f"Argument {key} is ignored.")
+            log.warning(f"Argument {key} is ignored.")
 
         self.speckle_filter_config = speckle_filter_config
         self.terrain_normalization_config = terrain_normalization_config
