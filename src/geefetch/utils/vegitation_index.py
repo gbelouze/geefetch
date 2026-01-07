@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 
 
 class VegetationIndeciesExpressions(Enum):
-    NDVI = "(NIR - RED) / (NIR + RED)"
-    NBR = "(NIR - SWIR2) / (NIR + SWIR2)"
+    NDVI = {"expression": "(NIR - RED) / (NIR + RED)", "denominator": "(NIR + RED)"}
+    NBR = {"expression": "(NIR - SWIR2) / (NIR + SWIR2)", "denominator": "(NIR + SWIR2)"}
 
 
 S2_MAPPING = {"RED": "B4", "GREEN": "B3", "BLUE": "B2", "SWIR2": "B12", "NIR": "B8"}
@@ -23,7 +23,8 @@ S2_MAPPING = {"RED": "B4", "GREEN": "B3", "BLUE": "B2", "SWIR2": "B12", "NIR": "
 @dataclass(frozen=True)
 class SpectralIndex:
     name: str
-    expression: str
+    expression: str | None
+    expression_denominator: str | None
     band_mapping: dict[str, str]
 
     def _add_index_to_image(self, image: Image) -> Image:
@@ -35,10 +36,13 @@ class SpectralIndex:
         has_required_bands = required_bands.removeAll(present).size().eq(0)
 
         def _add() -> Image:
-            # TODO: Add masking where denominator is equal to 0
-            return image.addBands(
-                image.expression(expression=self.expression, map_=bands).rename(self.name)
-            )
+            out = image.expression(expression=self.expression, map_=bands).rename(self.name)
+            if self.expression_denominator:
+                denominator_mask = image.expression(
+                    expression=self.expression_denominator, map_=bands
+                )
+                out.updateMask(denominator_mask.neq(0))
+            return image.addBands(out)
 
         def _empty() -> Image:
             empty_spectral_index: Image = (
@@ -65,6 +69,13 @@ class SpectralIndex:
             The input ImageCollection with Images containing a new band that
             coresponds to the expression defined by the spectral_index.
         """
+        if not self.expression:
+            msg = f"""
+                Expression not found for {self.name}.
+                Verify documentation to ensure the index is implemented.
+            """
+            log.error(msg)
+            raise ValueError(msg)
         return cast(
             ImageCollection, image_collection.map(lambda img: self._add_index_to_image(img))
         )
@@ -88,6 +99,11 @@ def load_spectral_indices_from_conf(
             else:
                 spectral_index = VegetationIndeciesExpressions[spectral_index_name]
                 spectral_indices.append(
-                    SpectralIndex(spectral_index.name, spectral_index.value, mapping)
+                    SpectralIndex(
+                        name=spectral_index.name,
+                        expression=spectral_index.value.get("expression"),
+                        expression_denominator=spectral_index.value.get("denominator"),
+                        band_mapping=mapping,
+                    )
                 )
     return spectral_indices

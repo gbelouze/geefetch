@@ -54,6 +54,7 @@ class S2(SatelliteABC):
         "B11",
         "B12",
     ]
+    spectral_indices: list[SpectralIndex] | None = None
 
     @property
     def bands(self) -> list[str]:
@@ -96,6 +97,10 @@ class S2(SatelliteABC):
     def is_raster(self) -> bool:
         return True
 
+    @property
+    def is_preprocessed(self):
+        return self.spectral_indices is not None
+
     def get_col(
         self,
         aoi: GeoBoundingBox,
@@ -103,7 +108,6 @@ class S2(SatelliteABC):
         end_date: str | None = None,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 30,
-        spectral_indices: list[SpectralIndex] | None = None,
     ) -> ImageCollection:
         """Get Sentinel-2 cloud free collection.
 
@@ -121,9 +125,6 @@ class S2(SatelliteABC):
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
             Defaults to 30.
-        spectral_indices: list[SpectralIndex] | None
-            List of SpectralIndex objects that are used to compute and add spectral
-            index bands to the downloaded images. Defaults to None.
 
         Returns
         -------
@@ -164,7 +165,7 @@ class S2(SatelliteABC):
                 condition=Filter.equals(leftField="system:index", rightField="system:index"),
             )
         ).map(mask_s2_clouds)
-        for spectral_index in spectral_indices or []:
+        for spectral_index in self.spectral_indices or []:
             s2_cloudless = spectral_index.add_spectral_index_band_to_image_collection(s2_cloudless)
         return s2_cloudless  # type: ignore[no-any-return]
 
@@ -215,13 +216,13 @@ class S2(SatelliteABC):
         """
         for kwarg in kwargs:
             log.warning(f"Argument {kwarg} is ignored.")
+        self.spectral_indices = spectral_indices
         s2_cloudless = self.get_col(
             aoi,
             start_date,
             end_date,
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
-            spectral_indices=spectral_indices,
         )
 
         images = {}
@@ -231,20 +232,29 @@ class S2(SatelliteABC):
             log.error(f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
         for feature in info["features"]:  # type: ignore[index]
-            id_ = feature["id"]
-            footprint = PatchedBaseImage.from_id(id_).footprint
+            sys_index = feature.get("properties").get("system:index")
+            if self.is_preprocessed:
+                im = s2_cloudless.filter(Filter.eq("system:index", sys_index)).first()
+                footprint = PatchedBaseImage.from_id(
+                    f"COPERNICUS/S2_SR_HARMONIZED/{sys_index}"
+                ).footprint
+            else:
+                id_ = feature["id"]
+                footprint = PatchedBaseImage.from_id(id_).footprint
+                im = Image(id_)
             if footprint is None:
                 raise ValueError(
                     "Ran into image with no footprint. Did you forget to `.clip(aoi)` ?"
                 )
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
-                # aoi intersects im
-                im = Image(id_)
                 # resample
                 im = self.resample_reproject_clip(im, aoi, resampling, resolution)
                 # apply dtype
                 im = self.convert_dtype(im, dtype)
-                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(im)
+                images[sys_index.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(
+                    im
+                )
+
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -298,13 +308,15 @@ class S2(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
+
+        self.spectral_indices = spectral_indices
+
         s2_cloudless = self.get_col(
             aoi,
             start_date,
             end_date,
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
-            spectral_indices=spectral_indices,
         )
         # Apply resampling
         s2_cloudless = s2_cloudless.map(
