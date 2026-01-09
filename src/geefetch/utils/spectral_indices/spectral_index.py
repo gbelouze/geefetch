@@ -1,41 +1,60 @@
 import logging
 from dataclasses import dataclass
-from enum import Enum
 from typing import cast
 
 import ee
 from ee.image import Image
 from ee.imagecollection import ImageCollection
 
-from ..cli.omegaconfig import SatelliteDefaultConfig
+from ...cli.omegaconfig import SatelliteDefaultConfig
+from .enums import IndeciesExpressions
 
 log = logging.getLogger(__name__)
 
-
-class VegetationIndeciesExpressions(Enum):
-    NDVI = {"expression": "(NIR - RED) / (NIR + RED)", "denominator": "(NIR + RED)"}
-    NBR = {"expression": "(NIR - SWIR2) / (NIR + SWIR2)", "denominator": "(NIR + SWIR2)"}
-
-
-S2_MAPPING = {"RED": "B4", "GREEN": "B3", "BLUE": "B2", "SWIR2": "B12", "NIR": "B8"}
+EXPRESSION_BANDS = [
+    "HH",
+    "HV",
+    "VV",
+    "VH",
+    "A",
+    "B",
+    "G",
+    "R",
+    "RE1",
+    "RE2",
+    "RE3",
+    "N2",
+    "N",
+    "WV",
+    "S1",
+    "S2",
+]
 
 
 @dataclass(frozen=True)
 class SpectralIndex:
     name: str
-    expression: str | None
+    expression: str
     expression_denominator: str | None
     band_mapping: dict[str, str]
 
+    def _has_required_bands(self, image: Image) -> ee.Number:
+        expression_bands = [
+            self.band_mapping.get(band) for band in EXPRESSION_BANDS if band in self.expression
+        ]
+
+        if None in expression_bands:
+            return ee.Number(0)
+
+        required_bands_ee = ee.List(expression_bands)
+        present = image.bandNames()
+        return required_bands_ee.removeAll(present).size().eq(0)
+
     def _add_index_to_image(self, image: Image) -> Image:
         """Adds a spectral index band to a given Image."""
-        bands = {key: image.select(value) for key, value in self.band_mapping.items()}
-        required_bands = ee.List(list(self.band_mapping.values()))
-        present = image.bandNames()
-
-        has_required_bands = required_bands.removeAll(present).size().eq(0)
 
         def _add() -> Image:
+            bands = {key: image.select(value) for key, value in self.band_mapping.items()}
             out = image.expression(expression=self.expression, map_=bands).rename(self.name)
             if self.expression_denominator:
                 denominator_mask = image.expression(
@@ -46,11 +65,14 @@ class SpectralIndex:
 
         def _empty() -> Image:
             empty_spectral_index: Image = (
-                Image.constant(0).updateMask(0).rename(self.name).reproject(image.projection())
+                Image.constant(0)
+                .updateMask(0)
+                .rename(self.name)
+                .reproject(image.select(0).projection())
             )
-            return empty_spectral_index
+            return image.addBands(empty_spectral_index)
 
-        out: Image = ee.Algorithms.If(has_required_bands, _add(), _empty())
+        out: Image = ee.Algorithms.If(self._has_required_bands(image), _add(), _empty())
         return out
 
     def add_spectral_index_band_to_image_collection(
@@ -76,6 +98,7 @@ class SpectralIndex:
             """
             log.error(msg)
             raise ValueError(msg)
+
         return cast(
             ImageCollection, image_collection.map(lambda img: self._add_index_to_image(img))
         )
@@ -88,7 +111,7 @@ def load_spectral_indices_from_conf(
     if config.spectral_indices:
         spectral_indices = []
         for spectral_index_name in config.spectral_indices:
-            if spectral_index_name not in VegetationIndeciesExpressions._member_names_:
+            if spectral_index_name not in IndeciesExpressions._member_names_:
                 msg = f"""
                     {spectral_index_name} does not figure in the list of GeeFetch
                     implemented spectral indices.\n
@@ -96,12 +119,13 @@ def load_spectral_indices_from_conf(
                 """
                 log.error(msg)
                 raise ValueError(msg)
+
             else:
-                spectral_index = VegetationIndeciesExpressions[spectral_index_name]
+                spectral_index = IndeciesExpressions[spectral_index_name]
                 spectral_indices.append(
                     SpectralIndex(
                         name=spectral_index.name,
-                        expression=spectral_index.value.get("expression"),
+                        expression=spectral_index.value.get("formula", ""),
                         expression_denominator=spectral_index.value.get("denominator"),
                         band_mapping=mapping,
                     )
