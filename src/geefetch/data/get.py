@@ -36,7 +36,7 @@ from ..utils.progress_multiprocessing import (
     QueuedProgress,
 )
 from ..utils.rasterio import create_vrt
-from ..utils.vegitation_index import SpectralIndex
+from ..utils.spectral_indices.spectral_index import SpectralIndex
 from .process import (
     geofile_is_clean,
     merge_tracked_geojson,
@@ -122,7 +122,7 @@ def download_chip(
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
+    bands = list(selected_bands) if selected_bands is not None else satellite.default_selected_bands
     spectra_indices: list[SpectralIndex] | None = data_get_kwargs.get("spectral_indices")
     if spectra_indices:
         bands += [index.name for index in spectra_indices]
@@ -550,6 +550,7 @@ def download_s1(
     terrain_normalization_config: TerrainNormalizationConfig | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.
@@ -597,6 +598,8 @@ def download_s1(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    spectral_indices : list[SpectralIndex] | None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
 
     download_selected_bands: list[str] | None
@@ -632,6 +635,7 @@ def download_s1(
             "resolution": resolution,
             "speckle_filter_config": speckle_filter_config,
             "terrain_normalization_config": terrain_normalization_config,
+            "spectral_indices": spectral_indices,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
@@ -828,6 +832,7 @@ def download_landsat8(
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
     """Download Landsat 8 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `landsat8.vrt` is written to combine all the chips.
@@ -869,6 +874,8 @@ def download_landsat8(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    spectral_indices : list[SpectralIndex] | None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
     download(
         data_dir=data_dir,
@@ -888,6 +895,7 @@ def download_landsat8(
             "dtype": dtype,
             "resampling": resampling,
             "resolution": resolution,
+            "spectral_indices": spectral_indices,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
@@ -911,6 +919,7 @@ def download_palsar2(
     orbit: P2Orbit = P2Orbit.DESCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
     refined_lee: bool = True,
+    spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
@@ -957,6 +966,8 @@ def download_palsar2(
     refined_lee : bool
         Whether to apply the Refined Lee filter to reduce speckle noise.
         Defaults to True.
+    spectral_indices : list[SpectralIndex] | None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
     download(
         data_dir=data_dir,
@@ -978,6 +989,7 @@ def download_palsar2(
             "resampling": resampling,
             "resolution": resolution,
             "refined_lee": refined_lee,
+            "spectral_indices": spectral_indices,
         },
         satellite_download_kwargs={"dtype": dtype.to_str()},
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),

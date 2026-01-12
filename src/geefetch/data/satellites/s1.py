@@ -16,6 +16,7 @@ from shapely import Polygon
 from ...cli.omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod, S1Orbit
 from ...utils.rasterio import WGS84
+from ...utils.spectral_indices import SpectralIndex
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -30,6 +31,7 @@ class S1(SatelliteABC):
     _default_selected_bands = ["VV", "VH"]
     speckle_filter_config: SpeckleFilterConfig | None
     terrain_normalization_config: TerrainNormalizationConfig | None
+    spectral_indices: list[SpectralIndex] | None = None
 
     @property
     def bands(self) -> list[str]:
@@ -53,8 +55,12 @@ class S1(SatelliteABC):
 
     @property
     def is_preprocessed(self):
-        return (self.speckle_filter_config is not None) or (
-            self.terrain_normalization_config is not None
+        return any(
+            [
+                (self.speckle_filter_config is not None),
+                (self.terrain_normalization_config is not None),
+                (self.spectral_indices is not None),
+            ]
         )
 
     def get_col(
@@ -101,7 +107,6 @@ class S1(SatelliteABC):
                 "Only polarization band combination accepted for Sentinel-1 are "
                 "[VV], [HH], [VH], [HV], [HH, HV] or [VV, VH]"
             )
-
         band_filter = Filter.And(
             *[
                 Filter.listContains("transmitterReceiverPolarisation", band)
@@ -113,7 +118,6 @@ class S1(SatelliteABC):
         if start_date is not None and end_date is not None:
             col = col.filterDate(start_date, end_date)
         col = col.filterBounds(bounds).filter(band_filter).filter(Filter.eq("instrumentMode", "IW"))
-
         match orbit:
             case S1Orbit.ASCENDING | S1Orbit.DESCENDING:
                 col = col.filter(Filter.eq("orbitProperties_pass", orbit.value))
@@ -126,6 +130,8 @@ class S1(SatelliteABC):
             col = speckle_filter_wrapper(col, *astuple(self.speckle_filter_config))
         if self.terrain_normalization_config:
             col = terrain_normalization_wrapper(col, *astuple(self.terrain_normalization_config))
+        for spectral_index in self.spectral_indices or []:
+            col = spectral_index.add_spectral_index_band_to_image_collection(col)
         return col  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -140,6 +146,7 @@ class S1(SatelliteABC):
         resolution: float = 10,
         speckle_filter_config: SpeckleFilterConfig | None = None,
         terrain_normalization_config: TerrainNormalizationConfig | None = None,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Sentinel-1 images.
@@ -164,6 +171,9 @@ class S1(SatelliteABC):
             The resolution for the image.
         speckle_filter_config : SpeckleFilterConfig | None
         terrain_normalization_config : TerrainNormalizationConfig | None
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -177,6 +187,8 @@ class S1(SatelliteABC):
 
         self.speckle_filter_config = speckle_filter_config
         self.terrain_normalization_config = terrain_normalization_config
+        self.spectral_indices = spectral_indices
+
         if orbit == S1Orbit.AS_BANDS:
             raise ValueError("Orbit AS_BANDS is not permitted for downloading time series.")
         s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
@@ -184,7 +196,7 @@ class S1(SatelliteABC):
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Sentinel-1 image.Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
             sys_index = feature.get("properties").get("system:index")
@@ -223,6 +235,7 @@ class S1(SatelliteABC):
         resolution: float = 10,
         speckle_filter_config: SpeckleFilterConfig | None = None,
         terrain_normalization_config: TerrainNormalizationConfig | None = None,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Sentinel-1 images.
@@ -249,6 +262,9 @@ class S1(SatelliteABC):
             The resolution for the image.
         speckle_filter_config : SpeckleFilterConfig | None
         terrain_normalization_config : TerrainNormalizationConfig | None
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -262,6 +278,7 @@ class S1(SatelliteABC):
 
         self.speckle_filter_config = speckle_filter_config
         self.terrain_normalization_config = terrain_normalization_config
+        self.spectral_indices = spectral_indices
 
         def get_im(orbit: S1Orbit) -> Image:
             s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)

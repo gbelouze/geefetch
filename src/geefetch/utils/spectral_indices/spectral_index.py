@@ -65,11 +65,8 @@ class SpectralIndex:
 
         def _empty() -> Image:
             empty_spectral_index: Image = (
-                Image.constant(0)
-                .updateMask(0)
-                .rename(self.name)
-                .reproject(image.select(0).projection())
-            )
+                Image.constant(0).updateMask(0).reproject(image.select(0).projection())
+            ).rename(self.name)
             return image.addBands(empty_spectral_index)
 
         out: Image = ee.Algorithms.If(self._has_required_bands(image), _add(), _empty())
