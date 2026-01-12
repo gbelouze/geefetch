@@ -57,6 +57,10 @@ satellite_default:
 s2:
   cloudless_portion: 40
   cloud_prb_threshold: 40
+  spectral_indices:
+    - NDVI
+    - NBR
+    - BAIS2
 ```
 
 !!! note

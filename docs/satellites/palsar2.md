@@ -67,6 +67,9 @@ palsar2:
   aoi:
     temporal:
       end_date: "2024-12-30"
+  spectral_indices:
+  - RFDI
+  - DpRVIHH
 ```
 
 then download with

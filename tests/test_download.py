@@ -50,6 +50,23 @@ def paris_speckle_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project
 
 
 @pytest.fixture
+def paris_spectral_indices_path(raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str):
+    raw_paris_config = raw_paris_config.copy()
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
+    raw_paris_config.satellite_default.spectral_indices = [
+        "NDVI",
+        "NBR",
+        "NGRDI",
+        "DpRVIVV",
+        "RFDI",
+    ]
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
 def paris_speckle_timeseries_path(
     raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
 ):
@@ -58,6 +75,26 @@ def paris_speckle_timeseries_path(
     raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
     raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
     raw_paris_config.s1.speckle_filter = SpeckleFilterConfig()
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
+def paris_spectral_indices_timeseries_path(
+    raw_paris_config: DictConfig, tmp_path: Path, gee_project_id: str
+):
+    raw_paris_config = raw_paris_config.copy()
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
+    raw_paris_config.satellite_default.composite_method = CompositeMethod.TIMESERIES
+    raw_paris_config.satellite_default.spectral_indices = [
+        "NDVI",
+        "NBR",
+        "NGRDI",
+        "DpRVIVV",
+        "RFDI",
+    ]
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     return conf_path
@@ -128,6 +165,14 @@ class TestDownloadSentinel1:
         downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
         assert len(downloaded_files) == 1
         assert downloaded_files[0].parts[-2:] == ("s1", "s1_EPSG2154_650000_6860000.tif")
+
+    def test_donwload_s1_with_spectral_indices(self, paris_spectral_indices_path: Path):
+        download_s1(paris_spectral_indices_path)
+
+    def test_donwload_timeseries_s1_with_spectral_indices(
+        self, paris_spectral_indices_timeseries_path: Path
+    ):
+        download_s1(paris_spectral_indices_timeseries_path)
 
     def test_download_timeseries_s1(self, paris_timeseriesconfig_path: Path):
         download_s1(paris_timeseriesconfig_path)
@@ -240,6 +285,14 @@ class TestDownloadOtherSatellites:
     def test_download_timeseries_s2(self, paris_timeseriesconfig_path: Path):
         download_s2(paris_timeseriesconfig_path)
 
+    def test_download_timeseries_s2_with_spectral_indices(
+        self, paris_spectral_indices_timeseries_path: Path
+    ):
+        download_s2(paris_spectral_indices_timeseries_path)
+
+    def test_download_s2_with_spectral_indices(self, paris_spectral_indices_path: Path):
+        download_s2(paris_spectral_indices_path)
+
     def test_download_dynworld(self, paris_config_path: Path):
         download_dynworld(paris_config_path)
 
@@ -252,8 +305,16 @@ class TestDownloadOtherSatellites:
     def test_download_landsat8(self, paris_config_path: Path):
         download_landsat8(paris_config_path)
 
+    def test_dowload_landsat8_with_spectral_indices(self, paris_spectral_indices_path: Path):
+        download_landsat8(paris_spectral_indices_path)
+
     def test_download_timeseries_landsat8(self, paris_timeseriesconfig_path: Path):
         download_landsat8(paris_timeseriesconfig_path)
+
+    def test_download_timeseries_landsat8_with_spectral_indices(
+        self, paris_spectral_indices_timeseries_path: Path
+    ):
+        download_landsat8(paris_spectral_indices_timeseries_path)
 
     @pytest.fixture(params=list(P2Orbit), ids=lambda x: f"palsar_orbit={x.value}")
     def paris_config_path_all_palsar_orbits(self, request, paris_config_path: Path):
@@ -270,6 +331,14 @@ class TestDownloadOtherSatellites:
 
     def test_download_timeseries_palsar2(self, paris_timeseriesconfig_path: Path):
         download_palsar2(paris_timeseriesconfig_path)
+
+    def test_donwload_palsar2_with_spectral_indices(self, paris_spectral_indices_path: Path):
+        download_palsar2(paris_spectral_indices_path)
+
+    def test_donwload_timeseries_palsar2_with_spectral_indices(
+        self, paris_spectral_indices_timeseries_path: Path
+    ):
+        download_palsar2(paris_spectral_indices_timeseries_path)
 
     def test_download_nasadem(self, paris_config_path: Path):
         download_nasadem(paris_config_path)

@@ -13,7 +13,8 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 ### Added
 
 - Added support for GEDI L2B product. [cd16ff9f](https://github.com/gbelouze/geefetch/pull/85/commits/cd16ff9f51a458da6becceb289b84a4a4b222eb1)
--
+- Added support for spectral indices. Spectral indices can now be downloaded as bands for the following sensors: S1, S2, Palsar2, Landsat8. [9732ff4d](https://github.com/gbelouze/geefetch/commit/9732ff4d7184e7457085bd061923fa7a5dcedde4)
+
 ### Changed
 
 - Changed gedi functions to explicitly indicate which product they download or process (l2a or l2b). [2ad8fa03](https://github.com/gbelouze/geefetch/pull/85/commits/2ad8fa03e4a05eee3dba7759b191517433ba82f3)

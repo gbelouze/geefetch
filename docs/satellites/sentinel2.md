@@ -85,6 +85,9 @@ satellite_default:
 s2: # more scrict cloud filtering than the defaults
   cloudless_portion: 60
   cloud_prb_threshold: 20
+  spectral_indices:
+  - NDVI
+  - BAIS2
 ```
 
 then download with
