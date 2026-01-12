@@ -55,7 +55,7 @@ class IndeciesExpressions(Enum):
     EVI = {
         "long_name": "Enhanced Vegetation Index",
         "formula": f"{GAIN} * (N - R) / (N + {C1} * R - {C2} * B + {L})",
-        "denominator": None,
+        "denominator": f"(N + {C1} * R - {C2} * B + {L})",
         "reference": "https://doi.org/10.1016/S0034-4257(96)00112-5",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -63,7 +63,7 @@ class IndeciesExpressions(Enum):
     EVI2 = {
         "long_name": "Two-Band Enhanced Vegetation Index",
         "formula": f"{GAIN} * (N - R) / (N + 2.4 * R + {L})",
-        "denominator": None,
+        "denominator": f"(N + 2.4 * R + {L})",
         "reference": "https://doi.org/10.1016/j.rse.2008.06.006",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -71,7 +71,7 @@ class IndeciesExpressions(Enum):
     GARI = {
         "long_name": "Green Atmospherically Resistant Vegetation Index",
         "formula": "(N - (G - (B - R))) / (N - (G + (B - R)))",
-        "denominator": None,
+        "denominator": "(N - (G + (B - R))",
         "reference": "https://doi.org/10.1016/S0034-4257(96)00072-7",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -79,7 +79,7 @@ class IndeciesExpressions(Enum):
     GBNDVI = {
         "long_name": "Green-Blue Normalized Difference Vegetation Index",
         "formula": "(N - (G + B))/(N + (G + B))",
-        "denominator": None,
+        "denominator": "(N + (G + B))",
         "reference": "https://doi.org/10.1016/S1672-6308(07)60027-4",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -91,7 +91,7 @@ class IndeciesExpressions(Enum):
             (1.0 - 0.25*((2.0 * ((pow(N , 2.0)) -
             (pow(R , 2))) + 1.5 * N + 0.5 * R)/(N + R + 0.5)))-((R - 0.125)/(1 - R))
         """,
-        "denominator": None,
+        "denominator": "(N + R + 0.5)*(1 - R)",
         "reference": "http://dx.doi.org/10.1007/bf00031911",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -99,7 +99,7 @@ class IndeciesExpressions(Enum):
     GLI = {
         "long_name": "Green Leaf Index",
         "formula": "(2.0 * G - R - B) / (2.0 * G + R + B)",
-        "denominator": None,
+        "denominator": "(2.0 * G + R + B)",
         "reference": "http://dx.doi.org/10.1080/10106040108542184",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -107,7 +107,7 @@ class IndeciesExpressions(Enum):
     GNDVI = {
         "long_name": "Green Normalized Difference Vegetation Index",
         "formula": "(N - G)/(N + G)",
-        "denominator": None,
+        "denominator": "(N + G)",
         "reference": "https://doi.org/10.1016/S0034-4257(96)00072-7",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -115,7 +115,7 @@ class IndeciesExpressions(Enum):
     GRNDVI = {
         "long_name": "Green-Red Normalized Difference Vegetation Index",
         "formula": "(N - (G + R))/(N + (G + R))",
-        "denominator": None,
+        "denominator": "(N + (G + R))",
         "reference": "https://doi.org/10.1016/S1672-6308(07)60027-4",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -123,7 +123,7 @@ class IndeciesExpressions(Enum):
     GVMI = {
         "long_name": "Global Vegetation Moisture Index",
         "formula": "((N + 0.1) - (S2 + 0.02)) / ((N + 0.1) + (S2 + 0.02))",
-        "denominator": None,
+        "denominator": "((N + 0.1) + (S2 + 0.02))",
         "reference": "https://doi.org/10.1016/S0034-4257(02)00037-8",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -131,7 +131,7 @@ class IndeciesExpressions(Enum):
     MNDVI = {
         "long_name": "Modified Normalized Difference Vegetation Index",
         "formula": "(N - S2)/(N + S2)",
-        "denominator": None,
+        "denominator": "(N + S2)",
         "reference": "https://doi.org/10.1080/014311697216810",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -147,7 +147,7 @@ class IndeciesExpressions(Enum):
     NGRDI = {
         "long_name": "Normalized Green Red Difference Index",
         "formula": "(G - R) / (G + R)",
-        "denominator": None,
+        "denominator": "(G + R)",
         "reference": "https://doi.org/10.1016/0034-4257(79)90013-0",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -155,7 +155,7 @@ class IndeciesExpressions(Enum):
     RVI = {
         "long_name": "Ratio Vegetation Index",
         "formula": "RE2 / R",
-        "denominator": None,
+        "denominator": "R",
         "reference": "https://doi.org/10.2134/agronj1968.00021962006000060016x",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -163,7 +163,7 @@ class IndeciesExpressions(Enum):
     SAVI = {
         "long_name": "Soil-Adjusted Vegetation Index",
         "formula": f"(1.0 + {L}) * (N - R) / (N + R + {L})",
-        "denominator": None,
+        "denominator": f"(N + R + {L})",
         "reference": "https://doi.org/10.1016/0034-4257(88)90106-X",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -171,7 +171,7 @@ class IndeciesExpressions(Enum):
     VARI = {
         "long_name": "Visible Atmospherically Resistant Index",
         "formula": "(G - R) / (G + R - B)",
-        "denominator": None,
+        "denominator": "(G + R - B)",
         "reference": "https://doi.org/10.1016/S0034-4257(01)00289-9",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -179,7 +179,7 @@ class IndeciesExpressions(Enum):
     BAI = {
         "long_name": "Burned Area Index",
         "formula": "1.0 / (pow((0.1 - R) , 2.0) + pow((0.06 - N) , 2.0))",
-        "denominator": None,
+        "denominator": "(pow((0.1 - R), 2.0) + pow((0.06 - N), 2.0))",
         "reference": """
             https://digital.csic.es/bitstream/10261/6426/1/Martin_Isabel_Serie_Geografica.pdf
         """,
@@ -191,7 +191,7 @@ class IndeciesExpressions(Enum):
         "formula": """
             (1.0 - (pow((RE2 * RE3 * N2) / R) , 0.5)) * (((S2 - N2)/pow((S2 + N2) , 0.5)) + 1.0)
         """,
-        "denominator": None,
+        "denominator": "R * pow((S2 + N2), 0.5)",
         "reference": "https://doi.org/10.3390/ecrs-2-05177",
         "application_domain": "burn",
         "contributor": "https://github.com/davemlz",
@@ -207,7 +207,7 @@ class IndeciesExpressions(Enum):
     MNDWI = {
         "long_name": "Modified Normalized Difference Water Index",
         "formula": "(G - S1) / (G + S1)",
-        "denominator": None,
+        "denominator": "(G + S1)",
         "reference": "https://doi.org/10.1080/01431160600589179",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -215,7 +215,7 @@ class IndeciesExpressions(Enum):
     NDWI = {
         "long_name": "Normalized Difference Water Index",
         "formula": "(G - N) / (G + N)",
-        "denominator": None,
+        "denominator": "(G + N)",
         "reference": "https://doi.org/10.1080/01431169608948714",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -223,7 +223,7 @@ class IndeciesExpressions(Enum):
     NDSI = {
         "long_name": "Normalized Difference Snow Index",
         "formula": "(G - S1) / (G + S1)",
-        "denominator": None,
+        "denominator": "(G + S1)",
         "reference": "https://doi.org/10.1109/IGARSS.1994.399618",
         "application_domain": "snow",
         "contributor": "https://github.com/davemlz",
@@ -233,7 +233,7 @@ class IndeciesExpressions(Enum):
         "formula": """
             (((N - R)/(N + R)) - ((G - N)/(G + N)))/(((N - R)/(N + R)) + ((G - N)/(G + N)))
         """,
-        "denominator": None,
+        "denominator": "((N + R) * (G + N) * (((N - R)/(N + R)) + ((G - N)/(G + N))))",
         "reference": "https://doi.org/10.1029/2006GL029127",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -241,7 +241,7 @@ class IndeciesExpressions(Enum):
     SeLI = {
         "long_name": "Sentinel-2 LAI Green Index",
         "formula": "(N2 - RE1) / (N2 + RE1)",
-        "denominator": None,
+        "denominator": "(N2 + RE1)",
         "reference": "https://doi.org/10.3390/s19040904",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -249,7 +249,7 @@ class IndeciesExpressions(Enum):
     OSAVI = {
         "long_name": "Optimized Soil-Adjusted Vegetation Index",
         "formula": "(N - R) / (N + R + 0.16)",
-        "denominator": None,
+        "denominator": "(N + R + 0.16)",
         "reference": "https://doi.org/10.1016/0034-4257(95)00186-7",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -257,7 +257,7 @@ class IndeciesExpressions(Enum):
     ARVI = {
         "long_name": "Atmospherically Resistant Vegetation Index",
         "formula": f"(N - (R - {GAMMA} * (R - B))) / (N + (R - {GAMMA} * (R - B)))",
-        "denominator": None,
+        "denominator": f"(N + (R - {GAMMA} * (R - B)))",
         "reference": "https://doi.org/10.1109/36.134076",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -265,7 +265,7 @@ class IndeciesExpressions(Enum):
     SARVI = {
         "long_name": "Soil Adjusted and Atmospherically Resistant Vegetation Index",
         "formula": f"(1 + {L})*(N - (R - (R - B))) / (N + (R - (R - B)) + {L})",
-        "denominator": None,
+        "denominator": f"(N + (R - (R - B)) + {L})",
         "reference": "https://doi.org/10.1109/36.134076",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -273,7 +273,7 @@ class IndeciesExpressions(Enum):
     NLI = {
         "long_name": "Non-Linear Vegetation Index",
         "formula": "((pow(N , 2)) - R)/((pow(N , 2)) + R)",
-        "denominator": None,
+        "denominator": "((pow(N, 2)) + R)",
         "reference": "https://doi.org/10.1080/02757259409532252",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -281,7 +281,7 @@ class IndeciesExpressions(Enum):
     MNLI = {
         "long_name": "Modified Non-Linear Vegetation Index",
         "formula": f"(1 + {L})*((pow(N , 2)) - R)/((pow(N , 2)) + R + {L})",
-        "denominator": None,
+        "denominator": f"((pow(N, 2)) + R + {L})",
         "reference": "https://doi.org/10.1109/TGRS.2003.812910",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -289,7 +289,7 @@ class IndeciesExpressions(Enum):
     NMDI = {
         "long_name": "Normalized Multi-band Drought Index",
         "formula": "(N - (S1 - S2))/(N + (S1 - S2))",
-        "denominator": None,
+        "denominator": "(N + (S1 - S2))",
         "reference": "https://doi.org/10.1029/2007GL031021",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -305,7 +305,7 @@ class IndeciesExpressions(Enum):
     MCARI = {
         "long_name": "Modified Chlorophyll Absorption in Reflectance Index",
         "formula": "((RE1 - R) - 0.2 * (RE1 - G)) * (RE1 / R)",
-        "denominator": None,
+        "denominator": "R",
         "reference": "http://dx.doi.org/10.1016/S0034-4257(00)00113-9",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -313,7 +313,7 @@ class IndeciesExpressions(Enum):
     OCVI = {
         "long_name": "Optimized Chlorophyll Vegetation Index",
         "formula": f"(N / G) * pow((R / G) , {CEXP})",
-        "denominator": None,
+        "denominator": "(G * G)",
         "reference": "http://dx.doi.org/10.1007/s11119-008-9075-z",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -321,7 +321,7 @@ class IndeciesExpressions(Enum):
     NDREI = {
         "long_name": "Normalized Difference Red Edge Index",
         "formula": "(N - RE1) / (N + RE1)",
-        "denominator": None,
+        "denominator": "(N + RE1)",
         "reference": "https://doi.org/10.1016/1011-1344(93)06963-4",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -329,7 +329,7 @@ class IndeciesExpressions(Enum):
     CIRE = {
         "long_name": "Chlorophyll Index Red Edge",
         "formula": "(N / RE1) - 1",
-        "denominator": None,
+        "denominator": "RE1",
         "reference": "https://doi.org/10.1078/0176-1617-00887",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -337,7 +337,7 @@ class IndeciesExpressions(Enum):
     MTCI = {
         "long_name": "MERIS Terrestrial Chlorophyll Index",
         "formula": "(RE2 - RE1) / (RE1 - R)",
-        "denominator": None,
+        "denominator": "(RE1 - R)",
         "reference": "https://doi.org/10.1080/0143116042000274015",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -345,7 +345,7 @@ class IndeciesExpressions(Enum):
     TCARI = {
         "long_name": "Transformed Chlorophyll Absorption in Reflectance Index",
         "formula": "3 * ((RE1 - R) - 0.2 * (RE1 - G) * (RE1 / R))",
-        "denominator": None,
+        "denominator": "R",
         "reference": "https://doi.org/10.1016/S0034-4257(02)00018-4",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -355,7 +355,7 @@ class IndeciesExpressions(Enum):
         "formula": f"""
             ((pow(N , {NEXP})) - (pow(R , {NEXP}))) / ((pow(N , {NEXP})) + (pow(R , {NEXP})))
         """,
-        "denominator": None,
+        "denominator": f"((pow(N , {NEXP})) + (pow(R , {NEXP})))",
         "reference": "https://doi.org/10.3390/rs6021211",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -363,7 +363,7 @@ class IndeciesExpressions(Enum):
     WDRVI = {
         "long_name": "Wide Dynamic Range Vegetation Index",
         "formula": f"({ALPHA} * N - R) / ({ALPHA} * N + R)",
-        "denominator": None,
+        "denominator": f"({ALPHA} * N + R)",
         "reference": "https://doi.org/10.1078/0176-1617-01176",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -390,7 +390,9 @@ class IndeciesExpressions(Enum):
             (1.5 * (2.5 * (N - R) - 1.3 * (N - G))) /
             (((pow((2.0 * N + 1) , 2)) - pow((6.0 * N - 5 * (pow(R , 0.5))) - 0.5) , 0.5))
         """,
-        "denominator": None,
+        "denominator": """
+            ((pow((2.0 * N + 1) , 2)) - pow((6.0 * N - 5 * (pow(R , 0.5))) - 0.5) , 0.5)
+        """,
         "reference": "https://doi.org/10.1016/j.rse.2003.12.013",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -401,7 +403,9 @@ class IndeciesExpressions(Enum):
             (1.5 * (1.2 * (N - G) - 2.5 * (R - G))) /
             (((pow((2.0 * N + 1) , 2)) - pow((6.0 * N - 5 * (pow(R , 0.5))) - 0.5) , 0.5))
         """,
-        "denominator": None,
+        "denominator": """
+            ((pow((2.0 * N + 1) , 2)) - pow((6.0 * N - 5 * (pow(R , 0.5))) - 0.5) , 0.5)
+        """,
         "reference": "https://doi.org/10.1016/j.rse.2003.12.013",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -417,7 +421,7 @@ class IndeciesExpressions(Enum):
     MSR = {
         "long_name": "Modified Simple Ratio",
         "formula": "(N / R - 1) / (pow((N / R + 1) , 0.5))",
-        "denominator": None,
+        "denominator": "R * pow((N / R + 1) , 0.5)",
         "reference": "https://doi.org/10.1080/07038992.1996.10855178",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -425,7 +429,7 @@ class IndeciesExpressions(Enum):
     RDVI = {
         "long_name": "Renormalized Difference Vegetation Index",
         "formula": "(N - R) / (pow((N + R) , 0.5))",
-        "denominator": None,
+        "denominator": "pow((N + R) , 0.5)",
         "reference": "https://doi.org/10.1016/0034-4257(94)00114-3",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -433,7 +437,7 @@ class IndeciesExpressions(Enum):
     NDBI = {
         "long_name": "Normalized Difference Built-Up Index",
         "formula": "(S1 - N) / (S1 + N)",
-        "denominator": None,
+        "denominator": "(S1 + N)",
         "reference": "http://dx.doi.org/10.1080/01431160304987",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -441,7 +445,7 @@ class IndeciesExpressions(Enum):
     MGRVI = {
         "long_name": "Modified Green Red Vegetation Index",
         "formula": "(pow(G , 2.0) - pow(R , 2.0)) / (pow(G , 2.0) + pow(R , 2.0))",
-        "denominator": None,
+        "denominator": "(pow(G , 2.0) + pow(R , 2.0))",
         "reference": "https://doi.org/10.1016/j.jag.2015.02.012",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -473,7 +477,7 @@ class IndeciesExpressions(Enum):
     TSAVI = {
         "long_name": "Transformed Soil-Adjusted Vegetation Index",
         "formula": f"{SLA} * (N - {SLA} * R - {SLB}) / ({SLA} * N + R - {SLA} * {SLB})",
-        "denominator": None,
+        "denominator": f"({SLA} * N + R - {SLA} * {SLB})",
         "reference": "https://doi.org/10.1109/IGARSS.1989.576128",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -492,7 +496,7 @@ class IndeciesExpressions(Enum):
     SAVI2 = {
         "long_name": "Soil-Adjusted Vegetation Index 2",
         "formula": f"N / (R + ({SLB} / {SLA}))",
-        "denominator": None,
+        "denominator": f"(R + ({SLB} / {SLA}))",
         "reference": "https://doi.org/10.1080/01431169008955053",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -500,7 +504,7 @@ class IndeciesExpressions(Enum):
     TCI = {
         "long_name": "Triangular Chlorophyll Index",
         "formula": "1.2 * (RE1 - G) - 1.5 * (R - G) * pow((RE1 / R) , 0.5)",
-        "denominator": None,
+        "denominator": "R",
         "reference": "http://dx.doi.org/10.1109/TGRS.2007.904836",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -516,7 +520,7 @@ class IndeciesExpressions(Enum):
     IRECI = {
         "long_name": "Inverted Red-Edge Chlorophyll Index",
         "formula": "(RE3 - R) / (RE1 / RE2)",
-        "denominator": None,
+        "denominator": "RE1",
         "reference": "https://doi.org/10.1016/j.isprsjprs.2013.04.007",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -524,7 +528,7 @@ class IndeciesExpressions(Enum):
     S2REP = {
         "long_name": "Sentinel-2 Red-Edge Position",
         "formula": "705.0 + 35.0 * ((((RE3 + R) / 2.0) - RE1) / (RE2 - RE1))",
-        "denominator": None,
+        "denominator": "(RE2 - RE1)",
         "reference": "https://doi.org/10.1016/j.isprsjprs.2013.04.007",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -532,7 +536,7 @@ class IndeciesExpressions(Enum):
     SIPI = {
         "long_name": "Structure Insensitive Pigment Index",
         "formula": "(N - A) / (N - R)",
-        "denominator": None,
+        "denominator": "(N - R)",
         "reference": "https://eurekamag.com/research/009/395/009395053.php",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -540,7 +544,7 @@ class IndeciesExpressions(Enum):
     NHFD = {
         "long_name": "Non-Homogeneous Feature Difference",
         "formula": "(RE1 - A) / (RE1 + A)",
-        "denominator": None,
+        "denominator": "(RE1 + A)",
         "reference": "https://www.semanticscholar.org/paper/Using-WorldView-2-Vis-NIR-MSI-Imagery-to-Support-Wolf/5e5063ccc4ee76b56b721c866e871d47a77f9fb4",  # noqa: E501
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -548,7 +552,7 @@ class IndeciesExpressions(Enum):
     NDYI = {
         "long_name": "Normalized Difference Yellowness Index",
         "formula": "(G - B) / (G + B)",
-        "denominator": None,
+        "denominator": "(G + B)",
         "reference": "https://doi.org/10.1016/j.rse.2016.06.016",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -556,7 +560,7 @@ class IndeciesExpressions(Enum):
     NRFIr = {
         "long_name": "Normalized Rapeseed Flowering Index Red",
         "formula": "(R - S2) / (R + S2)",
-        "denominator": None,
+        "denominator": "(R + S2)",
         "reference": "https://doi.org/10.3390/rs13010105",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -564,7 +568,7 @@ class IndeciesExpressions(Enum):
     NRFIg = {
         "long_name": "Normalized Rapeseed Flowering Index Green",
         "formula": "(G - S2) / (G + S2)",
-        "denominator": None,
+        "denominator": "(G + S2)",
         "reference": "https://doi.org/10.3390/rs13010105",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -572,7 +576,7 @@ class IndeciesExpressions(Enum):
     TRRVI = {
         "long_name": "Transformed Red Range Vegetation Index",
         "formula": "((RE2 - R) / (RE2 + R)) / (((N - R) / (N + R)) + 1.0)",
-        "denominator": None,
+        "denominator": "((RE2 + R) * (N + R) * (((N - R) / (N + R)) + 1.0))",
         "reference": "https://doi.org/10.3390/rs12152359",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -588,7 +592,7 @@ class IndeciesExpressions(Enum):
     NDSaII = {
         "long_name": "Normalized Difference Snow and Ice Index",
         "formula": "(R - S1) / (R + S1)",
-        "denominator": None,
+        "denominator": "(R + S1)",
         "reference": "https://doi.org/10.1080/01431160119766",
         "application_domain": "snow",
         "contributor": "https://github.com/davemlz",
@@ -596,7 +600,7 @@ class IndeciesExpressions(Enum):
     SWI = {
         "long_name": "Snow Water Index",
         "formula": "(G * (N - S1)) / ((G + N) * (N + S1))",
-        "denominator": None,
+        "denominator": "((G + N) * (N + S1))",
         "reference": "https://doi.org/10.3390/rs11232774",
         "application_domain": "snow",
         "contributor": "https://github.com/davemlz",
@@ -604,7 +608,7 @@ class IndeciesExpressions(Enum):
     S3 = {
         "long_name": "S3 Snow Index",
         "formula": "(N * (R - S1)) / ((N + R) * (N + S1))",
-        "denominator": None,
+        "denominator": "((N + R) * (N + S1))",
         "reference": "https://doi.org/10.3178/jjshwr.12.28",
         "application_domain": "snow",
         "contributor": "https://github.com/davemlz",
@@ -612,7 +616,7 @@ class IndeciesExpressions(Enum):
     WI1 = {
         "long_name": "Water Index 1",
         "formula": "(G - S2) / (G + S2)",
-        "denominator": None,
+        "denominator": "(G + S2)",
         "reference": "https://doi.org/10.3390/rs11182186",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -620,7 +624,7 @@ class IndeciesExpressions(Enum):
     WI2 = {
         "long_name": "Water Index 2",
         "formula": "(B - S2) / (B + S2)",
-        "denominator": None,
+        "denominator": "(B + S2)",
         "reference": "https://doi.org/10.3390/rs11182186",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -644,7 +648,7 @@ class IndeciesExpressions(Enum):
     NBR2 = {
         "long_name": "Normalized Burn Ratio 2",
         "formula": "(S1 - S2) / (S1 + S2)",
-        "denominator": None,
+        "denominator": "(S1 + S2)",
         "reference": "https://www.usgs.gov/core-science-systems/nli/landsat/landsat-normalized-burn-ratio-2",  # noqa: E501
         "application_domain": "burn",
         "contributor": "https://github.com/davemlz",
@@ -652,7 +656,7 @@ class IndeciesExpressions(Enum):
     BWDRVI = {
         "long_name": "Blue Wide Dynamic Range Vegetation Index",
         "formula": f"({ALPHA} * N - B) / ({ALPHA} * N + B)",
-        "denominator": None,
+        "denominator": f"({ALPHA} * N + B)",
         "reference": "https://doi.org/10.2135/cropsci2007.01.0031",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -660,7 +664,7 @@ class IndeciesExpressions(Enum):
     ARI = {
         "long_name": "Anthocyanin Reflectance Index",
         "formula": "(1 / G) - (1 / RE1)",
-        "denominator": None,
+        "denominator": "(G * RE1)",
         "reference": "https://doi.org/10.1562/0031-8655(2001)074%3C0038:OPANEO%3E2.0.CO;2",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -668,7 +672,7 @@ class IndeciesExpressions(Enum):
     VIG = {
         "long_name": "Vegetation Index Green",
         "formula": "(G - R) / (G + R)",
-        "denominator": None,
+        "denominator": "(G + R)",
         "reference": "https://doi.org/10.1016/S0034-4257(01)00289-9",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -676,7 +680,7 @@ class IndeciesExpressions(Enum):
     VI700 = {
         "long_name": "Vegetation Index (700 nm)",
         "formula": "(RE1 - R) / (RE1 + R)",
-        "denominator": None,
+        "denominator": "(RE1 + R)",
         "reference": "https://doi.org/10.1016/S0034-4257(01)00289-9",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -684,7 +688,7 @@ class IndeciesExpressions(Enum):
     VARI700 = {
         "long_name": "Visible Atmospherically Resistant Index (700 nm)",
         "formula": "(RE1 - 1.7 * R + 0.7 * B) / (RE1 + 1.3 * R - 1.3 * B)",
-        "denominator": None,
+        "denominator": "(RE1 + 1.3 * R - 1.3 * B)",
         "reference": "https://doi.org/10.1016/S0034-4257(01)00289-9",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -694,7 +698,7 @@ class IndeciesExpressions(Enum):
         "formula": """
             (3 * ((RE1 - R) - 0.2 * (RE1 - G) * (RE1 / R))) / (1.16 * (N - R) / (N + R + 0.16))
         """,
-        "denominator": None,
+        "denominator": "(1.16 * (N - R) / (N + R + 0.16))",
         "reference": "https://doi.org/10.1016/S0034-4257(02)00018-4",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -704,7 +708,7 @@ class IndeciesExpressions(Enum):
         "formula": """
             (((RE1 - R) - 0.2 * (RE1 - G)) * (RE1 / R)) / (1.16 * (N - R) / (N + R + 0.16))
         """,
-        "denominator": None,
+        "denominator": "(1.16 * (N - R) / (N + R + 0.16))",
         "reference": "https://doi.org/10.1016/S0034-4257(00)00113-9",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -715,7 +719,7 @@ class IndeciesExpressions(Enum):
             (3 * ((RE2 - RE1) - 0.2 * (RE2 - G) * (RE2 / RE1))) /
             (1.16 * (RE2 - RE1) / (RE2 + RE1 + 0.16))
         """,
-        "denominator": None,
+        "denominator": "(1.16 * (RE2 - RE1) / (RE2 + RE1 + 0.16))",
         "reference": "https://doi.org/10.1016/j.agrformet.2008.03.005",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -726,7 +730,7 @@ class IndeciesExpressions(Enum):
             (((RE2 - RE1) - 0.2 * (RE2 - G)) * (RE2 / RE1)) /
             (1.16 * (RE2 - RE1) / (RE2 + RE1 + 0.16))
         """,
-        "denominator": None,
+        "denominator": "(1.16 * (RE2 - RE1) / (RE2 + RE1 + 0.16))",
         "reference": "https://doi.org/10.1016/j.agrformet.2008.03.005",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -734,7 +738,7 @@ class IndeciesExpressions(Enum):
     MCARI705 = {
         "long_name": "Modified Chlorophyll Absorption in Reflectance Index (705 and 750 nm)",
         "formula": "((RE2 - RE1) - 0.2 * (RE2 - G)) * (RE2 / RE1)",
-        "denominator": None,
+        "denominator": "RE1",
         "reference": "https://doi.org/10.1016/j.agrformet.2008.03.005",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -742,7 +746,7 @@ class IndeciesExpressions(Enum):
     MSR705 = {
         "long_name": "Modified Simple Ratio (705 and 750 nm)",
         "formula": "(RE2 / RE1 - 1) / (pow((RE2 / RE1 + 1) , 0.5))",
-        "denominator": None,
+        "denominator": "pow((RE2 / RE1 + 1), 0.5)",
         "reference": "https://doi.org/10.1016/j.agrformet.2008.03.005",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -750,7 +754,7 @@ class IndeciesExpressions(Enum):
     NDVI705 = {
         "long_name": "Normalized Difference Vegetation Index (705 and 750 nm)",
         "formula": "(RE2 - RE1) / (RE2 + RE1)",
-        "denominator": None,
+        "denominator": "(RE2 + RE1)",
         "reference": "https://doi.org/10.1016/S0176-1617(11)81633-0",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -758,7 +762,7 @@ class IndeciesExpressions(Enum):
     SR705 = {
         "long_name": "Simple Ratio (705 and 750 nm)",
         "formula": "RE2 / RE1",
-        "denominator": None,
+        "denominator": "RE1",
         "reference": "https://doi.org/10.1016/S0176-1617(11)81633-0",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -766,7 +770,7 @@ class IndeciesExpressions(Enum):
     SR555 = {
         "long_name": "Simple Ratio (555 and 750 nm)",
         "formula": "RE2 / G",
-        "denominator": None,
+        "denominator": "G",
         "reference": "https://doi.org/10.1016/S0176-1617(11)81633-0",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -774,7 +778,7 @@ class IndeciesExpressions(Enum):
     REDSI = {
         "long_name": "Red-Edge Disease Stress Index",
         "formula": "((705.0 - 665.0) * (RE3 - R) - (783.0 - 665.0) * (RE1 - R)) / (2.0 * R)",
-        "denominator": None,
+        "denominator": "(2.0 * R)",
         "reference": "https://doi.org/10.3390/s18030868",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -782,7 +786,7 @@ class IndeciesExpressions(Enum):
     NIRv = {
         "long_name": "Near-Infrared Reflectance of Vegetation",
         "formula": "((N - R) / (N + R)) * N",
-        "denominator": None,
+        "denominator": "(N + R)",
         "reference": "https://doi.org/10.1126/sciadv.1602244",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -790,7 +794,7 @@ class IndeciesExpressions(Enum):
     AFRI2100 = {
         "long_name": "Aerosol Free Vegetation Index (2100 nm)",
         "formula": "(N - 0.5 * S2) / (N + 0.5 * S2)",
-        "denominator": None,
+        "denominator": "(N + 0.5 * S2)",
         "reference": "https://doi.org/10.1016/S0034-4257(01)00190-0",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -798,7 +802,7 @@ class IndeciesExpressions(Enum):
     AFRI1600 = {
         "long_name": "Aerosol Free Vegetation Index (1600 nm)",
         "formula": "(N - 0.66 * S1) / (N + 0.66 * S1)",
-        "denominator": None,
+        "denominator": "(N + 0.66 * S1)",
         "reference": "https://doi.org/10.1016/S0034-4257(01)00190-0",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -806,7 +810,7 @@ class IndeciesExpressions(Enum):
     NIRvP = {
         "long_name": "Near-Infrared Reflectance of Vegetation and Incoming PAR",
         "formula": f"((N - R) / (N + R)) * N * {PAR}",
-        "denominator": None,
+        "denominator": f"((N + R) * {PAR})",
         "reference": "https://doi.org/10.1016/j.rse.2021.112763",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -814,7 +818,7 @@ class IndeciesExpressions(Enum):
     NDMI = {
         "long_name": "Normalized Difference Moisture Index",
         "formula": "(N - S1)/(N + S1)",
-        "denominator": None,
+        "denominator": "(N + S1)",
         "reference": "https://doi.org/10.1016/S0034-4257(01)00318-2",
         "application_domain": "vegetation",
         "contributor": "https://github.com/bpurinton",
@@ -822,7 +826,7 @@ class IndeciesExpressions(Enum):
     QpRVI = {
         "long_name": "Quad-Polarized Radar Vegetation Index",
         "formula": "(8.0 * HV)/(HH + VV + 2.0 * HV)",
-        "denominator": None,
+        "denominator": "(HH + VV + 2.0 * HV)",
         "reference": "https://doi.org/10.1109/IGARSS.2001.976856",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -830,7 +834,7 @@ class IndeciesExpressions(Enum):
     RFDI = {
         "long_name": "Radar Forest Degradation Index",
         "formula": "(HH - HV)/(HH + HV)",
-        "denominator": None,
+        "denominator": "(HH + HV)",
         "reference": "https://doi.org/10.5194/bg-9-179-2012",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -838,7 +842,7 @@ class IndeciesExpressions(Enum):
     DpRVIHH = {
         "long_name": "Dual-Polarized Radar Vegetation Index HH",
         "formula": "(4.0 * HV)/(HH + HV)",
-        "denominator": None,
+        "denominator": "(HH + HV)",
         "reference": "https://www.tandfonline.com/doi/abs/10.5589/m12-043",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -846,7 +850,7 @@ class IndeciesExpressions(Enum):
     DpRVIVV = {
         "long_name": "Dual-Polarized Radar Vegetation Index VV",
         "formula": "(4.0 * VH)/(VV + VH)",
-        "denominator": None,
+        "denominator": "(VV + VH)",
         "reference": "https://doi.org/10.3390/app9040655",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -854,7 +858,7 @@ class IndeciesExpressions(Enum):
     NWI = {
         "long_name": "New Water Index",
         "formula": "(B - (N + S1 + S2))/(B + (N + S1 + S2))",
-        "denominator": None,
+        "denominator": "(B + (N + S1 + S2))",
         "reference": "https://doi.org/10.11873/j.issn.1004-0323.2009.2.167",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -862,7 +866,7 @@ class IndeciesExpressions(Enum):
     WRI = {
         "long_name": "Water Ratio Index",
         "formula": "(G + R)/(N + S1)",
-        "denominator": None,
+        "denominator": "(N + S1)",
         "reference": "https://doi.org/10.1109/GEOINFORMATICS.2010.5567762",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -870,7 +874,7 @@ class IndeciesExpressions(Enum):
     NDVIMNDWI = {
         "long_name": "NDVI-MNDWI Model",
         "formula": "((N - R)/(N + R)) - ((G - S1)/(G + S1))",
-        "denominator": None,
+        "denominator": "((N + R) * (G + S1))",
         "reference": "https://doi.org/10.1007/978-3-662-45737-5_51",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -886,7 +890,7 @@ class IndeciesExpressions(Enum):
     GCC = {
         "long_name": "Green Chromatic Coordinate",
         "formula": "G / (R + G + B)",
-        "denominator": None,
+        "denominator": "(R + G + B)",
         "reference": "https://doi.org/10.1016/0034-4257(87)90088-5",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -894,7 +898,7 @@ class IndeciesExpressions(Enum):
     RCC = {
         "long_name": "Red Chromatic Coordinate",
         "formula": "R / (R + G + B)",
-        "denominator": None,
+        "denominator": "(R + G + B)",
         "reference": "https://doi.org/10.1016/0034-4257(87)90088-5",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -902,7 +906,7 @@ class IndeciesExpressions(Enum):
     BCC = {
         "long_name": "Blue Chromatic Coordinate",
         "formula": "B / (R + G + B)",
-        "denominator": None,
+        "denominator": "(R + G + B)",
         "reference": "https://doi.org/10.1016/0034-4257(87)90088-5",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -910,7 +914,7 @@ class IndeciesExpressions(Enum):
     NIRvH2 = {
         "long_name": "Hyperspectral Near-Infrared Reflectance of Vegetation",
         "formula": f"N - R - {K} * ({LAMBDAN} - {LAMBDAR})",
-        "denominator": None,
+        "denominator": f"({K} * ({LAMBDAN} - {LAMBDAR}) + R)",
         "reference": "https://doi.org/10.1016/j.rse.2021.112723",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -920,7 +924,7 @@ class IndeciesExpressions(Enum):
         "formula": f"""
             (N - ({ALPHA} * R + (1.0 - {ALPHA}) * S1))/(N + ({ALPHA} * R + (1.0 - {ALPHA}) * S1))
         """,
-        "denominator": None,
+        "denominator": f"(N + ({ALPHA} * R + (1.0 - {ALPHA}) * S1))",
         "reference": "https://doi.org/10.1016/j.rse.2017.04.031",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -928,7 +932,7 @@ class IndeciesExpressions(Enum):
     NDII = {
         "long_name": "Normalized Difference Infrared Index",
         "formula": "(N - S1)/(N + S1)",
-        "denominator": None,
+        "denominator": "(N + S1)",
         "reference": "https://www.asprs.org/wp-content/uploads/pers/1983journal/jan/1983_jan_77-83.pdf",  # noqa: E501
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -968,7 +972,7 @@ class IndeciesExpressions(Enum):
     UI = {
         "long_name": "Urban Index",
         "formula": "(S2 - N)/(S2 + N)",
-        "denominator": None,
+        "denominator": "(S2 + N)",
         "reference": "https://www.isprs.org/proceedings/XXXI/congress/part7/321_XXXI-part7.pdf",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -976,7 +980,7 @@ class IndeciesExpressions(Enum):
     VrNIRBI = {
         "long_name": "Visible Red-Based Built-Up Index",
         "formula": "(R - N)/(R + N)",
-        "denominator": None,
+        "denominator": "(R + N)",
         "reference": "https://doi.org/10.1016/j.ecolind.2015.03.037",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -984,7 +988,7 @@ class IndeciesExpressions(Enum):
     VgNIRBI = {
         "long_name": "Visible Green-Based Built-Up Index",
         "formula": "(G - N)/(G + N)",
-        "denominator": None,
+        "denominator": "(G + N)",
         "reference": "https://doi.org/10.1016/j.ecolind.2015.03.037",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -996,7 +1000,7 @@ class IndeciesExpressions(Enum):
             ((G-S1)/(G+S1)))/2.0)/(((S1-N)/(S1+N)) +
             (((N-R)*(1.0+{L})/(N+R+{L}))+((G-S1)/(G+S1)))/2.0)
         """,
-        "denominator": None,
+        "denominator": f"(((S1-N)/(S1+N)) + (((N-R)*(1.0+{L})/(N+R+{L})) + ((G-S1)/(G+S1)))/2.0)",
         "reference": "https://doi.org/10.1080/01431160802039957",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -1004,7 +1008,7 @@ class IndeciesExpressions(Enum):
     BLFEI = {
         "long_name": "Built-Up Land Features Extraction Index",
         "formula": "(((G+R+S2)/3.0)-S1)/(((G+R+S2)/3.0)+S1)",
-        "denominator": None,
+        "denominator": "(((G+R+S2)/3.0)+S1)",
         "reference": "https://doi.org/10.1080/10106049.2018.1497094",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -1012,7 +1016,7 @@ class IndeciesExpressions(Enum):
     S2WI = {
         "long_name": "Sentinel-2 Water Index",
         "formula": "(RE1 - S2)/(RE1 + S2)",
-        "denominator": None,
+        "denominator": "(RE1 + S2)",
         "reference": "https://doi.org/10.3390/w13121647",
         "application_domain": "water",
         "contributor": "https://github.com/MATRIX4284",
@@ -1020,7 +1024,7 @@ class IndeciesExpressions(Enum):
     NDWIns = {
         "long_name": "Normalized Difference Water Index with no Snow Cover and Glaciers",
         "formula": f"(G - {ALPHA} * N)/(G + N)",
-        "denominator": None,
+        "denominator": "(G + N)",
         "reference": "https://doi.org/10.3390/w12051339",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -1028,7 +1032,7 @@ class IndeciesExpressions(Enum):
     NDSInw = {
         "long_name": "Normalized Difference Snow Index with no Water",
         "formula": f"(N - S1 - {BETA})/(N + S1)",
-        "denominator": None,
+        "denominator": "(N + S1)",
         "reference": "https://doi.org/10.3390/w12051339",
         "application_domain": "snow",
         "contributor": "https://github.com/davemlz",
@@ -1052,7 +1056,7 @@ class IndeciesExpressions(Enum):
     MRBVI = {
         "long_name": "Modified Red Blue Vegetation Index",
         "formula": "(pow(R , 2.0) - pow(B , 2.0))/(pow(R , 2.0) + pow(B , 2.0))",
-        "denominator": None,
+        "denominator": "(pow(R , 2.0) + pow(B , 2.0))",
         "reference": "https://doi.org/10.3390/s20185055",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1068,7 +1072,7 @@ class IndeciesExpressions(Enum):
     BI = {
         "long_name": "Bare Soil Index",
         "formula": "((S1 + R) - (N + B))/((S1 + R) + (N + B))",
-        "denominator": None,
+        "denominator": "((S1 + R) + (N + B))",
         "reference": "http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.465.8749&rep=rep1&type=pdf",  # noqa: E501
         "application_domain": "soil",
         "contributor": "https://github.com/davemlz",
@@ -1084,7 +1088,7 @@ class IndeciesExpressions(Enum):
     MSI = {
         "long_name": "Moisture Stress Index",
         "formula": "S1/N",
-        "denominator": None,
+        "denominator": "N",
         "reference": "https://doi.org/10.1016/0034-4257(89)90046-1",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1092,7 +1096,7 @@ class IndeciesExpressions(Enum):
     NDGlaI = {
         "long_name": "Normalized Difference Glacier Index",
         "formula": "(G - R)/(G + R)",
-        "denominator": None,
+        "denominator": "(G + R)",
         "reference": "https://doi.org/10.1080/01431160802385459",
         "application_domain": "snow",
         "contributor": "https://github.com/davemlz",
@@ -1100,7 +1104,7 @@ class IndeciesExpressions(Enum):
     NDSII = {
         "long_name": "Normalized Difference Snow Ice Index",
         "formula": "(G - N)/(G + N)",
-        "denominator": None,
+        "denominator": "(G + N)",
         "reference": "https://doi.org/10.1080/01431160802385459",
         "application_domain": "snow",
         "contributor": "https://github.com/davemlz",
@@ -1108,7 +1112,7 @@ class IndeciesExpressions(Enum):
     IKAW = {
         "long_name": "Kawashima Index",
         "formula": "(R - B)/(R + B)",
-        "denominator": None,
+        "denominator": "(R + B)",
         "reference": "https://doi.org/10.1006/anbo.1997.0544",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1116,7 +1120,7 @@ class IndeciesExpressions(Enum):
     RGRI = {
         "long_name": "Red-Green Ratio Index",
         "formula": "R/G",
-        "denominator": None,
+        "denominator": "G",
         "reference": "https://doi.org/10.1016/j.jag.2014.03.018",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1124,7 +1128,7 @@ class IndeciesExpressions(Enum):
     RGBVI = {
         "long_name": "Red Green Blue Vegetation Index",
         "formula": "(pow(G , 2.0) - B * R)/(pow(G , 2.0) + B * R)",
-        "denominator": None,
+        "denominator": "(pow(G , 2.0) + B * R)",
         "reference": "https://doi.org/10.1016/j.jag.2015.02.012",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1132,7 +1136,7 @@ class IndeciesExpressions(Enum):
     ARI2 = {
         "long_name": "Anthocyanin Reflectance Index 2",
         "formula": "N * ((1 / G) - (1 / RE1))",
-        "denominator": None,
+        "denominator": "1/G",
         "reference": "https://doi.org/10.1562/0031-8655(2001)074%3C0038:OPANEO%3E2.0.CO;2",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1140,7 +1144,7 @@ class IndeciesExpressions(Enum):
     NormNIR = {
         "long_name": "Normalized NIR",
         "formula": "N/(N + G + R)",
-        "denominator": None,
+        "denominator": "(N + G + R)",
         "reference": "https://doi.org/10.2134/agronj2004.0314",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1148,7 +1152,7 @@ class IndeciesExpressions(Enum):
     NormR = {
         "long_name": "Normalized Red",
         "formula": "R/(N + G + R)",
-        "denominator": None,
+        "denominator": "(N + G + R)",
         "reference": "https://doi.org/10.2134/agronj2004.0314",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1156,7 +1160,7 @@ class IndeciesExpressions(Enum):
     NormG = {
         "long_name": "Normalized Green",
         "formula": "G/(N + G + R)",
-        "denominator": None,
+        "denominator": "(N + G + R)",
         "reference": "https://doi.org/10.2134/agronj2004.0314",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1164,7 +1168,7 @@ class IndeciesExpressions(Enum):
     GRVI = {
         "long_name": "Green Ratio Vegetation Index",
         "formula": "N/G",
-        "denominator": None,
+        "denominator": "G",
         "reference": "https://doi.org/10.2134/agronj2004.0314",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1172,7 +1176,7 @@ class IndeciesExpressions(Enum):
     GSAVI = {
         "long_name": "Green Soil Adjusted Vegetation Index",
         "formula": f"(1.0 + {L}) * (N - G) / (N + G + {L})",
-        "denominator": None,
+        "denominator": "(N + G + L)",
         "reference": "https://doi.org/10.2134/agronj2004.0314",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1180,7 +1184,7 @@ class IndeciesExpressions(Enum):
     GOSAVI = {
         "long_name": "Green Optimized Soil Adjusted Vegetation Index",
         "formula": "(N - G) / (N + G + 0.16)",
-        "denominator": None,
+        "denominator": "(N + G + 0.16)",
         "reference": "https://doi.org/10.2134/agronj2004.0314",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1188,7 +1192,7 @@ class IndeciesExpressions(Enum):
     SR = {
         "long_name": "Simple Ratio",
         "formula": "N/R",
-        "denominator": None,
+        "denominator": "R",
         "reference": "https://doi.org/10.2307/1936256",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1196,7 +1200,7 @@ class IndeciesExpressions(Enum):
     TVI = {
         "long_name": "Transformed Vegetation Index",
         "formula": "pow((((N - R)/(N + R)) + 0.5) , 0.5)",
-        "denominator": None,
+        "denominator": "N + R",
         "reference": "https://ntrs.nasa.gov/citations/19740022614",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1204,7 +1208,7 @@ class IndeciesExpressions(Enum):
     GM1 = {
         "long_name": "Gitelson and Merzlyak Index 1",
         "formula": "RE2/G",
-        "denominator": None,
+        "denominator": "G",
         "reference": "https://doi.org/10.1016/S0176-1617(96)80284-7",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1212,7 +1216,7 @@ class IndeciesExpressions(Enum):
     GM2 = {
         "long_name": "Gitelson and Merzlyak Index 2",
         "formula": "RE2/RE1",
-        "denominator": None,
+        "denominator": "RE1",
         "reference": "https://doi.org/10.1016/S0176-1617(96)80284-7",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1220,7 +1224,7 @@ class IndeciesExpressions(Enum):
     IAVI = {
         "long_name": "New Atmospherically Resistant Vegetation Index",
         "formula": f"(N - (R - {GAMMA} * (B - R)))/(N + (R - {GAMMA} * (B - R)))",
-        "denominator": None,
+        "denominator": "(N + (R - GAMMA * (B - R)))",
         "reference": "https://www.jipb.net/EN/abstract/abstract23925.shtml",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1228,7 +1232,7 @@ class IndeciesExpressions(Enum):
     IPVI = {
         "long_name": "Infrared Percentage Vegetation Index",
         "formula": "N/(N + R)",
-        "denominator": None,
+        "denominator": "(N + R)",
         "reference": "https://doi.org/10.1016/0034-4257(90)90085-Z",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1236,7 +1240,7 @@ class IndeciesExpressions(Enum):
     kIPVI = {
         "long_name": "Kernel Infrared Percentage Vegetation Index",
         "formula": "kNN/(kNN + kNR)",
-        "denominator": None,
+        "denominator": "(kNN + kNR)",
         "reference": "https://doi.org/10.1126/sciadv.abc7447",
         "application_domain": "kernel",
         "contributor": "https://github.com/davemlz",
@@ -1244,7 +1248,7 @@ class IndeciesExpressions(Enum):
     ND705 = {
         "long_name": "Normalized Difference (705 and 750 nm)",
         "formula": "(RE2 - RE1)/(RE2 + RE1)",
-        "denominator": None,
+        "denominator": "(RE2 + RE1)",
         "reference": "https://doi.org/10.1016/S0034-4257(02)00010-X",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1252,7 +1256,7 @@ class IndeciesExpressions(Enum):
     mSR705 = {
         "long_name": "Modified Simple Ratio (705 and 445 nm)",
         "formula": "(RE2 - A)/(RE2 + A)",
-        "denominator": None,
+        "denominator": "(RE2 + A)",
         "reference": "https://doi.org/10.1016/S0034-4257(02)00010-X",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1260,7 +1264,7 @@ class IndeciesExpressions(Enum):
     mND705 = {
         "long_name": "Modified Normalized Difference (705, 750 and 445 nm)",
         "formula": "(RE2 - RE1)/(RE2 + RE1 - A)",
-        "denominator": None,
+        "denominator": "(RE2 + RE1 - A)",
         "reference": "https://doi.org/10.1016/S0034-4257(02)00010-X",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1268,7 +1272,7 @@ class IndeciesExpressions(Enum):
     PSRI = {
         "long_name": "Plant Senescing Reflectance Index",
         "formula": "(R - B)/RE2",
-        "denominator": None,
+        "denominator": "RE2",
         "reference": "https://doi.org/10.1034/j.1399-3054.1999.106119.x",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1287,7 +1291,7 @@ class IndeciesExpressions(Enum):
             -4.0 * ((B - G)/(B + G)) + 2.0 * ((G - N)/(G + N)) +
             2.0 * ((G - S2)/(G + S2)) - ((G - S1)/(G + S1))
         """,
-        "denominator": None,
+        "denominator": "(B + G) * (G + N) * (G + S2) *(G + S1)",
         "reference": "https://doi.org/10.3390/rs10101643",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -1295,7 +1299,7 @@ class IndeciesExpressions(Enum):
     RENDVI = {
         "long_name": "Red Edge Normalized Difference Vegetation Index",
         "formula": "(RE2 - RE1)/(RE2 + RE1)",
-        "denominator": None,
+        "denominator": "(RE2 + RE1)",
         "reference": "https://doi.org/10.1016/S0176-1617(11)81633-0",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1303,7 +1307,7 @@ class IndeciesExpressions(Enum):
     RI = {
         "long_name": "Redness Index",
         "formula": "(R - G)/(R + G)",
-        "denominator": None,
+        "denominator": "(R + G)",
         "reference": "https://www.documentation.ird.fr/hor/fdi:34390",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1311,7 +1315,7 @@ class IndeciesExpressions(Enum):
     SR2 = {
         "long_name": "Simple Ratio (800 and 550 nm)",
         "formula": "N/G",
-        "denominator": None,
+        "denominator": "G",
         "reference": "https://doi.org/10.1080/01431169308904370",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1319,7 +1323,7 @@ class IndeciesExpressions(Enum):
     SR3 = {
         "long_name": "Simple Ratio (860, 550 and 708 nm)",
         "formula": "N2/(G * RE1)",
-        "denominator": None,
+        "denominator": "(G * RE1)",
         "reference": "https://doi.org/10.1016/S0034-4257(98)00046-7",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1327,7 +1331,7 @@ class IndeciesExpressions(Enum):
     TDVI = {
         "long_name": "Transformed Difference Vegetation Index",
         "formula": "1.5 * ((N - R)/pow(((pow(N , 2.0) + R + 0.5) , 0.5)))",
-        "denominator": None,
+        "denominator": "pow((pow(N , 2.0) + R + 0.5) , 0.5)",
         "reference": "https://doi.org/10.1109/IGARSS.2002.1026867",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1343,7 +1347,7 @@ class IndeciesExpressions(Enum):
     NSDS = {
         "long_name": "Normalized Shortwave Infrared Difference Soil-Moisture",
         "formula": "(S1 - S2)/(S1 + S2)",
-        "denominator": None,
+        "denominator": "(S1 + S2)",
         "reference": "https://doi.org/10.3390/land10030231",
         "application_domain": "soil",
         "contributor": "https://github.com/davemlz",
@@ -1351,7 +1355,7 @@ class IndeciesExpressions(Enum):
     MBI = {
         "long_name": "Modified Bare Soil Index",
         "formula": "((S1 - S2 - N)/(S1 + S2 + N)) + 0.5",
-        "denominator": None,
+        "denominator": "(S1 + S2 + N)",
         "reference": "https://doi.org/10.3390/land10030231",
         "application_domain": "soil",
         "contributor": "https://github.com/davemlz",
@@ -1363,7 +1367,7 @@ class IndeciesExpressions(Enum):
             ((G - S1)/(G + S1)) - 0.5) /
             ((((S1 - S2 - N)/(S1 + S2 + N)) + 0.5) + ((G - S1)/(G + S1)) + 1.5)
         """,
-        "denominator": None,
+        "denominator": "(S1 + S2 + N) * (G + S1)",
         "reference": "https://doi.org/10.1016/j.jag.2022.102703",
         "application_domain": "soil",
         "contributor": "https://github.com/davemlz",
@@ -1371,7 +1375,7 @@ class IndeciesExpressions(Enum):
     NDSoI = {
         "long_name": "Normalized Difference Soil Index",
         "formula": "(S2 - G)/(S2 + G)",
-        "denominator": None,
+        "denominator": "(S2 + G)",
         "reference": "https://doi.org/10.1016/j.jag.2015.02.010",
         "application_domain": "soil",
         "contributor": "https://github.com/davemlz",
@@ -1387,7 +1391,7 @@ class IndeciesExpressions(Enum):
     DBSI = {
         "long_name": "Dry Bareness Index",
         "formula": "((S1 - G)/(S1 + G)) - ((N - R)/(N + R))",
-        "denominator": None,
+        "denominator": "(S1 + G) * (N + R)",
         "reference": "https://doi.org/10.3390/land7030081",
         "application_domain": "soil",
         "contributor": "https://github.com/davemlz",
@@ -1395,7 +1399,7 @@ class IndeciesExpressions(Enum):
     CSI = {
         "long_name": "Char Soil Index",
         "formula": "N/S2",
-        "denominator": None,
+        "denominator": "S2",
         "reference": "https://doi.org/10.1016/j.rse.2005.04.014",
         "application_domain": "burn",
         "contributor": "https://github.com/davemlz",
@@ -1411,7 +1415,7 @@ class IndeciesExpressions(Enum):
     DPDD = {
         "long_name": "Dual-Pol Diagonal Distance",
         "formula": "(VV + VH)/pow(2.0 , 0.5)",
-        "denominator": None,
+        "denominator": "pow(2.0 , 0.5)",
         "reference": "https://doi.org/10.1016/j.rse.2018.09.003",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -1419,7 +1423,7 @@ class IndeciesExpressions(Enum):
     VDDPI = {
         "long_name": "Vertical Dual De-Polarization Index",
         "formula": "(VV + VH)/VV",
-        "denominator": None,
+        "denominator": "VV",
         "reference": "https://doi.org/10.1016/j.rse.2018.09.003",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -1427,7 +1431,7 @@ class IndeciesExpressions(Enum):
     NDPolI = {
         "long_name": "Normalized Difference Polarization Index",
         "formula": "(VV - VH)/(VV + VH)",
-        "denominator": None,
+        "denominator": "(VV + VH)",
         "reference": "https://www.isprs.org/proceedings/XXXVII/congress/4_pdf/267.pdf",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -1435,7 +1439,7 @@ class IndeciesExpressions(Enum):
     VHVVR = {
         "long_name": "VH-VV Ratio",
         "formula": "VH/VV",
-        "denominator": None,
+        "denominator": "VV",
         "reference": "https://doi.org/10.1109/IGARSS47720.2021.9554099",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -1467,7 +1471,7 @@ class IndeciesExpressions(Enum):
     VVVHR = {
         "long_name": "VV-VH Ratio",
         "formula": "VV/VH",
-        "denominator": None,
+        "denominator": "VH",
         "reference": "https://doi.org/10.3390/app9040655",
         "application_domain": "radar",
         "contributor": "https://github.com/davemlz",
@@ -1483,7 +1487,7 @@ class IndeciesExpressions(Enum):
     BAIM = {
         "long_name": "Burned Area Index adapted to MODIS",
         "formula": "1.0/(pow((0.05 - N) , 2.0)) + (pow((0.2 - S2) , 2.0))",
-        "denominator": None,
+        "denominator": "pow((0.05 - N) , 2.0)",
         "reference": "https://doi.org/10.1016/j.foreco.2006.08.248",
         "application_domain": "burn",
         "contributor": "https://github.com/davemlz",
@@ -1491,7 +1495,7 @@ class IndeciesExpressions(Enum):
     SWM = {
         "long_name": "Sentinel Water Mask",
         "formula": "(B + G)/(N + S1)",
-        "denominator": None,
+        "denominator": "(N + S1)",
         "reference": "https://eoscience.esa.int/landtraining2017/files/posters/MILCZAREK.pdf",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -1499,7 +1503,7 @@ class IndeciesExpressions(Enum):
     LSWI = {
         "long_name": "Land Surface Water Index",
         "formula": "(N - S1)/(N + S1)",
-        "denominator": None,
+        "denominator": "(N + S1)",
         "reference": "https://doi.org/10.1016/j.rse.2003.11.008",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -1507,7 +1511,7 @@ class IndeciesExpressions(Enum):
     MLSWI26 = {
         "long_name": "Modified Land Surface Water Index (MODIS Bands 2 and 6)",
         "formula": "(1.0 - N - S1)/(1.0 - N + S1)",
-        "denominator": None,
+        "denominator": "(1.0 - N + S1)",
         "reference": "https://doi.org/10.3390/rs71215805",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -1515,7 +1519,7 @@ class IndeciesExpressions(Enum):
     MLSWI27 = {
         "long_name": "Modified Land Surface Water Index (MODIS Bands 2 and 7)",
         "formula": "(1.0 - N - S2)/(1.0 - N + S2)",
-        "denominator": None,
+        "denominator": "(1.0 - N + S2)",
         "reference": "https://doi.org/10.3390/rs71215805",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -1523,7 +1527,7 @@ class IndeciesExpressions(Enum):
     NBRplus = {
         "long_name": "Normalized Burn Ratio Plus",
         "formula": "(S2 - N2 - G - B)/(S2 + N2 + G + B)",
-        "denominator": None,
+        "denominator": "(S2 + N2 + G + B)",
         "reference": "https://doi.org/10.3390/rs14071727",
         "application_domain": "burn",
         "contributor": "https://github.com/davemlz",
@@ -1531,7 +1535,7 @@ class IndeciesExpressions(Enum):
     NBRSWIR = {
         "long_name": "Normalized Burn Ratio SWIR",
         "formula": "(S2 - S1 - 0.02)/(S2 + S1 + 0.1)",
-        "denominator": None,
+        "denominator": "(S2 + S1 + 0.1)",
         "reference": "https://doi.org/10.1080/22797254.2020.1738900",
         "application_domain": "burn",
         "contributor": "https://github.com/davemlz",
@@ -1539,7 +1543,7 @@ class IndeciesExpressions(Enum):
     NDSWIR = {
         "long_name": "Normalized Difference SWIR",
         "formula": "(N - S1)/(N + S1)",
-        "denominator": None,
+        "denominator": "(N + S1)",
         "reference": "https://doi.org/10.1109/TGRS.2003.819190",
         "application_domain": "burn",
         "contributor": "https://github.com/davemlz",
@@ -1547,7 +1551,7 @@ class IndeciesExpressions(Enum):
     SEVI = {
         "long_name": "Shadow-Eliminated Vegetation Index",
         "formula": f"(N/R) + {FDELTA} * (1.0/R)",
-        "denominator": None,
+        "denominator": "R",
         "reference": "https://doi.org/10.1080/17538947.2018.1495770",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1555,7 +1559,7 @@ class IndeciesExpressions(Enum):
     ANDWI = {
         "long_name": "Augmented Normalized Difference Water Index",
         "formula": "(B + G + R - N - S1 - S2)/(B + G + R + N + S1 + S2)",
-        "denominator": None,
+        "denominator": "(B + G + R + N + S1 + S2)",
         "reference": "https://doi.org/10.1016/j.envsoft.2021.105030",
         "application_domain": "water",
         "contributor": "https://github.com/davemlz",
@@ -1563,7 +1567,7 @@ class IndeciesExpressions(Enum):
     NBAI = {
         "long_name": "Normalized Built-up Area Index",
         "formula": "(S2 - S1/G)/(S2 + S1/G)",
-        "denominator": None,
+        "denominator": "(S2 + S1/G)",
         "reference": "https://www.omicsonline.org/scientific-reports/JGRS-SR136.pdf",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -1571,7 +1575,7 @@ class IndeciesExpressions(Enum):
     BRBA = {
         "long_name": "Band Ratio for Built-up Area",
         "formula": "R/S1",
-        "denominator": None,
+        "denominator": "S1",
         "reference": "https://www.omicsonline.org/scientific-reports/JGRS-SR136.pdf",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -1579,7 +1583,7 @@ class IndeciesExpressions(Enum):
     VIBI = {
         "long_name": "Vegetation Index Built-up Index",
         "formula": "((N-R)/(N+R))/(((N-R)/(N+R)) + ((S1-N)/(S1+N)))",
-        "denominator": None,
+        "denominator": "(((N-R)/(N+R)) + ((S1-N)/(S1+N)))",
         "reference": "http://dx.doi.org/10.1080/01431161.2012.687842",
         "application_domain": "urban",
         "contributor": "https://github.com/davemlz",
@@ -1587,7 +1591,7 @@ class IndeciesExpressions(Enum):
     NSDSI1 = {
         "long_name": "Normalized Shortwave-Infrared Difference Bare Soil Moisture Index 1",
         "formula": "(S1-S2)/S1",
-        "denominator": None,
+        "denominator": "S1",
         "reference": "https://doi.org/10.1016/j.isprsjprs.2019.06.012",
         "application_domain": "soil",
         "contributor": "https://github.com/CvenGeo",
@@ -1595,7 +1599,7 @@ class IndeciesExpressions(Enum):
     NSDSI2 = {
         "long_name": "Normalized Shortwave-Infrared Difference Bare Soil Moisture Index 2",
         "formula": "(S1-S2)/S2",
-        "denominator": None,
+        "denominator": "S2",
         "reference": "https://doi.org/10.1016/j.isprsjprs.2019.06.012",
         "application_domain": "soil",
         "contributor": "https://github.com/CvenGeo",
@@ -1603,7 +1607,7 @@ class IndeciesExpressions(Enum):
     NSDSI3 = {
         "long_name": "Normalized Shortwave-Infrared Difference Bare Soil Moisture Index 3",
         "formula": "(S1-S2)/(S1+S2)",
-        "denominator": None,
+        "denominator": "(S1 + S2)",
         "reference": "https://doi.org/10.1016/j.isprsjprs.2019.06.012",
         "application_domain": "soil",
         "contributor": "https://github.com/CvenGeo",
@@ -1611,7 +1615,7 @@ class IndeciesExpressions(Enum):
     NDTI = {
         "long_name": "Normalized Difference Turbidity Index",
         "formula": "(R-G)/(R+G)",
-        "denominator": None,
+        "denominator": "(R + G)",
         "reference": "https://doi.org/10.1016/j.rse.2006.07.012",
         "application_domain": "water",
         "contributor": "https://github.com/CvenGeo",
@@ -1619,7 +1623,7 @@ class IndeciesExpressions(Enum):
     NDPonI = {
         "long_name": "Normalized Difference Pond Index",
         "formula": "(S1-G)/(S1+G)",
-        "denominator": None,
+        "denominator": "(S1 + G)",
         "reference": "https://doi.org/10.1016/j.rse.2006.07.012",
         "application_domain": "water",
         "contributor": "https://github.com/CvenGeo",
@@ -1627,7 +1631,7 @@ class IndeciesExpressions(Enum):
     NDCI = {
         "long_name": "Normalized Difference Chlorophyll Index",
         "formula": "(RE1 - R)/(RE1 + R)",
-        "denominator": None,
+        "denominator": "(RE1 + R)",
         "reference": "https://doi.org/10.1016/j.rse.2011.10.016",
         "application_domain": "water",
         "contributor": "https://github.com/kalab-oto",
@@ -1643,7 +1647,7 @@ class IndeciesExpressions(Enum):
     DSWI5 = {
         "long_name": "Disease-Water Stress Index 5",
         "formula": "(N + G)/(S1 + R)",
-        "denominator": None,
+        "denominator": "(S1 + R)",
         "reference": "https://doi.org/10.1080/01431160310001618031",
         "application_domain": "vegetation",
         "contributor": "https://github.com/remi-braun",
@@ -1651,7 +1655,7 @@ class IndeciesExpressions(Enum):
     DSWI1 = {
         "long_name": "Disease-Water Stress Index 1",
         "formula": "N/S1",
-        "denominator": None,
+        "denominator": "S1",
         "reference": "https://doi.org/10.1080/01431160310001618031",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1659,7 +1663,7 @@ class IndeciesExpressions(Enum):
     DSWI2 = {
         "long_name": "Disease-Water Stress Index 2",
         "formula": "S1/G",
-        "denominator": None,
+        "denominator": "G",
         "reference": "https://doi.org/10.1080/01431160310001618031",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1667,7 +1671,7 @@ class IndeciesExpressions(Enum):
     DSWI3 = {
         "long_name": "Disease-Water Stress Index 3",
         "formula": "S1/R",
-        "denominator": None,
+        "denominator": "R",
         "reference": "https://doi.org/10.1080/01431160310001618031",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1675,7 +1679,7 @@ class IndeciesExpressions(Enum):
     DSWI4 = {
         "long_name": "Disease-Water Stress Index 4",
         "formula": "G/R",
-        "denominator": None,
+        "denominator": "R",
         "reference": "https://doi.org/10.1080/01431160310001618031",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1683,7 +1687,7 @@ class IndeciesExpressions(Enum):
     DSI = {
         "long_name": "Drought Stress Index",
         "formula": "S1/N",
-        "denominator": None,
+        "denominator": "N",
         "reference": "https://www.asprs.org/wp-content/uploads/pers/1999journal/apr/1999_apr_495-501.pdf",  # noqa: E501
         "application_domain": "vegetation",
         "contributor": "https://github.com/remi-braun",
@@ -1691,12 +1695,13 @@ class IndeciesExpressions(Enum):
     BITM = {
         "long_name": "Landsat TM-based Brightness Index",
         "formula": """
-            "denominator":None,
-                pow((
-                    (
-                        (pow(B , 2.0))+(pow(G , 2.0))+(pow(R , 2.0))
-                    )/3.0
-                ) fr, 0.5)""",
+            pow((
+                (
+                    (pow(B , 2.0))+(pow(G , 2.0))+(pow(R , 2.0))
+                )/3.0
+            ) fr, 0.5)
+        """,
+        "denominator": None,
         "reference": "https://doi.org/10.1016/S0034-4257(98)00030-3",
         "application_domain": "soil",
         "contributor": "https://github.com/davemlz",
@@ -1712,7 +1717,7 @@ class IndeciesExpressions(Enum):
     RI4XS = {
         "long_name": "SPOT HRV XS-based Redness Index 4",
         "formula": "(pow(R , 2.0))/(pow(G , 4.0))",
-        "denominator": None,
+        "denominator": "pow(G , 4.0)",
         "reference": "https://doi.org/10.1016/S0034-4257(98)00030-3",
         "application_domain": "soil",
         "contributor": "https://github.com/davemlz",
@@ -1723,7 +1728,7 @@ class IndeciesExpressions(Enum):
             (2.84 * (RE1 - RE2) / (G + S2)) +
             ((1.25 * (G - B) - (N - B)) / (N + 1.25 * G - 0.25 * B))
         """,
-        "denominator": None,
+        "denominator": "(G + S2)*(N + 1.25 * G - 0.25 * B)",
         "reference": "https://doi.org/10.3390/rs14215289",
         "application_domain": "water",
         "contributor": "https://github.com/remi-braun",
@@ -1731,7 +1736,7 @@ class IndeciesExpressions(Enum):
     CCI = {
         "long_name": "Chlorophyll Carotenoid Index",
         "formula": "(G1 - R)/(G1 + R)",
-        "denominator": None,
+        "denominator": "(G1 + R)",
         "reference": "https://doi.org/10.1073/pnas.1606162113",
         "application_domain": "vegetation",
         "contributor": "https://github.com/joanvlasschaert",
@@ -1739,7 +1744,7 @@ class IndeciesExpressions(Enum):
     SLAVI = {
         "long_name": "Specific Leaf Area Vegetation Index",
         "formula": "N/(R + S2)",
-        "denominator": None,
+        "denominator": "(R + S2)",
         "reference": "https://www.asprs.org/wp-content/uploads/pers/2000journal/february/2000_feb_183-191.pdf",  # noqa: E501
         "application_domain": "vegetation",
         "contributor": "https://github.com/geoSanjeeb",
@@ -1747,7 +1752,7 @@ class IndeciesExpressions(Enum):
     EBI = {
         "long_name": "Enhanced Bloom Index",
         "formula": f"(R + G + B)/((G/B) * (R - B + {EPSILON}))",
-        "denominator": None,
+        "denominator": "((G/B) * (R - B + EPSILON))",
         "reference": "https://doi.org/10.1016/j.isprsjprs.2019.08.006",
         "application_domain": "vegetation",
         "contributor": "https://github.com/geoSanjeeb",
@@ -1755,7 +1760,7 @@ class IndeciesExpressions(Enum):
     ENDVI = {
         "long_name": "Enhanced Normalized Difference Vegetation Index",
         "formula": "((N + G) - (2 * B)) / ((N + G) + (2 * B))",
-        "denominator": None,
+        "denominator": "((N + G) + (2 * B))",
         "reference": "https://doi.org/10.1371/journal.pone.0186193",
         "application_domain": "vegetation",
         "contributor": "https://github.com/gagev",
@@ -1763,7 +1768,7 @@ class IndeciesExpressions(Enum):
     bNIRv = {
         "long_name": "Blue Near-Infrared Reflectance of Vegetation",
         "formula": "((N - B)/(N + B)) * N",
-        "denominator": None,
+        "denominator": "(N + B)",
         "reference": "https://doi.org/10.1029/2024JG008240",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1771,7 +1776,7 @@ class IndeciesExpressions(Enum):
     EVIv = {
         "long_name": "Enhanced Vegetation Index of Vegetation",
         "formula": "2.5 * ((N - R)/(N + 6 * R - 7.5 * B + 1.0)) * N",
-        "denominator": None,
+        "denominator": "(N + 6 * R - 7.5 * B + 1.0)",
         "reference": "https://doi.org/10.1029/2024JG008240",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1779,7 +1784,7 @@ class IndeciesExpressions(Enum):
     sNIRvLSWI = {
         "long_name": "SWIR-enhanced Near-Infrared Reflectance of Vegetation for LSWI",
         "formula": "((N - S2)/(N + S2)) * N",
-        "denominator": None,
+        "denominator": "(N + S2)",
         "reference": "https://doi.org/10.1029/2024JG008240",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1790,7 +1795,7 @@ class IndeciesExpressions(Enum):
             (N - ({ALPHA} * R + (1.0 - {ALPHA}) * S2)) /
             (N + ({ALPHA} * R + (1.0 - {ALPHA}) * S2)) * N
         """,
-        "denominator": None,
+        "denominator": "(N + (ALPHA * R + (1.0 - ALPHA) * S2))",
         "reference": "https://doi.org/10.1029/2024JG008240",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1798,7 +1803,7 @@ class IndeciesExpressions(Enum):
     sNIRvSWIR = {
         "long_name": "SWIR-enhanced Near-Infrared Reflectance of Vegetation",
         "formula": "((N - R - pow(S2 , 2.0))/(N + R + pow(S2 , 2.0))) * N",
-        "denominator": None,
+        "denominator": "(N + R + pow(S2 , 2.0))",
         "reference": "https://doi.org/10.1029/2024JG008240",
         "application_domain": "vegetation",
         "contributor": "https://github.com/MartinuzziFrancesco",
@@ -1808,7 +1813,7 @@ class IndeciesExpressions(Enum):
             SWIR-enhanced Near-Infrared Reflectance of Vegetation for the NDVI-LSWI Product
         """,
         "formula": "((N - R)/(N + R)) * ((N - S2)/(N + S2)) * N",
-        "denominator": None,
+        "denominator": "(N + R)*(N + S2)",
         "reference": "https://doi.org/10.1029/2024JG008240",
         "application_domain": "vegetation",
         "contributor": "https://github.com/davemlz",
@@ -1824,7 +1829,7 @@ class IndeciesExpressions(Enum):
     OSI = {
         "long_name": "Oil Spill Index",
         "formula": "(G + R)/B",
-        "denominator": None,
+        "denominator": "B",
         "reference": "https://doi.org/10.1016/j.mex.2021.101327",
         "application_domain": "water",
         "contributor": "https://github.com/emanuelcastanho",
