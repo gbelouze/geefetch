@@ -35,18 +35,13 @@ EXPRESSION_BANDS = [
 class SpectralIndex:
     name: str
     expression: str
+    expression_bands: list[str]
     expression_denominator: str | None
     band_mapping: dict[str, str]
 
     def _has_required_bands(self, image: Image) -> ee.Number:
-        expression_bands = [
-            self.band_mapping.get(band) for band in EXPRESSION_BANDS if band in self.expression
-        ]
-
-        if None in expression_bands:
-            return ee.Number(0)
-
-        required_bands_ee = ee.List(expression_bands)
+        # In case an Image is missing a Band, this boolean will trigger the return of an empty band.
+        required_bands_ee = ee.List([self.band_mapping.get(band) for band in self.expression_bands])
         present = image.bandNames()
         return required_bands_ee.removeAll(present).size().eq(0)
 
@@ -104,6 +99,7 @@ class SpectralIndex:
 def load_spectral_indices_from_conf(
     config: SatelliteDefaultConfig, mapping: dict[str, str]
 ) -> list[SpectralIndex] | None:
+    """Reads through a given configuration object and produces a list of SpectralIndex to be"""
     spectral_indices: list[SpectralIndex] | None = None
     if config.spectral_indices:
         spectral_indices = []
@@ -116,15 +112,32 @@ def load_spectral_indices_from_conf(
                 """
                 log.error(msg)
                 raise ValueError(msg)
-
             else:
                 spectral_index = IndeciesExpressions[spectral_index_name]
-                spectral_indices.append(
-                    SpectralIndex(
-                        name=spectral_index.name,
-                        expression=spectral_index.value.get("formula", ""),
-                        expression_denominator=spectral_index.value.get("denominator"),
-                        band_mapping=mapping,
+                expression = spectral_index.value.get("formula", "")
+                expression_bands = [band for band in EXPRESSION_BANDS if band in expression]
+
+                missing_bands_from_mapping = [
+                    band for band in expression_bands if band not in mapping
+                ]
+
+                if missing_bands_from_mapping:
+                    # Do not initialize the SpectralIndex if any of the bands used
+                    # in the expression are missing from the sensor band mapping.
+                    msg = f"""
+                        {spectral_index_name} won't be calculated as the following bands do not
+                        figure in the sensor band mapping: {missing_bands_from_mapping}.
+                    """
+                    log.warning(msg)
+
+                else:
+                    spectral_indices.append(
+                        SpectralIndex(
+                            name=spectral_index.name,
+                            expression=expression,
+                            expression_bands=expression_bands,
+                            expression_denominator=spectral_index.value.get("denominator"),
+                            band_mapping=mapping,
+                        )
                     )
-                )
     return spectral_indices
