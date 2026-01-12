@@ -10,7 +10,7 @@ from shapely import Polygon
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
-from ...utils.vegitation_index import SpectralIndex
+from ...utils.spectral_indices.spectral_index import SpectralIndex
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -229,7 +229,7 @@ class S2(SatelliteABC):
         info = s2_cloudless.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Sentinel-2 image.Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
         for feature in info["features"]:  # type: ignore[index]
             sys_index = feature.get("properties").get("system:index")
