@@ -36,6 +36,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Changed
 
+- Landsat pixel range to 5000-15000 [32c510d](https://github.com/gbelouze/geefetch/commit/32c510d06d7f9ba128a3556a4c34d3c3f31fad9a)
 - Config must provide `gee_project_ids` instead of `gee_project_id` [922d335](https://github.com/gbelouze/geefetch/commit/922d33518f1a9d6a2d4cf6f79317125261002900)
 - GEDI is less agressively filtered [a770420](https://github.com/gbelouze/geefetch/commit/a77042096442efc80b94d42c490318343c7146a5)
 - Change Sentinel-2 normalization range [6a2685a](https://github.com/gbelouze/geefetch/commit/6a2685a3b762d7fcfb1931b2dc3e267baa98838b)
