@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+import geopandas as gpd
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
@@ -62,26 +63,43 @@ class SpatialAOIConfig:
     right : float
     top : float
     bottom : float
+    ploygons : str | None
+        Path to a geo file readable by GeoPandas that contains a set of polygons
+        to which will be applied a bounding box. Defaults to None.
     epsg : int
         EPSG code for the CRS in which the boundaries are given. If given,
         the downloaded data will be expressed in that same CRS.
         Defaults is 4326, corresponding to WGS84 (latitude, longitude).
     """
 
-    left: float
-    right: float
-    top: float
-    bottom: float
+    left: float = 0
+    right: float = 0
+    top: float = 0
+    bottom: float = 0
+
+    ploygons: str | None = None
+
     epsg: int = 4326
 
     def as_bbox(self) -> GeoBoundingBox:
         return GeoBoundingBox(
             left=self.left,
+            bottom=self.bottom,
             right=self.right,
             top=self.top,
-            bottom=self.bottom,
             crs=CRS.from_epsg(self.epsg),
         )
+
+    def as_bboxes(self) -> list[GeoBoundingBox]:
+        gdf = gpd.read_file(self.ploygons)
+        if gdf.crs.to_epsg() != self.epsg:
+            gdf.to_crs(CRS.from_epsg(self.epsg), inplace=True)
+        return [
+            GeoBoundingBox(
+                left=row[0], bottom=row[1], right=row[2], top=row[3], crs=CRS.from_epsg(self.epsg)
+            )
+            for row in gdf.bounds.to_numpy()
+        ]
 
 
 @dataclass
@@ -137,8 +155,8 @@ class SatelliteDefaultConfig:
         The temporal/spatial Area of Interest
     gee : GEEConfig
         Google Earth Engine specific configurations
-    tile_size : int
-        The pixel side length for downloaded images
+    tile_shape : int
+        The pixel side length for downloaded images. Defaults to 5000 pixels.
     resolution : int
         The resolution for downloaded images, in meters
     dtype : DType
@@ -162,7 +180,7 @@ class SatelliteDefaultConfig:
 
     aoi: AOIConfig
     gee: GEEConfig
-    tile_size: int = 5_000
+    tile_shape: int = 5_000
     resolution: int = 10
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN

@@ -130,8 +130,7 @@ class S2(SatelliteABC):
         -------
         s2_cloudless : ImageCollection
         """
-        bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
-
+        bounds = aoi.buffer(aoi.hypotenuse / 2).transform(WGS84).to_ee_geometry()
         s2_cloud = ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY").filterBounds(bounds)
         s2_col = (
             ImageCollection("COPERNICUS/S2_SR_HARMONIZED")

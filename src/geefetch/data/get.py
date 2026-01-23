@@ -139,7 +139,6 @@ def download_chip(
         if not as_time_series
         else satellite.get_time_series(**data_get_kwargs)
     )
-
     try:
         data.download(
             out,
@@ -166,7 +165,7 @@ def download_chip(
 def download(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     satellite: SatelliteABC,
     start_date: str | None,
     end_date: str | None,
@@ -192,8 +191,9 @@ def download(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     satellite : SatelliteABC
         The satellite which the images should originate from.
     start_date : str | None
@@ -237,9 +237,12 @@ def download(
     tiler = Tiler()
     tracker = TileTracker(satellite, data_dir)
     with default_bar() as progress:
-        tiles = list(
-            tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
-        )
+        if not isinstance(bbox, list):
+            tiles = list(
+                tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
+            )
+        else:
+            tiles = bbox
         log.info("Downloading all tiles")
 
         overall_task = progress.add_task(
@@ -347,7 +350,7 @@ def download(
 def download_gedi_l2a_raster(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -368,8 +371,9 @@ def download_gedi_l2a_raster(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
@@ -415,7 +419,7 @@ def download_gedi_l2a_raster(
 def download_gedi_l2a_vector(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -435,8 +439,9 @@ def download_gedi_l2a_vector(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
@@ -475,7 +480,7 @@ def download_gedi_l2a_vector(
 def download_gedi_l2b_vector(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -495,8 +500,9 @@ def download_gedi_l2b_vector(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
@@ -535,7 +541,7 @@ def download_gedi_l2b_vector(
 def download_s1(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -562,8 +568,9 @@ def download_s1(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
@@ -645,7 +652,7 @@ def download_s1(
 def download_s2(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -671,8 +678,9 @@ def download_s2(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
@@ -739,7 +747,7 @@ def download_s2(
 def download_dynworld(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -762,8 +770,9 @@ def download_dynworld(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
@@ -820,7 +829,7 @@ def download_dynworld(
 def download_landsat8(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -844,8 +853,9 @@ def download_landsat8(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
@@ -905,7 +915,7 @@ def download_landsat8(
 def download_palsar2(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -931,8 +941,9 @@ def download_palsar2(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
@@ -999,7 +1010,7 @@ def download_palsar2(
 def download_nasadem(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -1020,8 +1031,9 @@ def download_nasadem(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -1075,7 +1087,7 @@ def download_custom(
     satellite_custom: CustomSatellite,
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -1099,8 +1111,9 @@ def download_custom(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None

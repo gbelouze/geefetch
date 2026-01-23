@@ -6,6 +6,7 @@ import geopandas
 import omegaconf
 import pooch
 import shapely
+from geobbox import GeoBoundingBox
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from thefuzz import process
@@ -119,7 +120,7 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
                 else None
             ),
             resolution=config.gedi_l2a.resolution,
-            tile_shape=config.gedi_l2a.tile_size,
+            tile_shape=config.gedi_l2a.tile_shape,
             filter_polygon=(
                 None
                 if config.gedi_l2a.aoi.country is None
@@ -149,7 +150,7 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             ),
             dtype=config.gedi_l2a.dtype,
             resolution=config.gedi_l2a.resolution,
-            tile_shape=config.gedi_l2a.tile_size,
+            tile_shape=config.gedi_l2a.tile_shape,
             filter_polygon=(
                 None
                 if config.gedi_l2a.aoi.country is None
@@ -188,7 +189,7 @@ def download_gedi_l2b(config_path: Path) -> None:
             else None
         ),
         resolution=config.gedi_l2b.resolution,
-        tile_shape=config.gedi_l2b.tile_size,
+        tile_shape=config.gedi_l2b.tile_shape,
         filter_polygon=(
             None
             if config.gedi_l2b.aoi.country is None
@@ -236,7 +237,7 @@ def download_s1(config_path: Path) -> None:
         composite_method=config.s1.composite_method,
         dtype=config.s1.dtype,
         resolution=config.s1.resolution,
-        tile_shape=config.s1.tile_size,
+        tile_shape=config.s1.tile_shape,
         max_tile_size=config.s1.gee.max_tile_size,
         filter_polygon=(
             None
@@ -265,7 +266,12 @@ def download_s2(config_path: Path) -> None:
     save_config(config.s2, config.data_dir / "s2")
 
     data_dir = Path(config.data_dir)
-    bounds = config.s2.aoi.spatial.as_bbox()
+
+    bounds: GeoBoundingBox | list[GeoBoundingBox]
+    if config.s2.aoi.spatial.ploygons:
+        bounds = config.s2.aoi.spatial.as_bboxes()
+    else:
+        bounds = config.s2.aoi.spatial.as_bbox()
     data.get.download_s2(
         data_dir,
         config.s2.gee.ee_project_ids,
@@ -281,7 +287,7 @@ def download_s2(config_path: Path) -> None:
         composite_method=config.s2.composite_method,
         dtype=config.s2.dtype,
         resolution=config.s2.resolution,
-        tile_shape=config.s2.tile_size,
+        tile_shape=config.s2.tile_shape,
         max_tile_size=config.s2.gee.max_tile_size,
         filter_polygon=(
             None
@@ -326,7 +332,7 @@ def download_dynworld(config_path: Path) -> None:
         composite_method=config.dynworld.composite_method,
         dtype=config.dynworld.dtype,
         resolution=config.dynworld.resolution,
-        tile_shape=config.dynworld.tile_size,
+        tile_shape=config.dynworld.tile_shape,
         max_tile_size=config.dynworld.gee.max_tile_size,
         filter_polygon=(
             None
@@ -371,7 +377,7 @@ def download_landsat8(config_path: Path) -> None:
         composite_method=config.landsat8.composite_method,
         dtype=config.landsat8.dtype,
         resolution=config.landsat8.resolution,
-        tile_shape=config.landsat8.tile_size,
+        tile_shape=config.landsat8.tile_shape,
         max_tile_size=config.landsat8.gee.max_tile_size,
         filter_polygon=(
             None
@@ -415,7 +421,7 @@ def download_palsar2(config_path: Path) -> None:
         composite_method=config.palsar2.composite_method,
         dtype=config.palsar2.dtype,
         resolution=config.palsar2.resolution,
-        tile_shape=config.palsar2.tile_size,
+        tile_shape=config.palsar2.tile_shape,
         max_tile_size=config.palsar2.gee.max_tile_size,
         filter_polygon=(
             None
@@ -460,7 +466,7 @@ def download_nasadem(config_path: Path) -> None:
         composite_method=config.nasadem.composite_method,
         dtype=config.nasadem.dtype,
         resolution=config.nasadem.resolution,
-        tile_shape=config.nasadem.tile_size,
+        tile_shape=config.nasadem.tile_shape,
         max_tile_size=config.nasadem.gee.max_tile_size,
         filter_polygon=(
             None
@@ -507,7 +513,7 @@ def download_custom(config_path: Path, custom_name: str) -> None:
         composite_method=custom_config.composite_method,
         dtype=custom_config.dtype,
         resolution=custom_config.resolution,
-        tile_shape=custom_config.tile_size,
+        tile_shape=custom_config.tile_shape,
         max_tile_size=custom_config.gee.max_tile_size,
         selected_bands=custom_config.selected_bands,
         filter_polygon=(
