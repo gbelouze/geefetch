@@ -142,7 +142,7 @@ satellite_default:
       end_date: "2023-06-30"
   gee:
     ee_project_id: "your-gee-id"
-  tile_size: 2000
+  tile_shape: 2000
   resolution: 10
 gedi_l2a: # more srict cloud filtering than the defaults
   selected_bands:

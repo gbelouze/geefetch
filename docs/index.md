@@ -52,7 +52,7 @@ satellite_default:
   gee:
     ee_project_ids: ["my-ee-project"]  # can be more to increase throughput
     max_tile_size: 10
-  tile_size: 1000
+  tile_shape: 1000
   resolution: 10
 s2:
   cloudless_portion: 40

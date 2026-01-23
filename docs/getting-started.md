@@ -73,7 +73,7 @@ satellite_default:
       end_date: "2023-06-30"
   gee:
     ee_project_id: "my-ee-project" # Your GEE project ID
-  tile_size: 2000
+  tile_shape: 2000
   resolution: 10
 ```
 
