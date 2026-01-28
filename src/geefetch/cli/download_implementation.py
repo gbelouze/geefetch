@@ -24,6 +24,13 @@ from ..utils.spectral_indices import (
     load_spectral_indices_from_conf,
 )
 from .omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig, load
+from .omegaconfig import (
+    FileNamingConfig,
+    SatelliteDefaultConfig,
+    SpeckleFilterConfig,
+    TerrainNormalizationConfig,
+    load,
+)
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +38,22 @@ COUNTRY_BORDERS_URL = (
     "https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/"
     "world-administrative-boundaries/exports/geojson"
 )
+
+
+def load_aoi_bboxes(
+    config: SatelliteDefaultConfig,
+) -> GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]:
+    if config.aoi.spatial.polygons:
+        bboxes = config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape)
+        if config.file_naming_config:
+            return config.file_naming_config.get_naming_dict(
+                bboxes=config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape),
+                gdf=config.aoi.spatial.polygon_gdf,
+            )
+        else:
+            return bboxes
+    else:
+        return config.aoi.spatial.as_bbox()
 
 
 def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.MultiPolygon | None:
@@ -213,7 +236,11 @@ def download_s1(config_path: Path) -> None:
     save_config(config.s1, config.data_dir / "s1")
 
     data_dir = Path(config.data_dir)
-    bounds = config.s1.aoi.spatial.as_bbox()
+
+    bounds = load_aoi_bboxes(config.s1)
+
+    if config.s1.file_naming_config is None:
+        config.s1.file_naming_config = FileNamingConfig()
 
     assert config.s1.terrain_normalization is None or isinstance(
         config.s1.terrain_normalization, TerrainNormalizationConfig
@@ -228,6 +255,7 @@ def download_s1(config_path: Path) -> None:
         bounds,
         config.s1.aoi.temporal.start_date if config.s1.aoi.temporal is not None else None,
         config.s1.aoi.temporal.end_date if config.s1.aoi.temporal is not None else None,
+        config.s1.file_naming_config,
         config.s1.selected_bands,
         crs=(
             CRS.from_epsg(config.s1.aoi.spatial.epsg)
@@ -263,21 +291,21 @@ def download_s2(config_path: Path) -> None:
     if config.s2.selected_bands is None:
         config.s2.selected_bands = satellites.S2().default_selected_bands
     spectral_indices = load_spectral_indices_from_conf(config=config.s2, mapping=S2_MAPPING)
+    bounds = load_aoi_bboxes(config.s2)
+
+    if config.s2.file_naming_config is None:
+        config.s2.file_naming_config = FileNamingConfig()
+
     save_config(config.s2, config.data_dir / "s2")
 
     data_dir = Path(config.data_dir)
-
-    bounds: GeoBoundingBox | list[GeoBoundingBox]
-    if config.s2.aoi.spatial.ploygons:
-        bounds = config.s2.aoi.spatial.as_bboxes()
-    else:
-        bounds = config.s2.aoi.spatial.as_bbox()
     data.get.download_s2(
         data_dir,
         config.s2.gee.ee_project_ids,
         bounds,
         config.s2.aoi.temporal.start_date if config.s2.aoi.temporal is not None else None,
         config.s2.aoi.temporal.end_date if config.s2.aoi.temporal is not None else None,
+        config.s2.file_naming_config,
         config.s2.selected_bands,
         crs=(
             CRS.from_epsg(config.s2.aoi.spatial.epsg)
@@ -296,6 +324,8 @@ def download_s2(config_path: Path) -> None:
         ),
         cloudless_portion=config.s2.cloudless_portion,
         cloud_prb_thresh=config.s2.cloud_prb_threshold,
+        n_least_cloudy_monthly=config.s2.n_least_cloudy_monthly,
+        add_cloud_mask=config.s2.add_cloud_mask,
         resampling=config.s2.resampling,
         spectral_indices=spectral_indices,
     )
@@ -488,9 +518,14 @@ def download_custom(config_path: Path, custom_name: str) -> None:
     satellite_custom = satellites.CustomSatellite(
         custom_config.url, custom_config.pixel_range, name=custom_name
     )
+    bounds = load_aoi_bboxes(custom_config)
+
+    if custom_config.file_naming_config is None:
+        custom_config.file_naming_config = FileNamingConfig()
+
     save_config(custom_config, config.data_dir / satellite_custom.name)
     data_dir = Path(config.data_dir)
-    bounds = custom_config.aoi.spatial.as_bbox()
+
     start_date = (
         custom_config.aoi.temporal.start_date if custom_config.aoi.temporal is not None else None
     )
@@ -505,6 +540,7 @@ def download_custom(config_path: Path, custom_name: str) -> None:
         bounds,
         start_date,
         end_date,
+        custom_config.file_naming_config,
         crs=(
             CRS.from_epsg(custom_config.aoi.spatial.epsg)
             if custom_config.aoi.spatial.epsg != 4326

@@ -1,8 +1,11 @@
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from string import Formatter
 from typing import Any, Literal
 
 import geopandas as gpd
+import numpy as np
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
@@ -15,6 +18,8 @@ from geefetch.utils.enums import (
     ResamplingMethod,
     S1Orbit,
 )
+
+log = logging.getLogger(__name__)
 
 __all__ = [
     "GeefetchConfig",
@@ -63,7 +68,7 @@ class SpatialAOIConfig:
     right : float
     top : float
     bottom : float
-    ploygons : str | None
+    polygons : str | None
         Path to a geo file readable by GeoPandas that contains a set of polygons
         to which will be applied a bounding box. Defaults to None.
     epsg : int
@@ -72,14 +77,23 @@ class SpatialAOIConfig:
         Defaults is 4326, corresponding to WGS84 (latitude, longitude).
     """
 
-    left: float = 0
-    right: float = 0
-    top: float = 0
-    bottom: float = 0
+    left: float
+    right: float
+    top: float
+    bottom: float
 
-    ploygons: str | None = None
+    polygons: str | None = None
 
     epsg: int = 4326
+
+    @property
+    def polygon_gdf(self) -> gpd.GeoDataFrame | None:
+        if self.polygons:
+            gdf = gpd.read_file(self.polygons)
+            if gdf.crs.to_epsg() != self.epsg:
+                gdf.to_crs(CRS.from_epsg(self.epsg), inplace=True)
+            return gdf
+        return None
 
     def as_bbox(self) -> GeoBoundingBox:
         return GeoBoundingBox(
@@ -90,15 +104,31 @@ class SpatialAOIConfig:
             crs=CRS.from_epsg(self.epsg),
         )
 
-    def as_bboxes(self) -> list[GeoBoundingBox]:
-        gdf = gpd.read_file(self.ploygons)
-        if gdf.crs.to_epsg() != self.epsg:
-            gdf.to_crs(CRS.from_epsg(self.epsg), inplace=True)
+    def as_bboxes(self, scale: int, tile_shape: int) -> list[GeoBoundingBox]:
+        try:
+            gdf: gpd.GeoDataFrame = self.polygon_gdf
+        except Exception as e:
+            msg = f"Failed to load geo file {self.polygons}. {e}"
+            log.error(msg)
+
+        gdf = self.polygon_gdf
+
+        def snap(row):
+            left, bottom, right, top = row
+
+            left = np.floor(left / scale) * scale
+            bottom = np.floor(bottom / scale) * scale
+
+            right = left + tile_shape * scale
+            top = bottom + tile_shape * scale
+
+            return left, bottom, right, top
+
+        snapped = np.apply_along_axis(snap, 1, gdf.bounds.to_numpy())
+
         return [
-            GeoBoundingBox(
-                left=row[0], bottom=row[1], right=row[2], top=row[3], crs=CRS.from_epsg(self.epsg)
-            )
-            for row in gdf.bounds.to_numpy()
+            GeoBoundingBox(left, bottom, right, top, CRS.from_epsg(self.epsg))
+            for left, bottom, right, top in snapped
         ]
 
 
@@ -146,6 +176,57 @@ class AOIConfig:  # noqa: 605
 
 
 @dataclass
+class FileNamingConfig:
+    """The structure type for the naming configuration of the downloaded files.
+    With this config, we can format downloaded data with the following structure:
+
+    data_dir / sub_root_dir / tile_dir_format / tile_stem_format
+
+    data_dir is pulled from the GeeFetchConfig.
+    The sub_root_dir is expected to be a string with no placeholders.
+
+    If you are downloading data with a geo file as aoi configuration,
+    you can use any parameter from the file to customize your tile names
+    and their directories (if you want them in seperate directories that is.)
+
+    tile_dir_format and tile_stem_format can be passed as parametrized strings.
+    The variables passed as string parameters should share names with the geofiles parameters.
+
+    Example
+    -------
+    tile_dir_format = "Continent-{continent}|UTM_Zone-{utm}"
+    tile_stem_format = "{id}"
+
+    For the formats above to work,
+    the geo file passed in SpatialAOI should figure continent, utm and id columns.
+
+
+    Attributes
+    ----------
+    sub_root_dir: str | None
+        Subroot directory. Defaults to None
+    tile_dir_format: str | None
+        Tile directory format. Defaults to None
+    tile_stem_format: str | None
+        Tile stem format. Defaults to None
+    """
+
+    sub_root_dir: str | None = None
+    tile_dir_format: str | None = None
+    tile_stem_format: str | None = None
+
+    def get_naming_dict(
+        self, bboxes: list[GeoBoundingBox], gdf: gpd.GeoDataFrame
+    ) -> dict[GeoBoundingBox, dict[str, Any]]:
+        parametrized_string = (self.tile_dir_format or "") + (self.tile_stem_format or "")
+        naming_properties = list(
+            {var for _, var, _, _ in Formatter().parse(parametrized_string) if var}
+        )
+        values = gdf[naming_properties].to_dict(orient="records")
+        return dict(zip(bboxes, values, strict=False))
+
+
+@dataclass
 class SatelliteDefaultConfig:
     """The structured type for a GeeFetch default satellite configuration
 
@@ -176,6 +257,8 @@ class SatelliteDefaultConfig:
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    file_naming_config : FileNamingConfig | None
+        File naming configuration. Defaults to None.
     """
 
     aoi: AOIConfig
@@ -187,6 +270,7 @@ class SatelliteDefaultConfig:
     selected_bands: list[str] | None = None
     spectral_indices: list[str] | None = None
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR
+    file_naming_config: FileNamingConfig | None = None
 
 
 @dataclass
@@ -300,10 +384,19 @@ class S2Config(SatelliteDefaultConfig):
         Default is 40.
     cloud_prb_threshold : int
         Threshold for cloud probability above which a pixel is filtered out (%). Default is 40.
+    n_least_cloudy_monthly : int | None
+        The number of least cloudy images to keep.
+        This attribute is only used for TimeSeries and bypasses the
+        cloudless_portion and cloud_prb_threshold attributes.
+    add_cloud_mask : bool
+        Wether to add to the image collection a cloud mask created with
+        GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED. Defaults to False.
     """
 
     cloudless_portion: int = 40
     cloud_prb_threshold: int = 40
+    n_least_cloudy_monthly: int | None = None
+    add_cloud_mask: bool = False
 
 
 @dataclass

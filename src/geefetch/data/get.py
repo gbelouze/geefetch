@@ -13,7 +13,7 @@ from retry import retry
 
 from geefetch.utils.multiprocessing import SequentialExecutor
 
-from ..cli.omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig
+from ..cli.omegaconfig import FileNamingConfig, SpeckleFilterConfig, TerrainNormalizationConfig
 from ..utils.enums import (
     CompositeMethod,
     DType,
@@ -165,7 +165,7 @@ def download_chip(
 def download(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     satellite: SatelliteABC,
     start_date: str | None,
     end_date: str | None,
@@ -191,7 +191,7 @@ def download(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     satellite : SatelliteABC
@@ -235,14 +235,25 @@ def download(
 
     check_clean = check_clean and not as_time_series
     tiler = Tiler()
-    tracker = TileTracker(satellite, data_dir)
+    file_naming_config: FileNamingConfig = satellite_download_kwargs.get(
+        "file_naming_config", FileNamingConfig()
+    )
+    tracker = TileTracker(satellite, data_dir, file_naming_config)
     with default_bar() as progress:
-        if not isinstance(bbox, list):
+        naming_format_kwargs_list: list[dict[str, Any]] = [{}]
+        if not (isinstance(bbox, list | dict)):
             tiles = list(
                 tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
             )
-        else:
+            naming_format_kwargs_list *= len(tiles)
+
+        elif isinstance(bbox, list):
+            naming_format_kwargs_list *= len(bbox)
             tiles = bbox
+        elif isinstance(bbox, dict):
+            naming_format_kwargs_list = list(bbox.values())
+            tiles = list(bbox.keys())
+
         log.info("Downloading all tiles")
 
         overall_task = progress.add_task(
@@ -277,7 +288,9 @@ def download(
                 for ee_project_id, _ in zip(ee_project_ids, range(max_workers), strict=False):
                     # hacky authentification for the pool processes
                     executor.submit(auth_and_log, ee_project_id)
-                for tile in tiles:
+                for tile, naming_format_kwargs in zip(
+                    tiles, naming_format_kwargs_list, strict=False
+                ):
                     data_get_kwargs = (
                         dict(
                             aoi=tile,
@@ -287,7 +300,9 @@ def download(
                         | satellite_get_kwargs
                     )
                     tile_path = tracker.get_path(
-                        tile, format=satellite_download_kwargs.get("format", None)
+                        tile,
+                        format=satellite_download_kwargs.get("format", None),
+                        naming_format_kwargs=naming_format_kwargs,
                     )
                     if as_time_series:
                         tile_path = tile_path.with_name(tile_path.stem)
@@ -333,11 +348,21 @@ def download(
         match satellite_download_kwargs["format"]:
             case Format.PARQUET:
                 merge_tracked_parquet(
-                    TileTracker(satellite, data_dir, filter=lambda p: p.suffix == ".parquet")
+                    TileTracker(
+                        satellite,
+                        data_dir,
+                        file_naming_config,
+                        filter=lambda p: p.suffix == ".parquet",
+                    )
                 )
             case Format.GEOJSON:
                 merge_tracked_geojson(
-                    TileTracker(satellite, data_dir, filter=lambda p: p.suffix == ".geojson")
+                    TileTracker(
+                        satellite,
+                        data_dir,
+                        file_naming_config,
+                        filter=lambda p: p.suffix == ".geojson",
+                    )
                 )
             case _ as x:
                 log.info(f"Don't know how to merge data of type {x}. Not merging.")
@@ -350,7 +375,7 @@ def download(
 def download_gedi_l2a_raster(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -371,7 +396,7 @@ def download_gedi_l2a_raster(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
@@ -419,7 +444,7 @@ def download_gedi_l2a_raster(
 def download_gedi_l2a_vector(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -439,7 +464,7 @@ def download_gedi_l2a_vector(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
@@ -480,7 +505,7 @@ def download_gedi_l2a_vector(
 def download_gedi_l2b_vector(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -500,7 +525,7 @@ def download_gedi_l2b_vector(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
@@ -541,9 +566,10 @@ def download_gedi_l2b_vector(
 def download_s1(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -568,13 +594,14 @@ def download_s1(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -644,7 +671,10 @@ def download_s1(
             "terrain_normalization_config": terrain_normalization_config,
             "spectral_indices": spectral_indices,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -652,9 +682,10 @@ def download_s1(
 def download_s2(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -665,6 +696,8 @@ def download_s2(
     filter_polygon: shapely.Geometry | None = None,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
+    n_least_cloudy_monthly: int | None = None,
+    add_cloud_mask: bool = False,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
     spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
@@ -678,13 +711,14 @@ def download_s2(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -710,6 +744,13 @@ def download_s2(
         See :meth:`geefetch.data.s2.get`. Defaults to 60.
     cloud_prb_thresh : int
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
+    n_least_cloudy_monthly : int | None
+        The number of least cloudy images kept per months. Only used for timeseries and replaces
+        the masking functionality that uses cloudless_portion and cloud_prb_threshold.
+        Defaults to None.
+    add_cloud_mask : bool
+        Wether to add to the image collection a cloud mask created with
+        GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED. Defaults to False.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
@@ -717,6 +758,14 @@ def download_s2(
     spectral_indices : list[SpectralIndex] | None
         List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
+    if add_cloud_mask:
+        selected_bands = (selected_bands or S2().default_selected_bands) + ["cloud_shadow_mask"]
+    # if composite_method != CompositeMethod.TIMESERIES:
+    #     n_least_cloudy_monthly = None
+    #     msg=f"""
+    #         n_least_cloudy_monthly only applies to {CompositeMethod.TIMESERIES} coposit methods.
+    #     """
+
     download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
@@ -734,12 +783,17 @@ def download_s2(
             "composite_method": composite_method,
             "cloudless_portion": cloudless_portion,
             "cloud_prb_thresh": cloud_prb_thresh,
+            "n_least_cloudy_monthly": n_least_cloudy_monthly,
+            "add_cloud_mask": add_cloud_mask,
             "dtype": dtype,
             "resampling": resampling,
             "resolution": resolution,
             "spectral_indices": spectral_indices,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -747,7 +801,7 @@ def download_s2(
 def download_dynworld(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -770,7 +824,7 @@ def download_dynworld(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
@@ -829,7 +883,7 @@ def download_dynworld(
 def download_landsat8(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -853,7 +907,7 @@ def download_landsat8(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
@@ -915,7 +969,7 @@ def download_landsat8(
 def download_palsar2(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
@@ -941,7 +995,7 @@ def download_palsar2(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
@@ -1010,7 +1064,7 @@ def download_palsar2(
 def download_nasadem(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -1031,7 +1085,7 @@ def download_nasadem(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     selected_bands : list[str] | None
@@ -1087,9 +1141,10 @@ def download_custom(
     satellite_custom: CustomSatellite,
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox | list[GeoBoundingBox],
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -1111,13 +1166,14 @@ def download_custom(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -1143,8 +1199,8 @@ def download_custom(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     """
-    if composite_method == CompositeMethod.TIMESERIES:
-        raise ValueError("Time series is not implemented for Custom Satellites.")
+    # if composite_method == CompositeMethod.TIMESERIES:
+    #     raise ValueError("Time series is not implemented for Custom Satellites.")
     download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
@@ -1165,5 +1221,9 @@ def download_custom(
             "resampling": resampling,
             "resolution": resolution,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
+        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )

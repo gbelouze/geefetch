@@ -3,12 +3,14 @@ import re
 from collections.abc import Callable, Iterator
 from math import ceil, floor
 from pathlib import Path
+from typing import Any
 
 import rasterio as rio
 import shapely
 from geobbox import UTM, GeoBoundingBox
 from rasterio.crs import CRS
 
+from ..cli.omegaconfig import FileNamingConfig
 from ..utils.enums import Format
 from ..utils.rasterio import WGS84
 from .satellites import SatelliteABC
@@ -159,12 +161,12 @@ class TileTracker:
         self,
         satellite: SatelliteABC,
         project_dir: Path,
-        sub_root: str | None = None,
+        file_naming_config: FileNamingConfig,
         filter: Callable[[Path], bool] | str | None = None,
     ):
         self._satellite = satellite
         self.project_dir = project_dir
-        self.sub_root = sub_root
+        self.file_naming_config = file_naming_config
         self._filter = filter
         if self._filter is None and satellite.is_raster:
             self._filter = r".*\.tif"
@@ -175,9 +177,24 @@ class TileTracker:
     @property
     def root(self) -> Path:
         """The root directory where data is stored."""
-        if self.sub_root is not None:
-            return self.project_dir / self.satellite.name / self.sub_root
+        if self.file_naming_config.sub_root_dir is not None:
+            return self.project_dir / self.satellite.name / self.file_naming_config.sub_root_dir
         return self.project_dir / self.satellite.name
+
+    def _get_tile_dir(self, naming_format_kwargs: dict[str, Any]) -> Path | None:
+        if not self.file_naming_config.tile_dir_format:
+            return None
+        tile_dir_path = self.root / Path(
+            self.file_naming_config.tile_dir_format.format(**naming_format_kwargs)
+        )
+        if not tile_dir_path.exists():
+            tile_dir_path.mkdir(parents=True)
+        return tile_dir_path
+
+    def _get_tile_stem(self, bbox: GeoBoundingBox, naming_format_kwargs: dict[str, Any]) -> str:
+        if self.file_naming_config.tile_stem_format:
+            return self.file_naming_config.tile_stem_format.format(**naming_format_kwargs)
+        return f"{self.satellite.name}_{self.name_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
 
     @property
     def satellite(self) -> SatelliteABC:
@@ -190,14 +207,20 @@ class TileTracker:
             return ret
         return f"EPSG{crs.to_epsg()}"
 
-    def get_path(self, bbox: GeoBoundingBox, format: Format | None = None) -> Path:
+    def get_path(
+        self,
+        bbox: GeoBoundingBox,
+        format: Format | None = None,
+        naming_format_kwargs: dict[str, Any] | None = None,
+    ) -> Path:
+        if not naming_format_kwargs:
+            naming_format_kwargs = {}
         tile_suffix = (
             ".tif" if self.satellite.is_raster else ".geojson" if format is None else format.value
         )
-        tile_stem = (
-            f"{self.satellite.name}_{self.name_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
-        )
-        tile_path = self.root / (tile_stem + tile_suffix)
+        tile_stem = self._get_tile_stem(bbox, naming_format_kwargs)
+        tile_dir = self._get_tile_dir(naming_format_kwargs) or ""
+        tile_path = self.root / tile_dir / (tile_stem + tile_suffix)
         if not self.filter(tile_path):
             raise RuntimeError(
                 f"{self.__class__.__name__} created path {tile_path} "
