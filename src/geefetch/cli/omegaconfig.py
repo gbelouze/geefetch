@@ -77,10 +77,10 @@ class SpatialAOIConfig:
         Defaults is 4326, corresponding to WGS84 (latitude, longitude).
     """
 
-    left: float
-    right: float
-    top: float
-    bottom: float
+    left: float = -1
+    right: float = -1
+    top: float = -1
+    bottom: float = -1
 
     polygons: str | None = None
 

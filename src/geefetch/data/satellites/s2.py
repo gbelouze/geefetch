@@ -108,19 +108,19 @@ class S2(SatelliteABC):
         return (self.spectral_indices is not None) or (self.add_cloud_mask)
 
     @staticmethod
-    def contains_aoi(bounds: Geometry, im: Image) -> Element:
-        contains = im.geometry().contains(bounds, 1)
+    def contains_aoi(aoi: Geometry, im: Image) -> Element:
+        contains = im.geometry().contains(aoi, 1)
         return im.set("contains_bounds", contains)
 
     @classmethod
     def get_monthly_n_least_cloudy_col(
-        cls, bounds: Geometry, start_date: str, end_date: str, n: int
+        cls, bounds: Geometry, ee_aoi: Geometry, start_date: str, end_date: str, n: int
     ) -> ImageCollection:
         s2_col = (
             ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
             .filterBounds(bounds)
             .filterDate(start_date, end_date)
-            .map(lambda im: cls.contains_aoi(bounds, im))
+            .map(lambda im: cls.contains_aoi(ee_aoi, im))
             .filter(Filter.eq("contains_bounds", True))
         )
 
@@ -238,10 +238,11 @@ class S2(SatelliteABC):
             raise ValueError(msg)
 
         bounds = aoi.buffer(aoi.hypotenuse / 2).transform(WGS84).to_ee_geometry()
-
+        ee_aoi = aoi.transform(WGS84).to_ee_geometry()
         if n_least_cloudy_monthly:
             s2_col = self.get_monthly_n_least_cloudy_col(
                 bounds,
+                ee_aoi,
                 start_date,
                 end_date,
                 n_least_cloudy_monthly,

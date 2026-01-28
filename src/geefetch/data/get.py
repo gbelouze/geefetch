@@ -378,6 +378,7 @@ def download_gedi_l2a_raster(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -403,6 +404,7 @@ def download_gedi_l2a_raster(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -437,7 +439,10 @@ def download_gedi_l2a_raster(
         satellite_get_kwargs={
             "dtype": dtype,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
     )
 
 
@@ -447,6 +452,7 @@ def download_gedi_l2a_vector(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     tile_shape: int = 500,
@@ -471,6 +477,7 @@ def download_gedi_l2a_vector(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -498,7 +505,7 @@ def download_gedi_l2a_vector(
         resolution=resolution,
         filter_polygon=filter_polygon,
         check_clean=False,
-        satellite_download_kwargs={"format": format},
+        satellite_download_kwargs={"format": format, "file_naming_config": file_naming_config},
     )
 
 
@@ -508,6 +515,7 @@ def download_gedi_l2b_vector(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     tile_shape: int = 500,
@@ -532,6 +540,7 @@ def download_gedi_l2b_vector(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -559,7 +568,7 @@ def download_gedi_l2b_vector(
         resolution=resolution,
         filter_polygon=filter_polygon,
         check_clean=False,
-        satellite_download_kwargs={"format": format},
+        satellite_download_kwargs={"format": format, "file_naming_config": file_naming_config},
     )
 
 
@@ -760,11 +769,6 @@ def download_s2(
     """
     if add_cloud_mask:
         selected_bands = (selected_bands or S2().default_selected_bands) + ["cloud_shadow_mask"]
-    # if composite_method != CompositeMethod.TIMESERIES:
-    #     n_least_cloudy_monthly = None
-    #     msg=f"""
-    #         n_least_cloudy_monthly only applies to {CompositeMethod.TIMESERIES} coposit methods.
-    #     """
 
     download(
         data_dir=data_dir,
@@ -804,6 +808,7 @@ def download_dynworld(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -831,6 +836,7 @@ def download_dynworld(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -875,7 +881,10 @@ def download_dynworld(
             "resampling": resampling,
             "resolution": resolution,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -886,6 +895,7 @@ def download_landsat8(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
@@ -914,6 +924,7 @@ def download_landsat8(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -961,7 +972,10 @@ def download_landsat8(
             "resolution": resolution,
             "spectral_indices": spectral_indices,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -972,6 +986,7 @@ def download_palsar2(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
@@ -1002,6 +1017,7 @@ def download_palsar2(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -1056,7 +1072,10 @@ def download_palsar2(
             "refined_lee": refined_lee,
             "spectral_indices": spectral_indices,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -1065,6 +1084,7 @@ def download_nasadem(
     data_dir: Path,
     ee_project_ids: str | list[str],
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
+    file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -1088,6 +1108,7 @@ def download_nasadem(
     bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
+    file_naming_config : FileNamingConfig
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -1133,7 +1154,10 @@ def download_nasadem(
             "dtype": dtype,
             "resampling": resampling,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
     )
 
 

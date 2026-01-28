@@ -120,7 +120,11 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             """
         )
     data_dir = Path(config.data_dir)
-    bounds = config.gedi_l2a.aoi.spatial.as_bbox()
+    bounds = load_aoi_bboxes(config.gedi_l2a)
+
+    if config.gedi_l2a.file_naming_config is None:
+        config.gedi_l2a.file_naming_config = FileNamingConfig()
+
     if vector:
         if config.gedi_l2a.selected_bands is None:
             config.gedi_l2a.selected_bands = satellites.GEDIL2Avector().default_selected_bands
@@ -136,6 +140,7 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             config.gedi_l2a.aoi.temporal.end_date
             if config.gedi_l2a.aoi.temporal is not None
             else None,
+            config.gedi_l2a.file_naming_config,
             config.gedi_l2a.selected_bands,
             crs=(
                 CRS.from_epsg(config.gedi_l2a.aoi.spatial.epsg)
@@ -165,6 +170,7 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             config.gedi_l2a.aoi.temporal.end_date
             if config.gedi_l2a.aoi.temporal is not None
             else None,
+            config.gedi_l2a.file_naming_config,
             config.gedi_l2a.selected_bands,
             crs=(
                 CRS.from_epsg(config.gedi_l2a.aoi.spatial.epsg)
@@ -193,7 +199,11 @@ def download_gedi_l2b(config_path: Path) -> None:
             """
         )
     data_dir = Path(config.data_dir)
-    bounds = config.gedi_l2b.aoi.spatial.as_bbox()
+    bounds = load_aoi_bboxes(config.gedi_l2b)
+
+    if config.gedi_l2b.file_naming_config is None:
+        config.gedi_l2b.file_naming_config = FileNamingConfig()
+
     if config.gedi_l2b.selected_bands is None:
         config.gedi_l2b.selected_bands = satellites.GEDIL2Bvector().default_selected_bands
     save_config(config.gedi_l2b, config.data_dir / "gedi_l2b_vector")
@@ -205,6 +215,7 @@ def download_gedi_l2b(config_path: Path) -> None:
         if config.gedi_l2b.aoi.temporal is not None
         else None,
         config.gedi_l2b.aoi.temporal.end_date if config.gedi_l2b.aoi.temporal is not None else None,
+        config.gedi_l2b.file_naming_config,
         config.gedi_l2b.selected_bands,
         crs=(
             CRS.from_epsg(config.gedi_l2b.aoi.spatial.epsg)
@@ -341,10 +352,15 @@ def download_dynworld(config_path: Path) -> None:
         )
     if config.dynworld.selected_bands is None:
         config.dynworld.selected_bands = satellites.DynWorld().default_selected_bands
-    save_config(config.dynworld, config.data_dir / "dyn_world")
 
     data_dir = Path(config.data_dir)
-    bounds = config.dynworld.aoi.spatial.as_bbox()
+    bounds = load_aoi_bboxes(config.dynworld)
+
+    if config.dynworld.file_naming_config is None:
+        config.dynworld.file_naming_config = FileNamingConfig()
+
+    save_config(config.dynworld, config.data_dir / "dyn_world")
+
     data.get.download_dynworld(
         data_dir,
         config.dynworld.gee.ee_project_ids,
@@ -353,6 +369,7 @@ def download_dynworld(config_path: Path) -> None:
         if config.dynworld.aoi.temporal is not None
         else None,
         config.dynworld.aoi.temporal.end_date if config.dynworld.aoi.temporal is not None else None,
+        config.dynworld.file_naming_config,
         config.dynworld.selected_bands,
         crs=(
             CRS.from_epsg(config.dynworld.aoi.spatial.epsg)
@@ -386,9 +403,15 @@ def download_landsat8(config_path: Path) -> None:
     spectral_indices = load_spectral_indices_from_conf(
         config=config.landsat8, mapping=LANDSAT8_MAPPING
     )
-    save_config(config.landsat8, config.data_dir / "landsat8")
     data_dir = Path(config.data_dir)
-    bounds = config.landsat8.aoi.spatial.as_bbox()
+
+    bounds = load_aoi_bboxes(config.landsat8)
+
+    if config.landsat8.file_naming_config is None:
+        config.landsat8.file_naming_config = FileNamingConfig()
+
+    save_config(config.landsat8, config.data_dir / "landsat8")
+
     data.get.download_landsat8(
         data_dir,
         config.landsat8.gee.ee_project_ids,
@@ -397,6 +420,7 @@ def download_landsat8(config_path: Path) -> None:
         if config.landsat8.aoi.temporal is not None
         else None,
         config.landsat8.aoi.temporal.end_date if config.landsat8.aoi.temporal is not None else None,
+        config.landsat8.file_naming_config,
         config.landsat8.selected_bands,
         crs=(
             CRS.from_epsg(config.landsat8.aoi.spatial.epsg)
@@ -432,15 +456,21 @@ def download_palsar2(config_path: Path) -> None:
     )
     if config.palsar2.selected_bands is None:
         config.palsar2.selected_bands = satellites.Palsar2().default_selected_bands
+    data_dir = Path(config.data_dir)
+    bounds = load_aoi_bboxes(config.palsar2)
+
+    if config.palsar2.file_naming_config is None:
+        config.palsar2.file_naming_config = FileNamingConfig()
+
     save_config(config.palsar2, config.data_dir / "palsar2")
     data_dir = Path(config.data_dir)
-    bounds = config.palsar2.aoi.spatial.as_bbox()
     data.get.download_palsar2(
         data_dir,
         config.palsar2.gee.ee_project_ids,
         bounds,
         config.palsar2.aoi.temporal.start_date if config.palsar2.aoi.temporal is not None else None,
         config.palsar2.aoi.temporal.end_date if config.palsar2.aoi.temporal is not None else None,
+        config.palsar2.file_naming_config,
         config.palsar2.selected_bands,
         crs=(
             CRS.from_epsg(config.palsar2.aoi.spatial.epsg)
@@ -475,9 +505,12 @@ def download_nasadem(config_path: Path) -> None:
         )
     if config.nasadem.selected_bands is None:
         config.nasadem.selected_bands = satellites.NASADEM().default_selected_bands
-    save_config(config.nasadem, config.data_dir / "nasadem")
     data_dir = Path(config.data_dir)
-    bounds = config.nasadem.aoi.spatial.as_bbox()
+    bounds = load_aoi_bboxes(config.nasadem)
+
+    if config.nasadem.file_naming_config is None:
+        config.nasadem.file_naming_config = FileNamingConfig()
+    save_config(config.nasadem, config.data_dir / "nasadem")
     if config.nasadem.aoi.temporal is not None:
         log.warning(
             f"Temporal config {config.nasadem.aoi.temporal.start_date} "
@@ -487,6 +520,7 @@ def download_nasadem(config_path: Path) -> None:
         data_dir,
         config.nasadem.gee.ee_project_ids,
         bounds,
+        config.nasadem.file_naming_config,
         crs=(
             CRS.from_epsg(config.nasadem.aoi.spatial.epsg)
             if config.nasadem.aoi.spatial.epsg
