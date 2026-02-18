@@ -3,7 +3,11 @@ similar to what `geedim` provides for Image and ImageCollection."""
 
 import logging
 import tempfile
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import (
+    Executor,
+    ThreadPoolExecutor,
+    as_completed,
+)
 from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
@@ -12,9 +16,11 @@ import geopandas as gpd
 import requests
 from ee.featurecollection import FeatureCollection
 from geobbox import GeoBoundingBox
-from rasterio.crs import CRS
+from rasterio import CRS
 from rich.progress import Progress
 
+from geefetch.utils.multiprocessing import SequentialExecutor
+from geefetch.utils.progress import geefetch_debug
 from geefetch.utils.progress_multiprocessing import add_task_finally_remove
 
 from ...utils.enums import Format
@@ -107,9 +113,14 @@ class DownloadableGEECollection(DownloadableABC):
         max_workers = 25
 
         downloaded_paths = []
+        if geefetch_debug():
+            max_workers = 1
+            executor_cls: type[Executor] = SequentialExecutor
+        else:
+            executor_cls = ThreadPoolExecutor
         with (
             tempfile.TemporaryDirectory() as tmpdir,
-            ThreadPoolExecutor(max_workers=max_workers) as executor,
+            executor_cls(max_workers=max_workers) as executor,
             ExitStack() as stack,
         ):
             split_tiles = list(

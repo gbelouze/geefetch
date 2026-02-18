@@ -11,7 +11,7 @@ from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 from retry import retry
 
-from geefetch.utils.multiprocessing import SequentialProcessPoolExecutor
+from geefetch.utils.multiprocessing import SequentialExecutor
 
 from ..cli.omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig
 from ..utils.enums import (
@@ -249,7 +249,7 @@ def download(
         if geefetch_debug():
             max_workers = 1
             ee_project_ids = ee_project_ids[0:1]
-            process_pool_executor: type[Executor] = SequentialProcessPoolExecutor
+            process_pool_executor: type[Executor] = SequentialExecutor
         else:
             process_pool_executor = ProcessPoolExecutor
 
@@ -300,6 +300,7 @@ def download(
                     )
                     futures.append(future)
                 n_failures = 0
+                first_err = None
                 try:
                     for future in as_completed(futures):
                         try:
@@ -307,7 +308,7 @@ def download(
                         except Exception as e:
                             n_failures += 1
                             log.error(f"Download error: {e}")
-                            raise
+                            first_err = e if first_err is None else first_err
                         finally:
                             progress.update(overall_task, advance=1)
                 except KeyboardInterrupt:
@@ -317,8 +318,8 @@ def download(
                         "Please wait while current download finish (up to a few minutes)."
                     )
                     raise
-                if n_failures > 0:
-                    raise DownloadError(f"Failed to download {n_failures} tiles.")
+                if first_err is not None:
+                    raise DownloadError(f"Failed to download {n_failures} tiles.") from first_err
     if not as_time_series and satellite.is_raster:
         _create_vrts(tracker)
     if not as_time_series and satellite.is_vector and "format" in satellite_download_kwargs:

@@ -10,7 +10,7 @@ _P = ParamSpec("_P")
 global_console_lock = Lock()
 
 
-class SequentialProcessPoolExecutor(Executor):
+class SequentialExecutor(Executor):
     """A fake process pool that runs tasks sequentially.
 
     Behaves like ProcessPoolExecutor for testing or debugging, but
