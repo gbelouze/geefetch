@@ -33,63 +33,56 @@ Example
 """
 
 import logging
-import os
 import threading
 import time
+from logging.handlers import QueueHandler
 from multiprocessing.queues import Queue
-from typing import TYPE_CHECKING, TypeAlias
-
-from geefetch.utils.multiprocessing import global_console_lock
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    LogQueue: TypeAlias = Queue[tuple[int, logging.LogRecord]]  # pid, record
+    LogQueue = Queue[logging.LogRecord]
 else:
-    LogQueue: TypeAlias = Queue
+    LogQueue = Queue
 
-# Global queue (set by init in child processes)
 log_queue: LogQueue | None = None
 
 
-class QueueLogger(logging.Logger):
+class PicklableQueueHandler(QueueHandler):
     """
-    A Logger subclass that forwards log messages to a multiprocessing queue
-    if one is configured, otherwise falls back to normal logging.
-
-    Intended for multiprocessing use: children push logs into the queue,
-    the parent consumes and replays them.
+    A QueueHandler that prepares records for multiprocessing by
+    stringifying exceptions so they can be pickled.
     """
 
-    def __init__(self, name):
-        super().__init__(name)
+    def prepare(self, record: logging.LogRecord) -> logging.LogRecord:
+        record = super().prepare(record)
 
-    def handle(self, record: logging.LogRecord) -> None:
-        if log_queue is not None:
-            # Pre-format exception info so it's pickle-safe
-            if record.exc_info:
-                formatter = logging.Formatter()
-                record.exc_text = formatter.formatException(record.exc_info)
-                record.exc_info = None
-            log_queue.put((os.getpid(), record))
-        else:
-            super().handle(record)
+        if record.exc_info:
+            # This turns the traceback object into a string and
+            # stores it in record.exc_text
+            record.exc_text = logging.Formatter().formatException(record.exc_info)
+            record.exc_info = None  # Clear the unpicklable traceback
+
+        return record
 
 
 def init_log_queue_for_children(queue: LogQueue) -> None:
-    """
-    Multiprocessing initializer: configure all future loggers to use QueueLogger
-    and set the global log_queue for forwarding.
-    """
-    global log_queue
-    log_queue = queue
     from .progress import geefetch_debug
 
+    # Clear any existing handlers to prevent duplicate output in the child
+    root = logging.getLogger()
+    for h in root.handlers[:]:
+        root.removeHandler(h)
+
     if not geefetch_debug():
-        logging.setLoggerClass(QueueLogger)  # patch the logger class
+        # Add the PicklableQueueHandler to the root
+        # This catches ALL logs from ALL modules and sends them to the queue
+        handler = PicklableQueueHandler(queue)
+        root.addHandler(handler)
+        root.setLevel(logging.INFO)
 
-        # make sure messages are allowed to go through the logging queue,
-        # even though they may be filtered out in the main process
+        # Ensure geefetch logs are not filtered too early
         logging.getLogger("geefetch").setLevel(logging.DEBUG)
-
+        logging.getLogger("geefetch").propagate = True
     else:
         from .log import setup
 
@@ -134,9 +127,8 @@ class LogQueueConsumer:
     def _drain(self) -> None:
         while not self.queue.empty():
             try:
-                pid, record = self.queue.get_nowait()
-                record.msg = f"[PID={pid}] {record.msg}"
-                with global_console_lock:
-                    logging.getLogger(record.name).handle(record)
+                record = self.queue.get_nowait()
+                record.msg = f"[PID={record.process}] {record.msg}"
+                logging.getLogger(record.name).handle(record)
             except Exception:
                 break
