@@ -40,6 +40,10 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 - GEDI is less agressively filtered [a770420](https://github.com/gbelouze/geefetch/commit/a77042096442efc80b94d42c490318343c7146a5)
 - Change Sentinel-2 normalization range [6a2685a](https://github.com/gbelouze/geefetch/commit/6a2685a3b762d7fcfb1931b2dc3e267baa98838b)
 
+### Fixed
+
+- Palsar selected bands was ignored [249cd2d](https://github.com/gbelouze/geefetch/commit/249cd2de80ed4114b2b42fa6fd2812eb35e7b863)
+
 ## [0.5.3](https://github.com/gbelouze/geefetch/compare/v0.5.3...v0.5.2) (2025-10-10)
 
 ### Added
