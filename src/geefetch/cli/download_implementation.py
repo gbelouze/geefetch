@@ -23,7 +23,6 @@ from ..utils.spectral_indices import (
     S2_MAPPING,
     load_spectral_indices_from_conf,
 )
-from .omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig, load
 from .omegaconfig import (
     FileNamingConfig,
     SatelliteDefaultConfig,
@@ -43,6 +42,22 @@ COUNTRY_BORDERS_URL = (
 def load_aoi_bboxes(
     config: SatelliteDefaultConfig,
 ) -> GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]:
+    """Loads from the satellite configurations the bounding box/boxes that are defined
+    by the SpatialAOIConfig.
+
+    Parameters
+    ----------
+    config : SatelliteDefaultConfig
+        Configuration to read the spatial config from.
+
+    Returns
+    -------
+    GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]
+        GeoBoundingBox : If the aoi is defined by a single bounding box
+        If the aoi is a geofile that contains several polygons of intrest:
+            list[GeoBoundingBox] : If no tile naming is configured.
+            dict[GeoBoundingBox, dict[str, Any]] : if tile naming is configured.
+    """
     if config.aoi.spatial.polygons:
         bboxes = config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape)
         if config.file_naming_config:
@@ -299,11 +314,16 @@ def download_s2(config_path: Path) -> None:
             "Sentinel-2 is not configured. "
             "Pass `s2: {}` in the config file to use `satellite_default`."
         )
-    if config.s2.selected_bands is None:
-        config.s2.selected_bands = satellites.S2().default_selected_bands
     spectral_indices = load_spectral_indices_from_conf(config=config.s2, mapping=S2_MAPPING)
-    bounds = load_aoi_bboxes(config.s2)
 
+    if (
+        (config.s2.selected_bands is None)
+        and (config.s2.add_cloud_mask is False)
+        and (spectral_indices is None)
+    ):
+        config.s2.selected_bands = satellites.S2().default_selected_bands
+
+    bounds = load_aoi_bboxes(config.s2)
     if config.s2.file_naming_config is None:
         config.s2.file_naming_config = FileNamingConfig()
 

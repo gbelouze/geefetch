@@ -104,7 +104,7 @@ class SpatialAOIConfig:
             crs=CRS.from_epsg(self.epsg),
         )
 
-    def as_bboxes(self, scale: int, tile_shape: int) -> list[GeoBoundingBox]:
+    def as_bboxes(self, scale: int, tile_shape: int | None) -> list[GeoBoundingBox]:
         try:
             gdf: gpd.GeoDataFrame = self.polygon_gdf
         except Exception as e:
@@ -118,14 +118,16 @@ class SpatialAOIConfig:
 
             left = np.floor(left / scale) * scale
             bottom = np.floor(bottom / scale) * scale
-
-            right = left + tile_shape * scale
-            top = bottom + tile_shape * scale
+            if tile_shape:
+                right = left + tile_shape * scale
+                top = bottom + tile_shape * scale
+            else:
+                right = np.floor(right / scale) * scale
+                top = np.floor(top / scale) * scale
 
             return left, bottom, right, top
 
         snapped = np.apply_along_axis(snap, 1, gdf.bounds.to_numpy())
-
         return [
             GeoBoundingBox(left, bottom, right, top, CRS.from_epsg(self.epsg))
             for left, bottom, right, top in snapped
@@ -218,6 +220,22 @@ class FileNamingConfig:
     def get_naming_dict(
         self, bboxes: list[GeoBoundingBox], gdf: gpd.GeoDataFrame
     ) -> dict[GeoBoundingBox, dict[str, Any]]:
+        """
+
+        Parameters
+        ----------
+        bboxes : list[GeoBoundingBox]
+        gdf : gpd.GeoDataFrame
+        Returns
+        -------
+        dict[GeoBoundingBox, dict[str, Any]]
+        """
+        # TODO: fix naming config without tile naming as it breaks geofile loading
+        # TODO: Fix the fact that if the gdf or list of bboxes
+        # change in order the dictionary won't properly match stuff
+        # This function could actually be merged with the spatial AOI
+        # to have the naming_properties extracted with the GEOBounding
+        # boxes row per row, that way there is no risque to mismatch bounding boxes and gdf rows
         parametrized_string = (self.tile_dir_format or "") + (self.tile_stem_format or "")
         naming_properties = list(
             {var for _, var, _, _ in Formatter().parse(parametrized_string) if var}
@@ -236,8 +254,8 @@ class SatelliteDefaultConfig:
         The temporal/spatial Area of Interest
     gee : GEEConfig
         Google Earth Engine specific configurations
-    tile_shape : int
-        The pixel side length for downloaded images. Defaults to 5000 pixels.
+    tile_shape : int | None
+        The pixel side length for downloaded images. Defaults to 500 pixels.
     resolution : int
         The resolution for downloaded images, in meters
     dtype : DType
@@ -263,7 +281,7 @@ class SatelliteDefaultConfig:
 
     aoi: AOIConfig
     gee: GEEConfig
-    tile_shape: int = 5_000
+    tile_shape: int | None = 5_00
     resolution: int = 10
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
@@ -396,6 +414,7 @@ class S2Config(SatelliteDefaultConfig):
     cloudless_portion: int = 40
     cloud_prb_threshold: int = 40
     n_least_cloudy_monthly: int | None = None
+    # TODO Make add_cloud_mask a tuple with boolean and mask threshold
     add_cloud_mask: bool = False
 
 

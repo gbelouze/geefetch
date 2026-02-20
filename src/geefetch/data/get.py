@@ -122,10 +122,14 @@ def download_chip(
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = list(selected_bands) if selected_bands is not None else satellite.default_selected_bands
+    bands = []
     spectra_indices: list[SpectralIndex] | None = data_get_kwargs.get("spectral_indices")
+    if selected_bands:
+        bands += selected_bands
     if spectra_indices:
         bands += [index.name for index in spectra_indices]
+    if not bands:
+        bands = satellite.default_selected_bands
     if out.exists():
         log.debug(f"Found feature chip [cyan]{out}[/]")
         if not geofile_is_clean(out):
@@ -172,7 +176,7 @@ def download(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
@@ -191,7 +195,7 @@ def download(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
     satellite : SatelliteABC
@@ -208,7 +212,7 @@ def download(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -241,7 +245,9 @@ def download(
     tracker = TileTracker(satellite, data_dir, file_naming_config)
     with default_bar() as progress:
         naming_format_kwargs_list: list[dict[str, Any]] = [{}]
-        if not (isinstance(bbox, list | dict)):
+        # TODO Have bbox either be a bbox of a list of bboxes and
+        # have the naming config passed with them as tuples or somehting
+        if isinstance(bbox, GeoBoundingBox) and (tile_shape is not None):
             tiles = list(
                 tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
             )
@@ -382,7 +388,7 @@ def download_gedi_l2a_raster(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -412,7 +418,7 @@ def download_gedi_l2a_raster(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -455,7 +461,7 @@ def download_gedi_l2a_vector(
     file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     resolution: int = 10,
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
@@ -483,7 +489,7 @@ def download_gedi_l2a_vector(
     crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
@@ -518,7 +524,7 @@ def download_gedi_l2b_vector(
     file_naming_config: FileNamingConfig,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     resolution: int = 10,
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
@@ -546,7 +552,7 @@ def download_gedi_l2b_vector(
     crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
@@ -582,7 +588,7 @@ def download_s1(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -618,7 +624,7 @@ def download_s1(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -698,7 +704,7 @@ def download_s2(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -735,7 +741,7 @@ def download_s2(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -768,7 +774,7 @@ def download_s2(
         List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
     if add_cloud_mask:
-        selected_bands = (selected_bands or S2().default_selected_bands) + ["cloud_shadow_mask"]
+        selected_bands = (selected_bands or []) + ["cloud_shadow_mask"]
 
     download(
         data_dir=data_dir,
@@ -812,7 +818,7 @@ def download_dynworld(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -844,7 +850,7 @@ def download_dynworld(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -899,7 +905,7 @@ def download_landsat8(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -932,7 +938,7 @@ def download_landsat8(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 30.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -990,7 +996,7 @@ def download_palsar2(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -1025,7 +1031,7 @@ def download_palsar2(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 30.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -1088,7 +1094,7 @@ def download_nasadem(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -1116,7 +1122,7 @@ def download_nasadem(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -1172,7 +1178,7 @@ def download_custom(
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -1205,7 +1211,7 @@ def download_custom(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.

@@ -1,8 +1,7 @@
 import logging
-from typing import Any
+from typing import Any, cast
 
 from ee.ee_list import List
-from ee.ee_string import String
 from ee.element import Element
 from ee.filter import Filter
 from ee.geometry import Geometry
@@ -113,6 +112,55 @@ class S2(SatelliteABC):
         return im.set("contains_bounds", contains)
 
     @classmethod
+    def homogenise_band_order(cls, im_col: ImageCollection) -> ImageCollection:
+        """Homogenises the band ordering across an image collection.
+
+        Parameters
+        ----------
+        im_col : ImageCollection
+            The image collection to homogenise
+
+        Returns
+        -------
+        ImageCollection
+            The image collection with a homogenised band ordering.
+
+        Discussion
+        ----------
+        I was getting issues when downloading early S2 images where mappings
+        failed due to unhomogenised band order accross image collections.
+        """
+        band_order = [
+            "B1",
+            "B2",
+            "B3",
+            "B4",
+            "B5",
+            "B6",
+            "B7",
+            "B8",
+            "B8A",
+            "B9",
+            "B11",
+            "B12",
+            "AOT",
+            "WVP",
+            "SCL",
+            "TCI_R",
+            "TCI_G",
+            "TCI_B",
+            "MSK_CLDPRB",
+            "MSK_SNWPRB",
+            "QA10",
+            "QA20",
+            "QA60",
+            "MSK_CLASSI_OPAQUE",
+            "MSK_CLASSI_CIRRUS",
+            "MSK_CLASSI_SNOW_ICE",
+        ]
+        return cast(ImageCollection, im_col.map(lambda img: img.select(band_order)))
+
+    @classmethod
     def get_monthly_n_least_cloudy_col(
         cls, bounds: Geometry, ee_aoi: Geometry, start_date: str, end_date: str, n: int
     ) -> ImageCollection:
@@ -126,13 +174,8 @@ class S2(SatelliteABC):
 
         months = List.sequence(1, 12)
 
-        def add_tile_id(img):
-            # extract the tile code from system:index (last 6 chars: _T31UGV)
-            tile_id = String(img.get("system:index")).slice(-6)
-            return img.set("tile_id", tile_id)
-
         def by_month(m):
-            monthly_imgs = s2_col.filter(Filter.calendarRange(m, m, "month")).map(add_tile_id)
+            monthly_imgs = s2_col.filter(Filter.calendarRange(m, m, "month"))
             # sort by cloudiness and take top-n
             return monthly_imgs.sort("CLOUDY_PIXEL_PERCENTAGE").toList(n)
 
@@ -192,7 +235,7 @@ class S2(SatelliteABC):
     @staticmethod
     def get_cloud_mask(s2_col: ImageCollection) -> ImageCollection:
         def add_cloud_mask_band(img: Image) -> Image:
-            cloud_mask = Image(img.select("cs").lte(0.6).rename("cloud_shadow_mask").uint8())
+            cloud_mask = Image(img.select("cs").lte(0.4).rename("cloud_shadow_mask").uint8())
             return img.addBands(cloud_mask)
 
         s2_with_cloud_mask: ImageCollection = s2_col.linkCollection(
@@ -254,8 +297,9 @@ class S2(SatelliteABC):
 
         if self.add_cloud_mask:
             s2_col = self.get_cloud_mask(s2_col)
+        s2_col = self.homogenise_band_order(s2_col)
         for spectral_index in self.spectral_indices or []:
-            s2_col = spectral_index.add_spectral_index_band_to_image_collection(s2_cloudless)
+            s2_col = spectral_index.add_spectral_index_band_to_image_collection(s2_col)
         return s2_col
 
     def get_time_series(
