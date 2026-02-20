@@ -1,7 +1,7 @@
 import logging
 import multiprocessing as mp
 import time
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import Executor, ProcessPoolExecutor, as_completed
 from os import getpid
 from pathlib import Path
 from typing import Any, cast
@@ -10,6 +10,8 @@ import shapely
 from geobbox import GeoBoundingBox
 from rasterio.crs import CRS
 from retry import retry
+
+from geefetch.utils.multiprocessing import SequentialExecutor
 
 from ..cli.omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig
 from ..utils.enums import (
@@ -26,7 +28,7 @@ from ..utils.log_multiprocessing import (
     LogQueueConsumer,
     init_log_queue_for_children,
 )
-from ..utils.progress import default_bar
+from ..utils.progress import default_bar, geefetch_debug
 from ..utils.progress_multiprocessing import (
     ProgressProtocol,
     ProgressQueue,
@@ -146,7 +148,7 @@ def download_chip(
         )
         log.debug(f"Succesfully downloaded chip to [cyan]{out}[/]")
     except Exception as e:
-        log.error(f"Failed to download chip to {out}: {e}")
+        log.exception(f"Failed to download chip to {out}: {e}")
         raise DownloadError from e
     if satellite.is_raster and check_clean and not tif_is_clean(out):
         log.error(f"Tif file {out} contains missing data.")
@@ -244,6 +246,13 @@ def download(
         ee_project_ids = [ee_project_ids] if isinstance(ee_project_ids, str) else ee_project_ids
         max_workers = len(ee_project_ids)
 
+        if geefetch_debug():
+            max_workers = 1
+            ee_project_ids = ee_project_ids[0:1]
+            process_pool_executor: type[Executor] = SequentialExecutor
+        else:
+            process_pool_executor = ProcessPoolExecutor
+
         with mp.Manager() as manager:
             log_queue = cast(LogQueue, manager.Queue())
             progress_queue = cast(ProgressQueue, manager.Queue())
@@ -251,7 +260,7 @@ def download(
             with (
                 LogQueueConsumer(log_queue),
                 ProgressQueueConsumer(progress_queue, progress),
-                ProcessPoolExecutor(
+                process_pool_executor(  # type: ignore[call-arg]
                     max_workers=max_workers,
                     initializer=init_log_queue_for_children,
                     initargs=(log_queue,),
@@ -291,6 +300,7 @@ def download(
                     )
                     futures.append(future)
                 n_failures = 0
+                first_err = None
                 try:
                     for future in as_completed(futures):
                         try:
@@ -298,7 +308,7 @@ def download(
                         except Exception as e:
                             n_failures += 1
                             log.error(f"Download error: {e}")
-                            raise
+                            first_err = e if first_err is None else first_err
                         finally:
                             progress.update(overall_task, advance=1)
                 except KeyboardInterrupt:
@@ -308,8 +318,8 @@ def download(
                         "Please wait while current download finish (up to a few minutes)."
                     )
                     raise
-                if n_failures > 0:
-                    raise DownloadError(f"Failed to download {n_failures} tiles.")
+                if first_err is not None:
+                    raise DownloadError(f"Failed to download {n_failures} tiles.") from first_err
     if not as_time_series and satellite.is_raster:
         _create_vrts(tracker)
     if not as_time_series and satellite.is_vector and "format" in satellite_download_kwargs:

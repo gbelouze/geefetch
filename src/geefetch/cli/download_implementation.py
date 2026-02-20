@@ -62,7 +62,7 @@ def save_config(
     config_path = Path(dir / "config.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
 
-    del config["gee"]["ee_project_ids"]
+    del config["gee"]
     config["geefetch_version"] = geefetch.__version__
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
