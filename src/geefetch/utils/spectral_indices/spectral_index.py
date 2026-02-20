@@ -7,7 +7,7 @@ from ee.image import Image
 from ee.imagecollection import ImageCollection
 
 from ...cli.omegaconfig import SatelliteDefaultConfig
-from .enums import IndeciesExpressions
+from .enums import IndexExpression
 
 log = logging.getLogger(__name__)
 
@@ -91,20 +91,33 @@ class SpectralIndex:
             log.error(msg)
             raise ValueError(msg)
 
-        return cast(
-            ImageCollection, image_collection.map(lambda img: self._add_index_to_image(img))
-        )
+        return cast(ImageCollection, image_collection.map(self._add_index_to_image))
 
 
 def load_spectral_indices_from_conf(
     config: SatelliteDefaultConfig, mapping: dict[str, str]
 ) -> list[SpectralIndex] | None:
-    """Reads through a given configuration object and produces a list of SpectralIndex to be"""
+    """Reads through a satellite configuration and produces a list of requested spectral indices.
+
+    Parameters
+    ----------
+    config : SatelliteDefaultConfig
+        Some satellite configuration.
+    mapping : dict[str, str]
+        Mapping of spectral expression to band name. This explains which band is red, which band
+        is NIR, etc.
+
+    Returns
+    -------
+    list[SpectralIndex] | None
+        The requested spectral indices, or None if None are configured.
+
+    """
     spectral_indices: list[SpectralIndex] | None = None
     if config.spectral_indices:
         spectral_indices = []
         for spectral_index_name in config.spectral_indices:
-            if spectral_index_name not in IndeciesExpressions._member_names_:
+            if spectral_index_name not in IndexExpression._member_names_:
                 msg = f"""
                     {spectral_index_name} does not figure in the list of GeeFetch
                     implemented spectral indices.\n
@@ -113,7 +126,7 @@ def load_spectral_indices_from_conf(
                 log.error(msg)
                 raise ValueError(msg)
             else:
-                spectral_index = IndeciesExpressions[spectral_index_name]
+                spectral_index = IndexExpression[spectral_index_name]
                 expression = spectral_index.value.get("formula", "")
                 expression_bands = [band for band in EXPRESSION_BANDS if band in expression]
 

@@ -61,7 +61,7 @@ FDELTA = 0.581
 EPSILON = 1
 
 
-class IndeciesExpressions(Enum):
+class IndexExpression(Enum):
     BNDVI = {
         "long_name": "Blue Normalized Difference Vegetation Index",
         "formula": "(N - B)/(N + B)",
