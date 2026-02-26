@@ -289,7 +289,7 @@ satellite_default:
     ee_project_ids: ["your-gee-id"]
   tile_size: 2000
   resolution: 10
-s2: # more scrict cloud filtering than the defaults
+s2:
   spectral_indices:
     - NDVI
     - NBR
