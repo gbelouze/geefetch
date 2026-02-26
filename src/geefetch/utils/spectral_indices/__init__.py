@@ -1,4 +1,4 @@
-from .enums import LANDSAT8_MAPPING, PALSAR2_MAPPING, S1_MAPPING, S2_MAPPING, IndexExpression
+from .enums import LANDSAT8_MAPPING, PALSAR2_MAPPING, S1_MAPPING, S2_MAPPING
 from .spectral_index import SpectralIndex, load_spectral_indices_from_conf
 
 __all__ = [
@@ -8,5 +8,4 @@ __all__ = [
     "LANDSAT8_MAPPING",
     "SpectralIndex",
     "load_spectral_indices_from_conf",
-    "IndexExpression",
 ]

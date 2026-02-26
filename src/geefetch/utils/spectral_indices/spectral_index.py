@@ -7,7 +7,7 @@ from ee.image import Image
 from ee.imagecollection import ImageCollection
 
 from ...cli.omegaconfig import SatelliteDefaultConfig
-from .enums import IndexExpression
+from .enums import ALL_SPECTRAL_INDICES
 
 log = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class SpectralIndex:
         def _add() -> Image:
             bands = {key: image.select(value) for key, value in self.band_mapping.items()}
             out = image.expression(expression=self.expression, map_=bands).rename(self.name)
-            if self.expression_denominator:
+            if self.expression_denominator is not None:
                 denominator_mask = image.expression(
                     expression=self.expression_denominator, map_=bands
                 )
@@ -117,7 +117,7 @@ def load_spectral_indices_from_conf(
     if config.spectral_indices:
         spectral_indices = []
         for spectral_index_name in config.spectral_indices:
-            if spectral_index_name not in IndexExpression._member_names_:
+            if spectral_index_name not in ALL_SPECTRAL_INDICES:
                 msg = f"""
                     {spectral_index_name} does not figure in the list of GeeFetch
                     implemented spectral indices.\n
@@ -125,32 +125,30 @@ def load_spectral_indices_from_conf(
                 """
                 log.error(msg)
                 raise ValueError(msg)
+
+            spectral_index = ALL_SPECTRAL_INDICES[spectral_index_name]
+            expression = spectral_index["formula"]
+
+            expression_bands = [band for band in EXPRESSION_BANDS if band in expression]
+            missing_bands_from_mapping = [band for band in expression_bands if band not in mapping]
+
+            if missing_bands_from_mapping:
+                # Do not initialize the SpectralIndex if any of the bands used
+                # in the expression are missing from the sensor band mapping.
+                msg = f"""
+                    {spectral_index_name} won't be calculated as the following bands do not
+                    figure in the sensor band mapping: {missing_bands_from_mapping}.
+                """
+                log.warning(msg)
+
             else:
-                spectral_index = IndexExpression[spectral_index_name]
-                expression = spectral_index.value.get("formula", "")
-                expression_bands = [band for band in EXPRESSION_BANDS if band in expression]
-
-                missing_bands_from_mapping = [
-                    band for band in expression_bands if band not in mapping
-                ]
-
-                if missing_bands_from_mapping:
-                    # Do not initialize the SpectralIndex if any of the bands used
-                    # in the expression are missing from the sensor band mapping.
-                    msg = f"""
-                        {spectral_index_name} won't be calculated as the following bands do not
-                        figure in the sensor band mapping: {missing_bands_from_mapping}.
-                    """
-                    log.warning(msg)
-
-                else:
-                    spectral_indices.append(
-                        SpectralIndex(
-                            name=spectral_index.name,
-                            expression=expression,
-                            expression_bands=expression_bands,
-                            expression_denominator=spectral_index.value.get("denominator"),
-                            band_mapping=mapping,
-                        )
+                spectral_indices.append(
+                    SpectralIndex(
+                        name=spectral_index_name,
+                        expression=expression,
+                        expression_bands=expression_bands,
+                        expression_denominator=spectral_index["denominator"],
+                        band_mapping=mapping,
                     )
+                )
     return spectral_indices
