@@ -59,6 +59,8 @@ def mask_clouds_and_saturation(im: Image) -> Image:
     # Apply the scaling factors to the appropriate bands
     # opticalBands = im.select('SR_B.').multiply(0.0000275).add(-0.2)
     # thermalBands = im.select('ST_B.*').multiply(0.00341802).add(149.0)
+    # im = im.addBands(opticalBands, overwrite=True)
+    # im = im.addBands(thermalBands, overwrite=True)
 
     # Replace the original bands with the scaled ones and apply the masks
     return im.updateMask(qaMask).updateMask(saturationMask)
@@ -301,7 +303,7 @@ def value(list: List, index: int) -> Number:
 
 class Landsat8(SatelliteABC):
     _bands = [
-        "SR_B1",
+        # "SR_B1",
         "SR_B2",
         "SR_B3",
         "SR_B4",
@@ -327,7 +329,8 @@ class Landsat8(SatelliteABC):
 
     @property
     def pixel_range(self):
-        return 0, 65455
+        # empirically decent bounds for SR_B2 to SR_B5
+        return 5000, 15000
 
     @property
     def resolution(self):
