@@ -1,0 +1,25 @@
+data_dir: null
+satellite_default:
+  resolution: 10
+  tile_size: 6000
+  dtype: UInt16
+  composite_method: MEDIAN
+  aoi:
+    spatial:
+      left: 500_000
+      right: 600_000
+      bottom: 6_500_000
+      top: 6_600_000
+      epsg: 2154
+    temporal:
+      start_date: 2020-01-01
+      end_date: 2020-12-31
+    country: France
+  gee:
+    ee_project_id: null
+    max_tile_size: 3 # in MB
+gedi:
+  format: PARQUET
+s1:
+  orbit: BOTH
+
