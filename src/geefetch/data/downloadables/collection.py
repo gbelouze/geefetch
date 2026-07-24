@@ -4,7 +4,6 @@ similar to what `geedim` provides for Image and ImageCollection."""
 import logging
 import tempfile
 from concurrent.futures import (
-    Executor,
     ThreadPoolExecutor,
     as_completed,
 )
@@ -113,9 +112,10 @@ class DownloadableGEECollection(DownloadableABC):
         max_workers = 25
 
         downloaded_paths = []
+        executor_cls: type[SequentialExecutor] | type[ThreadPoolExecutor]
         if geefetch_debug():
             max_workers = 1
-            executor_cls: type[Executor] = SequentialExecutor
+            executor_cls = SequentialExecutor
         else:
             executor_cls = ThreadPoolExecutor
         with (

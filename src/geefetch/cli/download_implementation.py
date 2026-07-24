@@ -62,7 +62,7 @@ def load_aoi_bboxes(
         bboxes = config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape)
         if config.file_naming_config:
             return config.file_naming_config.get_naming_dict(
-                bboxes=config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape),
+                bboxes=bboxes,
                 gdf=config.aoi.spatial.polygon_gdf,
             )
         else:
