@@ -16,6 +16,11 @@ def raw_paris_config() -> DictConfig | ListConfig:
     return OmegaConf.load(TESTS_DIR / "data" / "paris_config.yaml")
 
 
+@pytest.fixture
+def paris_geo_file() -> str:
+    return TESTS_DIR / "data" / "paris.gpkg"
+
+
 @pytest.fixture(scope="session")
 def gee_project_id() -> str:
     match os.getenv(GEE_PROJECT_ID_ENV_NAME):

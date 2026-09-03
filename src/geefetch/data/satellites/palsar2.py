@@ -10,6 +10,7 @@ from shapely import Polygon
 
 from ...utils.enums import CompositeMethod, DType, P2Orbit, ResamplingMethod
 from ...utils.rasterio import WGS84
+from ...utils.spectral_indices import SpectralIndex
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -30,6 +31,7 @@ class Palsar2(SatelliteABC):
         "HH",
         "HV",
     ]
+    spectral_indices: list[SpectralIndex] | None = None
 
     @property
     def bands(self) -> list[str]:
@@ -50,6 +52,10 @@ class Palsar2(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
+
+    @property
+    def is_preprocessed(self):
+        return self.spectral_indices is not None
 
     def get_col(
         self,
@@ -101,6 +107,8 @@ class Palsar2(SatelliteABC):
             .select(selected_bands)
         )
 
+        for index in self.spectral_indices or []:
+            palsar2_col = index.add_spectral_index_band_to_image_collection(palsar2_col)
         return palsar2_col  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -114,6 +122,7 @@ class Palsar2(SatelliteABC):
         resolution: float = 25,
         refined_lee: bool = True,
         selected_bands: list[str] | None = None,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Palsar-2 images.
@@ -138,6 +147,9 @@ class Palsar2(SatelliteABC):
             Whether to apply the Refined Lee filter to reduce speckle noise.
         selected_bands : list[str] | None
             The bands to be downloaded.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -147,27 +159,38 @@ class Palsar2(SatelliteABC):
             A Palsar-2 time series collection of the specified AOI and time range.
         """
         p2_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
+        for key in kwargs:
+            log.warning(f"Argument {key} is ignored.")
+        self.spectral_indices = spectral_indices
+        p2_col = self.get_col(aoi, start_date, end_date, orbit)
 
         # get the info of the collection
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Palsar-2 image.Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
         images = {}
         for feature in info["features"]:  # type: ignore[index]
-            id_ = feature["id"]
-            footprint = PatchedBaseImage.from_id(id_).footprint
+            sys_index = feature.get("properties").get("system:index")
+            if self.is_preprocessed:
+                im = p2_col.filter(Filter.eq("system:index", sys_index)).first()
+                footprint = PatchedBaseImage.from_id(
+                    f"JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/{sys_index}"
+                ).footprint
+            else:
+                id_ = feature["id"]
+                footprint = PatchedBaseImage.from_id(id_).footprint
+                im = Image(id_)
             if footprint is None:
                 raise ValueError(
                     "Ran into image with no footprint. Did you forget to `.clip(aoi)` ?"
                 )
             if Polygon(footprint["coordinates"][0]).contains(aoi.to_shapely_polygon()):
-                im = Image(id_)
                 im = self.before_composite(im, resampling, aoi, resolution, refined_lee)
                 im = self.after_composite(im, dtype)
-                images[id_.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = PatchedBaseImage(
-                    im
+                images[sys_index.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = (
+                    PatchedBaseImage(im)
                 )
         return DownloadableGeedimImageCollection(images)
 
@@ -183,6 +206,7 @@ class Palsar2(SatelliteABC):
         resolution: float = 25,
         refined_lee: bool = True,
         selected_bands: list[str] | None = None,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Palsar-2 images.
@@ -209,6 +233,9 @@ class Palsar2(SatelliteABC):
             Whether to apply the Refined Lee filter to reduce speckle noise.
         selected_bands : list[str] | None
             The bands to be downloaded.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -223,6 +250,8 @@ class Palsar2(SatelliteABC):
         bounds = aoi.transform(WGS84).to_ee_geometry()
         p2_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
 
+        self.spectral_indices = spectral_indices
+        p2_col = self.get_col(aoi, start_date, end_date, orbit)
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
         if n_images > 500:
@@ -231,7 +260,7 @@ class Palsar2(SatelliteABC):
                 "Expect slower download time."
             )
         if n_images == 0:
-            log.error(f"Found 0 Palsar-2 image." f"Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Palsar-2 image.Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
         log.debug(f"Palsar-2 mosaicking with {n_images} images.")
         p2_col = p2_col.map(

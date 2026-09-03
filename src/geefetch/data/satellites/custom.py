@@ -6,6 +6,7 @@ from ee.ee_exception import EEException
 from ee.image import Image
 from ee.imagecollection import ImageCollection
 from geobbox import GeoBoundingBox
+from shapely import Polygon
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
@@ -121,9 +122,36 @@ class CustomSatellite(SatelliteABC):
         start_date: str | None = None,
         end_date: str | None = None,
         dtype: DType = DType.Float32,
+        resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+        resolution: float = 30,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
-        raise ValueError("Time series is not implemented for custom satellite.")
+        for kwarg in kwargs:
+            log.warning(f"Argument {kwarg} is ignored.")
+
+        col = self.get_col(aoi, start_date, end_date)
+        images = {}
+        info = col.getInfo()
+        n_images = len(info["features"])  # type: ignore[index]
+        if n_images == 0:
+            log.error(f"Found 0 {self._name}." f"Check region {aoi.transform(WGS84)}.")
+            raise RuntimeError(f"Collection of 0 {self._name} image.")
+        for feature in info["features"]:  # type: ignore[index]
+            id_ = feature["id"]
+            footprint = PatchedBaseImage.from_id(id_).footprint
+            if footprint is None:
+                raise ValueError(
+                    "Ran into image with no footprint. Did you forget to `.clip(aoi)` ?"
+                )
+            if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
+                # aoi intersects im
+                im = Image(id_)
+                # resample
+                im = self.resample_reproject_clip(im, aoi, resampling, resolution)
+                # apply dtype
+                im = self.convert_dtype(im, dtype)
+                images[id_.split("/")[-1]] = PatchedBaseImage(im)
+        return DownloadableGeedimImageCollection(images)
 
     def get(
         self,

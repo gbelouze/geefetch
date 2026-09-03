@@ -60,7 +60,7 @@ satellite_default:
       end_date: "2023-06-30"
   gee:
     ee_project_ids: ["your-gee-id"]
-  tile_size: 2000
+  tile_shape: 2000
   resolution: 10
 s1:
   orbit: ASCENDING
@@ -73,6 +73,10 @@ s1:
     flattening_model: "DIRECT"
     layover_shadow_buffer: 0
     dem: "USGS/SRTMGL1_003"
+  spectral_indices:
+  - VHVVR
+  - VHVVP
+  - NDPolI
 ```
 
 then download with

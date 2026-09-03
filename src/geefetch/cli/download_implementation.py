@@ -6,8 +6,8 @@ import geopandas
 import omegaconf
 import pooch
 import shapely
+from geobbox import GeoBoundingBox
 from omegaconf import OmegaConf
-from rasterio.crs import CRS
 from thefuzz import process
 
 import geefetch
@@ -15,7 +15,22 @@ import geefetch.data.satellites as satellites
 from geefetch import data
 from geefetch.utils.config import git_style_diff
 
-from .omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig, load
+from ..utils.spectral_indices import (
+    LANDSAT8_MAPPING,
+    PALSAR2_MAPPING,
+    S1_MAPPING,
+    S2_MAPPING,
+    load_spectral_indices_from_conf,
+)
+from .omegaconfig import (
+    BboxAOIConfig,
+    FileNamingConfig,
+    GeofileAOIConfig,
+    SatelliteDefaultConfig,
+    SpeckleFilterConfig,
+    TerrainNormalizationConfig,
+    load,
+)
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +38,56 @@ COUNTRY_BORDERS_URL = (
     "https://public.opendatasoft.com/api/explore/v2.1/catalog/datasets/"
     "world-administrative-boundaries/exports/geojson"
 )
+
+
+def get_file_naming_config(config: SatelliteDefaultConfig) -> FileNamingConfig | None:
+    """Return the file naming config for `config`, or None if there is none.
+
+    File naming lives on the spatial AOI and only makes sense for a `GeofileAOIConfig`
+    (its columns feed the name templates). For a bbox AOI there is nothing to name
+    from, so this returns None and `geefetch.data.get` falls back to its default layout.
+    """
+    spatial = config.aoi.spatial
+    if isinstance(spatial, GeofileAOIConfig):
+        return spatial.file_naming_config
+    return None
+
+
+def load_aoi_bboxes(
+    config: SatelliteDefaultConfig,
+) -> GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]:
+    """Loads from the satellite configurations the bounding box/boxes that are defined
+    by the SpatialAOIConfig.
+
+    Parameters
+    ----------
+    config : SatelliteDefaultConfig
+        Configuration to read the spatial config from.
+
+    Returns
+    -------
+    GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]
+        GeoBoundingBox : If the aoi is defined by a single bounding box
+        If the aoi is a geofile that contains several polygons of intrest:
+            list[GeoBoundingBox] : If no tile naming is configured.
+            dict[GeoBoundingBox, dict[str, Any]] : if tile naming is configured.
+    """
+    match config.aoi.spatial:
+        case BboxAOIConfig():
+            return config.aoi.spatial.as_bbox()
+        case GeofileAOIConfig():
+            bboxes = config.aoi.spatial.as_bboxes(config.resolution)
+            if config.aoi.spatial.file_naming_config:
+                return config.aoi.spatial.file_naming_config.get_naming_dict(
+                    bboxes=bboxes,
+                    gdf=config.aoi.spatial.gdf,
+                )
+            return bboxes
+        case _:
+            raise TypeError(
+                "config.aoi.spatiol should be one of `BboxAOIConfig`, `GeofileAOIConfig`. "
+                f"Found {type(config.aoi.spatial)}."
+            )
 
 
 def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.MultiPolygon | None:
@@ -61,6 +126,7 @@ def save_config(
     dir.mkdir(exist_ok=True, parents=True)
     config_path = Path(dir / "config.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
+    assert isinstance(config, dict)
 
     del config["gee"]
     config["geefetch_version"] = geefetch.__version__
@@ -89,7 +155,8 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             """
         )
     data_dir = Path(config.data_dir)
-    bounds = config.gedi_l2a.aoi.spatial.as_bbox()
+    bounds = load_aoi_bboxes(config.gedi_l2a)
+
     if vector:
         if config.gedi_l2a.selected_bands is None:
             config.gedi_l2a.selected_bands = satellites.GEDIL2Avector().default_selected_bands
@@ -105,14 +172,16 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             config.gedi_l2a.aoi.temporal.end_date
             if config.gedi_l2a.aoi.temporal is not None
             else None,
+            get_file_naming_config(config.gedi_l2a),
             config.gedi_l2a.selected_bands,
             crs=(
-                CRS.from_epsg(config.gedi_l2a.aoi.spatial.epsg)
-                if config.gedi_l2a.aoi.spatial.epsg != 4326
-                else None
+                None
+                if isinstance(config.gedi_l2a.aoi.spatial, BboxAOIConfig)
+                and config.gedi_l2a.aoi.spatial.epsg == 4326
+                else config.gedi_l2a.aoi.spatial.crs
             ),
             resolution=config.gedi_l2a.resolution,
-            tile_shape=config.gedi_l2a.tile_size,
+            tile_shape=config.gedi_l2a.tile_shape,
             filter_polygon=(
                 None
                 if config.gedi_l2a.aoi.country is None
@@ -134,15 +203,17 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             config.gedi_l2a.aoi.temporal.end_date
             if config.gedi_l2a.aoi.temporal is not None
             else None,
+            get_file_naming_config(config.gedi_l2a),
             config.gedi_l2a.selected_bands,
             crs=(
-                CRS.from_epsg(config.gedi_l2a.aoi.spatial.epsg)
-                if config.gedi_l2a.aoi.spatial.epsg != 4326
-                else None
+                None
+                if isinstance(config.gedi_l2a.aoi.spatial, BboxAOIConfig)
+                and config.gedi_l2a.aoi.spatial.epsg == 4326
+                else config.gedi_l2a.aoi.spatial.crs
             ),
             dtype=config.gedi_l2a.dtype,
             resolution=config.gedi_l2a.resolution,
-            tile_shape=config.gedi_l2a.tile_size,
+            tile_shape=config.gedi_l2a.tile_shape,
             filter_polygon=(
                 None
                 if config.gedi_l2a.aoi.country is None
@@ -162,7 +233,8 @@ def download_gedi_l2b(config_path: Path) -> None:
             """
         )
     data_dir = Path(config.data_dir)
-    bounds = config.gedi_l2b.aoi.spatial.as_bbox()
+    bounds = load_aoi_bboxes(config.gedi_l2b)
+
     if config.gedi_l2b.selected_bands is None:
         config.gedi_l2b.selected_bands = satellites.GEDIL2Bvector().default_selected_bands
     save_config(config.gedi_l2b, config.data_dir / "gedi_l2b_vector")
@@ -174,14 +246,16 @@ def download_gedi_l2b(config_path: Path) -> None:
         if config.gedi_l2b.aoi.temporal is not None
         else None,
         config.gedi_l2b.aoi.temporal.end_date if config.gedi_l2b.aoi.temporal is not None else None,
+        get_file_naming_config(config.gedi_l2b),
         config.gedi_l2b.selected_bands,
         crs=(
-            CRS.from_epsg(config.gedi_l2b.aoi.spatial.epsg)
-            if config.gedi_l2b.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(config.gedi_l2b.aoi.spatial, BboxAOIConfig)
+            and config.gedi_l2b.aoi.spatial.epsg == 4326
+            else config.gedi_l2b.aoi.spatial.crs
         ),
         resolution=config.gedi_l2b.resolution,
-        tile_shape=config.gedi_l2b.tile_size,
+        tile_shape=config.gedi_l2b.tile_shape,
         filter_polygon=(
             None
             if config.gedi_l2b.aoi.country is None
@@ -201,10 +275,12 @@ def download_s1(config_path: Path) -> None:
         )
     if config.s1.selected_bands is None:
         config.s1.selected_bands = satellites.S1().default_selected_bands
+    spectral_indices = load_spectral_indices_from_conf(config=config.s1, mapping=S1_MAPPING)
     save_config(config.s1, config.data_dir / "s1")
 
     data_dir = Path(config.data_dir)
-    bounds = config.s1.aoi.spatial.as_bbox()
+
+    bounds = load_aoi_bboxes(config.s1)
 
     assert config.s1.terrain_normalization is None or isinstance(
         config.s1.terrain_normalization, TerrainNormalizationConfig
@@ -219,16 +295,18 @@ def download_s1(config_path: Path) -> None:
         bounds,
         config.s1.aoi.temporal.start_date if config.s1.aoi.temporal is not None else None,
         config.s1.aoi.temporal.end_date if config.s1.aoi.temporal is not None else None,
+        get_file_naming_config(config.s1),
         config.s1.selected_bands,
         crs=(
-            CRS.from_epsg(config.s1.aoi.spatial.epsg)
-            if config.s1.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(config.s1.aoi.spatial, BboxAOIConfig)
+            and config.s1.aoi.spatial.epsg == 4326
+            else config.s1.aoi.spatial.crs
         ),
         composite_method=config.s1.composite_method,
         dtype=config.s1.dtype,
         resolution=config.s1.resolution,
-        tile_shape=config.s1.tile_size,
+        tile_shape=config.s1.tile_shape,
         max_tile_size=config.s1.gee.max_tile_size,
         filter_polygon=(
             None
@@ -239,6 +317,7 @@ def download_s1(config_path: Path) -> None:
         terrain_normalization_config=config.s1.terrain_normalization,
         orbit=config.s1.orbit,
         resampling=config.s1.resampling,
+        spectral_indices=spectral_indices,
     )
 
 
@@ -250,28 +329,38 @@ def download_s2(config_path: Path) -> None:
             "Sentinel-2 is not configured. "
             "Pass `s2: {}` in the config file to use `satellite_default`."
         )
-    if config.s2.selected_bands is None:
+    spectral_indices = load_spectral_indices_from_conf(config=config.s2, mapping=S2_MAPPING)
+
+    if (
+        (config.s2.selected_bands is None)
+        and (config.s2.add_cloud_mask is False)
+        and (spectral_indices is None)
+    ):
         config.s2.selected_bands = satellites.S2().default_selected_bands
+
+    bounds = load_aoi_bboxes(config.s2)
+
     save_config(config.s2, config.data_dir / "s2")
 
     data_dir = Path(config.data_dir)
-    bounds = config.s2.aoi.spatial.as_bbox()
     data.get.download_s2(
         data_dir,
         config.s2.gee.ee_project_ids,
         bounds,
         config.s2.aoi.temporal.start_date if config.s2.aoi.temporal is not None else None,
         config.s2.aoi.temporal.end_date if config.s2.aoi.temporal is not None else None,
+        get_file_naming_config(config.s2),
         config.s2.selected_bands,
         crs=(
-            CRS.from_epsg(config.s2.aoi.spatial.epsg)
-            if config.s2.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(config.s2.aoi.spatial, BboxAOIConfig)
+            and config.s2.aoi.spatial.epsg == 4326
+            else config.s2.aoi.spatial.crs
         ),
         composite_method=config.s2.composite_method,
         dtype=config.s2.dtype,
         resolution=config.s2.resolution,
-        tile_shape=config.s2.tile_size,
+        tile_shape=config.s2.tile_shape,
         max_tile_size=config.s2.gee.max_tile_size,
         filter_polygon=(
             None
@@ -280,7 +369,10 @@ def download_s2(config_path: Path) -> None:
         ),
         cloudless_portion=config.s2.cloudless_portion,
         cloud_prb_thresh=config.s2.cloud_prb_threshold,
+        n_least_cloudy_monthly=config.s2.n_least_cloudy_monthly,
+        add_cloud_mask=config.s2.add_cloud_mask,
         resampling=config.s2.resampling,
+        spectral_indices=spectral_indices,
     )
 
 
@@ -294,10 +386,12 @@ def download_dynworld(config_path: Path) -> None:
         )
     if config.dynworld.selected_bands is None:
         config.dynworld.selected_bands = satellites.DynWorld().default_selected_bands
-    save_config(config.dynworld, config.data_dir / "dyn_world")
 
     data_dir = Path(config.data_dir)
-    bounds = config.dynworld.aoi.spatial.as_bbox()
+    bounds = load_aoi_bboxes(config.dynworld)
+
+    save_config(config.dynworld, config.data_dir / "dyn_world")
+
     data.get.download_dynworld(
         data_dir,
         config.dynworld.gee.ee_project_ids,
@@ -306,16 +400,18 @@ def download_dynworld(config_path: Path) -> None:
         if config.dynworld.aoi.temporal is not None
         else None,
         config.dynworld.aoi.temporal.end_date if config.dynworld.aoi.temporal is not None else None,
+        get_file_naming_config(config.dynworld),
         config.dynworld.selected_bands,
         crs=(
-            CRS.from_epsg(config.dynworld.aoi.spatial.epsg)
-            if config.dynworld.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(config.dynworld.aoi.spatial, BboxAOIConfig)
+            and config.dynworld.aoi.spatial.epsg == 4326
+            else config.dynworld.aoi.spatial.crs
         ),
         composite_method=config.dynworld.composite_method,
         dtype=config.dynworld.dtype,
         resolution=config.dynworld.resolution,
-        tile_shape=config.dynworld.tile_size,
+        tile_shape=config.dynworld.tile_shape,
         max_tile_size=config.dynworld.gee.max_tile_size,
         filter_polygon=(
             None
@@ -336,9 +432,15 @@ def download_landsat8(config_path: Path) -> None:
         )
     if config.landsat8.selected_bands is None:
         config.landsat8.selected_bands = satellites.Landsat8().default_selected_bands
-    save_config(config.landsat8, config.data_dir / "landsat8")
+    spectral_indices = load_spectral_indices_from_conf(
+        config=config.landsat8, mapping=LANDSAT8_MAPPING
+    )
     data_dir = Path(config.data_dir)
-    bounds = config.landsat8.aoi.spatial.as_bbox()
+
+    bounds = load_aoi_bboxes(config.landsat8)
+
+    save_config(config.landsat8, config.data_dir / "landsat8")
+
     data.get.download_landsat8(
         data_dir,
         config.landsat8.gee.ee_project_ids,
@@ -347,17 +449,18 @@ def download_landsat8(config_path: Path) -> None:
         if config.landsat8.aoi.temporal is not None
         else None,
         config.landsat8.aoi.temporal.end_date if config.landsat8.aoi.temporal is not None else None,
+        get_file_naming_config(config.landsat8),
         config.landsat8.selected_bands,
         crs=(
-            CRS.from_epsg(config.landsat8.aoi.spatial.epsg)
-            if config.landsat8.aoi.spatial.epsg
-            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
-            else None
+            None
+            if isinstance(config.landsat8.aoi.spatial, BboxAOIConfig)
+            and config.landsat8.aoi.spatial.epsg == 4326
+            else config.landsat8.aoi.spatial.crs
         ),
         composite_method=config.landsat8.composite_method,
         dtype=config.landsat8.dtype,
         resolution=config.landsat8.resolution,
-        tile_shape=config.landsat8.tile_size,
+        tile_shape=config.landsat8.tile_shape,
         max_tile_size=config.landsat8.gee.max_tile_size,
         filter_polygon=(
             None
@@ -365,6 +468,7 @@ def download_landsat8(config_path: Path) -> None:
             else load_country_filter_polygon(config.landsat8.aoi.country)
         ),
         resampling=config.landsat8.resampling,
+        spectral_indices=spectral_indices,
     )
 
 
@@ -376,28 +480,34 @@ def download_palsar2(config_path: Path) -> None:
             "Palsar 2 is not configured. "
             "Pass `palsar2: {}` in the config file to use `satellite_default`."
         )
+    spectral_indices = load_spectral_indices_from_conf(
+        config=config.palsar2, mapping=PALSAR2_MAPPING
+    )
     if config.palsar2.selected_bands is None:
         config.palsar2.selected_bands = satellites.Palsar2().default_selected_bands
+    data_dir = Path(config.data_dir)
+    bounds = load_aoi_bboxes(config.palsar2)
+
     save_config(config.palsar2, config.data_dir / "palsar2")
     data_dir = Path(config.data_dir)
-    bounds = config.palsar2.aoi.spatial.as_bbox()
     data.get.download_palsar2(
         data_dir,
         config.palsar2.gee.ee_project_ids,
         bounds,
         config.palsar2.aoi.temporal.start_date if config.palsar2.aoi.temporal is not None else None,
         config.palsar2.aoi.temporal.end_date if config.palsar2.aoi.temporal is not None else None,
+        get_file_naming_config(config.palsar2),
         config.palsar2.selected_bands,
         crs=(
-            CRS.from_epsg(config.palsar2.aoi.spatial.epsg)
-            if config.palsar2.aoi.spatial.epsg
-            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
-            else None
+            None
+            if isinstance(config.palsar2.aoi.spatial, BboxAOIConfig)
+            and config.palsar2.aoi.spatial.epsg == 4326
+            else config.palsar2.aoi.spatial.crs
         ),
         composite_method=config.palsar2.composite_method,
         dtype=config.palsar2.dtype,
         resolution=config.palsar2.resolution,
-        tile_shape=config.palsar2.tile_size,
+        tile_shape=config.palsar2.tile_shape,
         max_tile_size=config.palsar2.gee.max_tile_size,
         filter_polygon=(
             None
@@ -407,6 +517,7 @@ def download_palsar2(config_path: Path) -> None:
         orbit=config.palsar2.orbit,
         resampling=config.palsar2.resampling,
         refined_lee=config.palsar2.refined_lee,
+        spectral_indices=spectral_indices,
     )
 
 
@@ -420,9 +531,10 @@ def download_nasadem(config_path: Path) -> None:
         )
     if config.nasadem.selected_bands is None:
         config.nasadem.selected_bands = satellites.NASADEM().default_selected_bands
-    save_config(config.nasadem, config.data_dir / "nasadem")
     data_dir = Path(config.data_dir)
-    bounds = config.nasadem.aoi.spatial.as_bbox()
+    bounds = load_aoi_bboxes(config.nasadem)
+
+    save_config(config.nasadem, config.data_dir / "nasadem")
     if config.nasadem.aoi.temporal is not None:
         log.warning(
             f"Temporal config {config.nasadem.aoi.temporal.start_date} "
@@ -432,16 +544,17 @@ def download_nasadem(config_path: Path) -> None:
         data_dir,
         config.nasadem.gee.ee_project_ids,
         bounds,
+        get_file_naming_config(config.nasadem),
         crs=(
-            CRS.from_epsg(config.nasadem.aoi.spatial.epsg)
-            if config.nasadem.aoi.spatial.epsg
-            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
-            else None
+            None
+            if isinstance(config.nasadem.aoi.spatial, BboxAOIConfig)
+            and config.nasadem.aoi.spatial.epsg == 4326
+            else config.nasadem.aoi.spatial.crs
         ),
         composite_method=config.nasadem.composite_method,
         dtype=config.nasadem.dtype,
         resolution=config.nasadem.resolution,
-        tile_shape=config.nasadem.tile_size,
+        tile_shape=config.nasadem.tile_shape,
         max_tile_size=config.nasadem.gee.max_tile_size,
         filter_polygon=(
             None
@@ -463,9 +576,11 @@ def download_custom(config_path: Path, custom_name: str) -> None:
     satellite_custom = satellites.CustomSatellite(
         custom_config.url, custom_config.pixel_range, name=custom_name
     )
+    bounds = load_aoi_bboxes(custom_config)
+
     save_config(custom_config, config.data_dir / satellite_custom.name)
     data_dir = Path(config.data_dir)
-    bounds = custom_config.aoi.spatial.as_bbox()
+
     start_date = (
         custom_config.aoi.temporal.start_date if custom_config.aoi.temporal is not None else None
     )
@@ -480,15 +595,17 @@ def download_custom(config_path: Path, custom_name: str) -> None:
         bounds,
         start_date,
         end_date,
+        get_file_naming_config(custom_config),
         crs=(
-            CRS.from_epsg(custom_config.aoi.spatial.epsg)
-            if custom_config.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(custom_config.aoi.spatial, BboxAOIConfig)
+            and custom_config.aoi.spatial.epsg == 4326
+            else custom_config.aoi.spatial.crs
         ),
         composite_method=custom_config.composite_method,
         dtype=custom_config.dtype,
         resolution=custom_config.resolution,
-        tile_shape=custom_config.tile_size,
+        tile_shape=custom_config.tile_shape,
         max_tile_size=custom_config.gee.max_tile_size,
         selected_bands=custom_config.selected_bands,
         filter_polygon=(

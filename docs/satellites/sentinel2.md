@@ -80,11 +80,14 @@ satellite_default:
       end_date: "2023-06-30"
   gee:
     ee_project_ids: ["your-gee-id"]
-  tile_size: 2000
+  tile_shape: 2000
   resolution: 10
 s2: # more scrict cloud filtering than the defaults
   cloudless_portion: 60
   cloud_prb_threshold: 20
+  spectral_indices:
+  - NDVI
+  - BAIS2
 ```
 
 then download with

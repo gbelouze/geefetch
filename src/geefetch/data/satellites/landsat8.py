@@ -5,6 +5,7 @@ from ee.ee_date import Date
 from ee.ee_list import List
 from ee.ee_number import Number
 from ee.featurecollection import FeatureCollection
+from ee.filter import Filter
 from ee.geometry import Geometry
 from ee.image import Image
 from ee.imagecollection import ImageCollection
@@ -13,6 +14,7 @@ from shapely import Polygon
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
+from ...utils.spectral_indices.spectral_index import SpectralIndex
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -317,6 +319,8 @@ class Landsat8(SatelliteABC):
         "SR_B5",
     ]
 
+    spectral_indices: list[SpectralIndex] | None = None
+
     @property
     def bands(self) -> list[str]:
         return self._bands
@@ -336,6 +340,10 @@ class Landsat8(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
+
+    @property
+    def is_preprocessed(self):
+        return self.spectral_indices is not None
 
     def get_col(
         self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
@@ -361,8 +369,10 @@ class Landsat8(SatelliteABC):
         if start_date is not None and end_date is not None:
             landsat_col = landsat_col.filterDate(start_date, end_date)
         landsat_col = landsat_col.filterBounds(bounds)
-
-        return landsat_col.map(mask_clouds_and_saturation).map(apply_brdf_correction)  # type: ignore[no-any-return]
+        landsat_col = landsat_col.map(mask_clouds_and_saturation).map(apply_brdf_correction)
+        for spectral_index in self.spectral_indices or []:
+            landsat_col = spectral_index.add_spectral_index_band_to_image_collection(landsat_col)
+        return landsat_col  # type: ignore[no-any-return]
 
     def get_time_series(
         self,
@@ -372,6 +382,7 @@ class Landsat8(SatelliteABC):
         dtype: DType = DType.UInt16,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 30,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Landsat 8 images.
@@ -390,6 +401,9 @@ class Landsat8(SatelliteABC):
             The resampling method to use when processing the image.
         resolution : float
             The resolution for the image.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -400,29 +414,36 @@ class Landsat8(SatelliteABC):
         """
         for kwarg in kwargs:
             log.warning(f"Argument {kwarg} is ignored.")
+        self.spectral_indices = spectral_indices
         landsat_col = self.get_col(aoi, start_date, end_date)
 
         images = {}
         info = landsat_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Landsat 8 image." f"Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Landsat 8 image.Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Landsat 8 image.")
         for feature in info["features"]:  # type: ignore[index]
-            id_ = feature["id"]
-            footprint = PatchedBaseImage.from_id(id_).footprint
+            sys_index = feature.get("properties").get("system:index")
+            if self.is_preprocessed:
+                im = landsat_col.filter(Filter.eq("system:index", sys_index)).first()
+                footprint = PatchedBaseImage.from_id(
+                    f"LANDSAT/LC08/C02/T1_L2/{sys_index}"
+                ).footprint
+            else:
+                id_ = feature["id"]
+                footprint = PatchedBaseImage.from_id(id_).footprint
+                im = Image(id_)
             if footprint is None:
                 raise ValueError(
                     "Ran into image with no footprint. Did you forget to `.clip(aoi)` ?"
                 )
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
-                # aoi intersects im
-                im = Image(id_)
                 # resample
                 im = self.resample_reproject_clip(im, aoi, resampling, resolution)
                 # apply dtype
                 im = self.convert_dtype(im, dtype)
-                images[id_.removeprefix("LANDSAT/LC08/C02/T1_L2/")] = PatchedBaseImage(im)
+                images[sys_index.removeprefix("LANDSAT/LC08/C02/T1_L2/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -434,6 +455,7 @@ class Landsat8(SatelliteABC):
         dtype: DType = DType.Float32,
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         resolution: float = 30,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Landsat 8 images.
@@ -454,6 +476,9 @@ class Landsat8(SatelliteABC):
             The resampling method to use when processing the image.
         resolution : float
             The resolution for the image.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -464,6 +489,7 @@ class Landsat8(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
+        self.spectral_indices = spectral_indices
         landsat_col = self.get_col(aoi, start_date, end_date)
         # Apply resampling
         landsat_col = landsat_col.map(

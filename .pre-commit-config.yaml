@@ -26,7 +26,7 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        additional_dependencies: ["earthengine-api", "types-retry", "types-requests", "geobbox==0.0.3"]
+        additional_dependencies: ["earthengine-api==1.7.14", "types-retry", "types-requests", "geobbox==0.0.3"]
         pass_filenames: false
         fail_fast: true
         args: ["src"]

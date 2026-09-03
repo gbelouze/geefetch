@@ -13,7 +13,7 @@ from retry import retry
 
 from geefetch.utils.multiprocessing import SequentialExecutor
 
-from ..cli.omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig
+from ..cli.omegaconfig import FileNamingConfig, SpeckleFilterConfig, TerrainNormalizationConfig
 from ..utils.enums import (
     CompositeMethod,
     DType,
@@ -36,6 +36,7 @@ from ..utils.progress_multiprocessing import (
     QueuedProgress,
 )
 from ..utils.rasterio import create_vrt
+from ..utils.spectral_indices.spectral_index import SpectralIndex
 from .process import (
     geofile_is_clean,
     merge_tracked_geojson,
@@ -121,7 +122,14 @@ def download_chip(
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = selected_bands if selected_bands is not None else satellite.default_selected_bands
+    bands = []
+    spectra_indices: list[SpectralIndex] | None = data_get_kwargs.get("spectral_indices")
+    if selected_bands:
+        bands += selected_bands
+    if spectra_indices:
+        bands += [index.name for index in spectra_indices]
+    if not bands:
+        bands = satellite.default_selected_bands
     if out.exists():
         log.debug(f"Found feature chip [cyan]{out}[/]")
         if not geofile_is_clean(out):
@@ -135,7 +143,6 @@ def download_chip(
         if not as_time_series
         else satellite.get_time_series(**data_get_kwargs)
     )
-
     try:
         data.download(
             out,
@@ -162,14 +169,14 @@ def download_chip(
 def download(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     satellite: SatelliteABC,
     start_date: str | None,
     end_date: str | None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     satellite_get_kwargs: dict[str, Any] | None = None,
     satellite_download_kwargs: dict[str, Any] | None = None,
@@ -188,8 +195,9 @@ def download(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     satellite : SatelliteABC
         The satellite which the images should originate from.
     start_date : str | None
@@ -204,7 +212,7 @@ def download(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -231,11 +239,30 @@ def download(
 
     check_clean = check_clean and not as_time_series
     tiler = Tiler()
-    tracker = TileTracker(satellite, data_dir)
+    # `file_naming_config` is a naming concern only (resolved here, used by the
+    # tracker); pop it so it isn't forwarded as a spurious kwarg to `data.download`.
+    # A missing or `None` value means "no custom naming" -> use the defaults.
+    file_naming_config: FileNamingConfig = (
+        satellite_download_kwargs.pop("file_naming_config", None) or FileNamingConfig()
+    )
+    tracker = TileTracker(satellite, data_dir, file_naming_config)
     with default_bar() as progress:
-        tiles = list(
-            tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
-        )
+        naming_format_kwargs_list: list[dict[str, Any]] = [{}]
+        # TODO Have bbox either be a bbox of a list of bboxes and
+        # have the naming config passed with them as tuples or somehting
+        if isinstance(bbox, GeoBoundingBox) and (tile_shape is not None):
+            tiles = list(
+                tiler.split(bbox, resolution * tile_shape, filter_polygon=filter_polygon, crs=crs)
+            )
+            naming_format_kwargs_list *= len(tiles)
+
+        elif isinstance(bbox, list):
+            naming_format_kwargs_list *= len(bbox)
+            tiles = bbox
+        elif isinstance(bbox, dict):
+            naming_format_kwargs_list = list(bbox.values())
+            tiles = list(bbox.keys())
+
         log.info("Downloading all tiles")
 
         overall_task = progress.add_task(
@@ -270,7 +297,9 @@ def download(
                 for ee_project_id, _ in zip(ee_project_ids, range(max_workers), strict=False):
                     # hacky authentification for the pool processes
                     executor.submit(auth_and_log, ee_project_id)
-                for tile in tiles:
+                for tile, naming_format_kwargs in zip(
+                    tiles, naming_format_kwargs_list, strict=False
+                ):
                     data_get_kwargs = (
                         dict(
                             aoi=tile,
@@ -280,7 +309,9 @@ def download(
                         | satellite_get_kwargs
                     )
                     tile_path = tracker.get_path(
-                        tile, format=satellite_download_kwargs.get("format", None)
+                        tile,
+                        format=satellite_download_kwargs.get("format", None),
+                        naming_format_kwargs=naming_format_kwargs,
                     )
                     if as_time_series:
                         tile_path = tile_path.with_name(tile_path.stem)
@@ -326,11 +357,21 @@ def download(
         match satellite_download_kwargs["format"]:
             case Format.PARQUET:
                 merge_tracked_parquet(
-                    TileTracker(satellite, data_dir, filter=lambda p: p.suffix == ".parquet")
+                    TileTracker(
+                        satellite,
+                        data_dir,
+                        file_naming_config,
+                        filter=lambda p: p.suffix == ".parquet",
+                    )
                 )
             case Format.GEOJSON:
                 merge_tracked_geojson(
-                    TileTracker(satellite, data_dir, filter=lambda p: p.suffix == ".geojson")
+                    TileTracker(
+                        satellite,
+                        data_dir,
+                        file_naming_config,
+                        filter=lambda p: p.suffix == ".geojson",
+                    )
                 )
             case _ as x:
                 log.info(f"Don't know how to merge data of type {x}. Not merging.")
@@ -343,13 +384,14 @@ def download(
 def download_gedi_l2a_raster(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
@@ -364,12 +406,15 @@ def download_gedi_l2a_raster(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -377,7 +422,7 @@ def download_gedi_l2a_raster(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -404,19 +449,23 @@ def download_gedi_l2a_raster(
         satellite_get_kwargs={
             "dtype": dtype,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
     )
 
 
 def download_gedi_l2a_vector(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     resolution: int = 10,
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
@@ -431,18 +480,21 @@ def download_gedi_l2a_vector(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
@@ -464,19 +516,20 @@ def download_gedi_l2a_vector(
         resolution=resolution,
         filter_polygon=filter_polygon,
         check_clean=False,
-        satellite_download_kwargs={"format": format},
+        satellite_download_kwargs={"format": format, "file_naming_config": file_naming_config},
     )
 
 
 def download_gedi_l2b_vector(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     resolution: int = 10,
     filter_polygon: shapely.Geometry | None = None,
     format: Format = Format.CSV,
@@ -491,18 +544,21 @@ def download_gedi_l2b_vector(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
         The CRS in which to download data. If None, AOI is split in UTM zones and
         data is downloaded in their local UTM zones. Defaults to None.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
@@ -524,20 +580,21 @@ def download_gedi_l2b_vector(
         resolution=resolution,
         filter_polygon=filter_polygon,
         check_clean=False,
-        satellite_download_kwargs={"format": format},
+        satellite_download_kwargs={"format": format, "file_naming_config": file_naming_config},
     )
 
 
 def download_s1(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -546,6 +603,7 @@ def download_s1(
     terrain_normalization_config: TerrainNormalizationConfig | None = None,
     orbit: S1Orbit = S1Orbit.ASCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
     """Download Sentinel-1 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s1.vrt` is written to combine all the chips.
@@ -557,12 +615,15 @@ def download_s1(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -570,7 +631,7 @@ def download_s1(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -593,6 +654,8 @@ def download_s1(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    spectral_indices : list[SpectralIndex] | None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
 
     download_selected_bands: list[str] | None
@@ -628,8 +691,12 @@ def download_s1(
             "resolution": resolution,
             "speckle_filter_config": speckle_filter_config,
             "terrain_normalization_config": terrain_normalization_config,
+            "spectral_indices": spectral_indices,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -637,20 +704,24 @@ def download_s1(
 def download_s2(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
+    n_least_cloudy_monthly: int | None = None,
+    add_cloud_mask: bool = False,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
     """Download Sentinel-2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `s2.vrt` is written to combine all the chips.
@@ -662,12 +733,15 @@ def download_s2(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -675,7 +749,7 @@ def download_s2(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -693,11 +767,23 @@ def download_s2(
         See :meth:`geefetch.data.s2.get`. Defaults to 60.
     cloud_prb_thresh : int
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
+    n_least_cloudy_monthly : int | None
+        The number of least cloudy images kept per months. Only used for timeseries and replaces
+        the masking functionality that uses cloudless_portion and cloud_prb_threshold.
+        Defaults to None.
+    add_cloud_mask : bool
+        Wether to add to the image collection a cloud mask created with
+        GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED. Defaults to False.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    spectral_indices : list[SpectralIndex] | None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
+    if add_cloud_mask:
+        selected_bands = (selected_bands or []) + ["cloud_shadow_mask"]
+
     download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
@@ -715,11 +801,17 @@ def download_s2(
             "composite_method": composite_method,
             "cloudless_portion": cloudless_portion,
             "cloud_prb_thresh": cloud_prb_thresh,
+            "n_least_cloudy_monthly": n_least_cloudy_monthly,
+            "add_cloud_mask": add_cloud_mask,
             "dtype": dtype,
             "resampling": resampling,
             "resolution": resolution,
+            "spectral_indices": spectral_indices,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -727,13 +819,14 @@ def download_s2(
 def download_dynworld(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -750,12 +843,15 @@ def download_dynworld(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -763,7 +859,7 @@ def download_dynworld(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -800,7 +896,10 @@ def download_dynworld(
             "resampling": resampling,
             "resolution": resolution,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -808,18 +907,20 @@ def download_dynworld(
 def download_landsat8(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
     filter_polygon: shapely.Geometry | None = None,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
+    spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
     """Download Landsat 8 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `landsat8.vrt` is written to combine all the chips.
@@ -831,12 +932,15 @@ def download_landsat8(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -844,7 +948,7 @@ def download_landsat8(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 30.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -861,6 +965,8 @@ def download_landsat8(
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
+    spectral_indices : list[SpectralIndex] | None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
     download(
         data_dir=data_dir,
@@ -880,8 +986,12 @@ def download_landsat8(
             "dtype": dtype,
             "resampling": resampling,
             "resolution": resolution,
+            "spectral_indices": spectral_indices,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -889,13 +999,14 @@ def download_landsat8(
 def download_palsar2(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -903,6 +1014,7 @@ def download_palsar2(
     orbit: P2Orbit = P2Orbit.DESCENDING,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
     refined_lee: bool = True,
+    spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
     """Download Palsar 2 images. Images are written in several .tif chips
     to `data_dir`. Additionally, a file `palsar2.vrt` is written to combine all the chips.
@@ -914,12 +1026,15 @@ def download_palsar2(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -927,7 +1042,7 @@ def download_palsar2(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 30.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -949,6 +1064,8 @@ def download_palsar2(
     refined_lee : bool
         Whether to apply the Refined Lee filter to reduce speckle noise.
         Defaults to True.
+    spectral_indices : list[SpectralIndex] | None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None
     """
     download(
         data_dir=data_dir,
@@ -970,8 +1087,12 @@ def download_palsar2(
             "resampling": resampling,
             "resolution": resolution,
             "refined_lee": refined_lee,
+            "spectral_indices": spectral_indices,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
         as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )
 
@@ -979,11 +1100,12 @@ def download_palsar2(
 def download_nasadem(
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 5,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -1000,8 +1122,11 @@ def download_nasadem(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -1009,7 +1134,7 @@ def download_nasadem(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -1047,7 +1172,10 @@ def download_nasadem(
             "dtype": dtype,
             "resampling": resampling,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
     )
 
 
@@ -1055,13 +1183,14 @@ def download_custom(
     satellite_custom: CustomSatellite,
     data_dir: Path,
     ee_project_ids: str | list[str],
-    bbox: GeoBoundingBox,
+    bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
-    tile_shape: int = 500,
+    tile_shape: int | None = 500,
     max_tile_size: float = 10,
     composite_method: CompositeMethod = CompositeMethod.MEDIAN,
     dtype: DType = DType.Float32,
@@ -1079,12 +1208,15 @@ def download_custom(
     ee_project_ids : str | list[str]
         One or more GEE project id for authentification. More than one id allows `geefetch`
         to process downloads in parallel.
-    bbox : GeoBoundingBox
-        The box defining the region of interest.
+    bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
+        The box defining the region of interest
+        or the list of GeoBondingBox which do not need to be tiled.
     start_date : str | None
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -1092,7 +1224,7 @@ def download_custom(
         data is downloaded in their local UTM zones. Defaults to None.
     resolution : int
         Resolution of the downloaded data, in meters. Defaults to 10.
-    tile_shape : int
+    tile_shape : int | None
         Side length of a downloaded chip, in pixels. Defaults to 500.
     max_tile_size : float
         Parameter adjusting the memory consumption in Google Earth Engine, in Mb.
@@ -1110,8 +1242,8 @@ def download_custom(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     """
-    if composite_method == CompositeMethod.TIMESERIES:
-        raise ValueError("Time series is not implemented for Custom Satellites.")
+    # if composite_method == CompositeMethod.TIMESERIES:
+    #     raise ValueError("Time series is not implemented for Custom Satellites.")
     download(
         data_dir=data_dir,
         ee_project_ids=ee_project_ids,
@@ -1132,5 +1264,9 @@ def download_custom(
             "resampling": resampling,
             "resolution": resolution,
         },
-        satellite_download_kwargs={"dtype": dtype.to_str()},
+        satellite_download_kwargs={
+            "dtype": dtype.to_str(),
+            "file_naming_config": file_naming_config,
+        },
+        as_time_series=(composite_method == CompositeMethod.TIMESERIES),
     )

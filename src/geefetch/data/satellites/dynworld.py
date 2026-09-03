@@ -132,7 +132,7 @@ class DynWorld(SatelliteABC):
         info = dynworld_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Dynamic World image." f"Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Dynamic World image.Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Dynamic World image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]
