@@ -1,14 +1,18 @@
+import dataclasses
 import logging
+import types
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from string import Formatter
-from typing import Any, Literal
+from typing import Any, Union, get_args, get_origin
 
 import geopandas as gpd
 import numpy as np
 import pyproj
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf.errors import OmegaConfBaseException
 from rasterio.crs import CRS
 
 from geefetch.utils.enums import (
@@ -185,9 +189,11 @@ class AOIConfig:  # noqa: 605
     # The name of a line in geopandas.datasets "naturalearth_lowres"
     # ..see also: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
     # Used to further filter the AOI to a country boundaries
-    # Currently limited by https://github.com/omry/omegaconf/issues/144
-    # so we can't type check
-    country: Any = None
+    country: str | list[str] | None = None
+
+
+# `spatial` and `country` are union-typed and can't be handled by OmegaConf
+# directly; they're relaxed to `Any` a few classes below -- see `UNION_FIELDS`.
 
 
 @dataclass
@@ -372,6 +378,10 @@ class SpeckleFilterConfig:
     nr_of_images: int = 10
 
 
+class _Default(Enum):
+    DEFAULT = "default"
+
+
 @dataclass
 class S1Config(SatelliteDefaultConfig):
     """The structured type for configuring Sentinel-1.
@@ -383,24 +393,19 @@ class S1Config(SatelliteDefaultConfig):
         Can be ASCENDING, DESCENDING, BOTH, or AS_BANDS
         to download ascending and descending composites as separate bands.
         Defaults to BOTH.
-    speckle_filter : SpeckleFilterConfig | Literal["default"] | None
+    speckle_filter : SpeckleFilterConfig | _Default | None
         Configuration dataclass for speckle filtering, or None for no speckle filtering.
         Can also be "default" to use baseline speckle filtering parameters.
         Defaults to None.
-    terrain_normalization : TerrainNormalizationConfig | Literal["default"] | None
+    terrain_normalization : TerrainNormalizationConfig | _Default | None
         Configuration dataclass for terrain normalization, or None for no terrain normalization.
         Defaults to "default" which uses baseline terrain normalization parameters.
     """
 
     # using enum while https://github.com/omry/omegaconf/issues/422 is open
     orbit: S1Orbit = S1Orbit.BOTH
-    speckle_filter: SpeckleFilterConfig | Literal["default"] | None = None
-    terrain_normalization: TerrainNormalizationConfig | Literal["default"] | None = "default"
-
-
-# using Any while https://github.com/omry/omegaconf/issues/144 is open
-S1Config.__annotations__["speckle_filter"] = Any
-S1Config.__annotations__["terrain_normalization"] = Any
+    speckle_filter: SpeckleFilterConfig | _Default | None = None
+    terrain_normalization: TerrainNormalizationConfig | _Default | None = _Default.DEFAULT
 
 
 @dataclass
@@ -534,6 +539,159 @@ class GeefetchConfig:
         self.data_dir = self.data_dir.expanduser().absolute()
 
 
+# OmegaConf does not support union of containers types
+# https://github.com/omry/omegaconf/issues/144
+#
+# Workaround: we relax exactly those fields to `Any` so `OmegaConf.structured` /
+# `OmegaConf.merge` handle every *other* field on the class normally, then
+# manually resolve the relaxed fields afterwards against their real annotation.
+#
+# `UNION_FIELDS` holds which fields need this. Their real annotations are read
+# back off the classes before we override them with `Any`.
+#
+# Once `OmegaConf.to_object` has built the config, `_resolve_config_unions` walks
+# the whole object tree once and resolves every node whose type is registered in
+# `_UNION_ANNOTATIONS`.
+
+UNION_FIELDS: dict[type, tuple[str, ...]] = {
+    AOIConfig: ("spatial", "country"),
+    S1Config: ("speckle_filter", "terrain_normalization"),
+}
+
+#: {cls: {field name: original annotation}}, filled by `relax_union_annotations`.
+_UNION_ANNOTATIONS: dict[type, dict[str, Any]] = {}
+
+
+def relax_union_annotations(cls: type, names: tuple[str, ...]) -> None:
+    """Record `cls`'s real annotations for `names`, then weaken them to `Any`, in place.
+
+    Parameters
+    ----------
+    cls : type
+        The dataclass to patch.
+    names : tuple[str, ...]
+        Names of `cls`'s fields whose annotation is a union OmegaConf can't build
+        a schema through. Each field's current annotation is stashed in
+        `_UNION_ANNOTATIONS[cls]` and then replaced by `Any` so
+        `OmegaConf.structured`/`merge` never sees the union; `resolve_union`
+        reads the real annotation back from `_UNION_ANNOTATIONS` afterwards.
+    """
+    captured = _UNION_ANNOTATIONS.setdefault(cls, {})
+    for name in names:
+        captured[name] = cls.__annotations__[name]
+        cls.__annotations__[name] = Any
+
+
+for _cls, _names in UNION_FIELDS.items():
+    relax_union_annotations(_cls, _names)
+
+
+class UnionResolutionError(ValueError):
+    """Raised when a config value doesn't validate against any member of a union type.
+
+    Mirrors jsonargparse's behaviour for `Dataclass1 | Dataclass2`-typed arguments:
+    every member of the union is tried in declaration order, and if none match,
+    every member's failure is reported together so it's clear why each was rejected.
+    """
+
+    def __init__(self, annotation: Any, data: Any, errors: dict[str, Exception]) -> None:
+        self.annotation = annotation
+        self.data = data
+        self.errors = errors
+        lines = [f"  - {name}: {err}" for name, err in errors.items()]
+        super().__init__(
+            f"{data!r} does not validate against any member of {annotation}:\n" + "\n".join(lines)
+        )
+
+
+def resolve_union(annotation: Any, data: Any) -> Any:
+    """Resolve `data` against a `Union[...]` type hint without a discriminator field.
+
+    Tries each member of the union in declaration order and returns the first one
+    that validates: dataclass members are validated via
+    `OmegaConf.merge(OmegaConf.structured(member), data)`, `None` matches only
+    `data is None`, and any other type (e.g. `str`, `list[str]`) is checked with `isinstance`.
+
+    Raises `UnionResolutionError`, reporting every member's failure, if nothing matches.
+
+    Parameters
+    ----------
+    annotation : Any
+        A `Union` or `X | Y` type hint, or a single non-union type.
+    data : Any
+        The raw config value to resolve (e.g. an `omegaconf.DictConfig`, or a
+        plain Python value).
+
+    Returns
+    -------
+    Any
+        The resolved value: a dataclass instance, `None`, or the raw value itself.
+    """
+    is_union = get_origin(annotation) in (Union, types.UnionType)
+    members = get_args(annotation) if is_union else (annotation,)
+    errors: dict[str, Exception] = {}
+
+    for member in members:
+        if dataclasses.is_dataclass(member):
+            try:
+                merged = OmegaConf.merge(OmegaConf.structured(member), data)
+                return OmegaConf.to_object(merged)
+            except (OmegaConfBaseException, ValueError, TypeError) as e:
+                # ValueError/TypeError: `data` isn't even container-shaped (e.g. a
+                # bare string), so OmegaConf.merge rejects it before any
+                # OmegaConf-specific validation gets a chance to run.
+                errors[member.__name__] = e  # type: ignore[union-attr]
+            continue
+
+        plain_data = (
+            OmegaConf.to_container(data, resolve=True) if OmegaConf.is_config(data) else data
+        )
+        origin = get_origin(member) or member
+        try:
+            if isinstance(plain_data, origin):
+                return plain_data
+        except TypeError:
+            pass
+        errors[str(member)] = ValueError(f"{data!r} is not a {member}")
+
+    raise UnionResolutionError(annotation, data, errors)
+
+
+def _resolve_relaxed_unions(obj: Any) -> None:
+    """Resolve every field of `obj` that `UNION_FIELDS` relaxed to `Any`, in place.
+
+    Looks `type(obj)` up in `_UNION_ANNOTATIONS` and runs `resolve_union` on each
+    recorded field against its original annotation. A no-op for types absent from
+    `UNION_FIELDS`.
+    """
+    for name, annotation in _UNION_ANNOTATIONS.get(type(obj), {}).items():
+        setattr(obj, name, resolve_union(annotation, getattr(obj, name)))
+
+
+def _resolve_config_unions(node: Any) -> None:
+    """Resolve every field relaxed by `UNION_FIELDS`, everywhere in the config.
+
+    Walks the object graph built by `OmegaConf.to_object` once, pre-order: for
+    every dataclass node whose `type(...)` is registered in `_UNION_ANNOTATIONS`
+    ig`, `S1Config`) it resolves that node's recorded fields then recurses through
+    dataclass fields, `dict` values and `list`/`tuple` items.
+    Everything else (scalars, `Enum`, `Path`, `str`, `None`) is a leaf.
+    """
+    if dataclasses.is_dataclass(node) and not isinstance(node, type):
+        _resolve_relaxed_unions(node)
+
+        # `dataclasses.fields`, rather than `vars`/properties, so lazy attributes
+        # such as `GeofileAOIConfig.gdf` (which reads a file) are never triggered.
+        for f in dataclasses.fields(node):
+            _resolve_config_unions(getattr(node, f.name))
+    elif isinstance(node, dict):
+        for value in node.values():
+            _resolve_config_unions(value)
+    elif isinstance(node, list | tuple):
+        for item in node:
+            _resolve_config_unions(item)
+
+
 def _post_omegaconf_load(config: DictConfig | ListConfig) -> None:
     """Post-processes a loaded OmegaConf config by merging satellite defaults.
 
@@ -566,26 +724,10 @@ def _post_omegaconf_load(config: DictConfig | ListConfig) -> None:
         config.s1 if "s1" in config else {},
     )
 
-    # we have to convert Any typed fields ourselves, while
-    # https://github.com/omry/omegaconf/issues/144 is open
-    match config.s1.terrain_normalization:
-        case "default":
-            config.s1.terrain_normalization = TerrainNormalizationConfig()
-        case None:
-            config.s1.terrain_normalization = None
-        case _:
-            config.s1.terrain_normalization = OmegaConf.merge(
-                OmegaConf.structured(TerrainNormalizationConfig), config.s1.terrain_normalization
-            )
-    match config.s1.speckle_filter:
-        case "default":
-            config.s1.speckle_filter = TerrainNormalizationConfig()
-        case None:
-            config.s1.speckle_filter = None
-        case _:
-            config.s1.speckle_filter = OmegaConf.merge(
-                OmegaConf.structured(SpeckleFilterConfig), config.s1.speckle_filter
-            )
+    if config.s1.terrain_normalization in (_Default.DEFAULT, "default"):
+        config.s1.terrain_normalization = TerrainNormalizationConfig()
+    if config.s1.speckle_filter in (_Default.DEFAULT, "default"):
+        config.s1.speckle_filter = SpeckleFilterConfig()
 
     config.s2 = OmegaConf.merge(
         OmegaConf.structured(S2Config),
@@ -661,4 +803,6 @@ def load(path: Path, add_missing_sats: bool = True) -> GeefetchConfig:
     merged = OmegaConf.merge(from_structured, from_yaml)
     if merged.satellite_default.selected_bands is not None:
         raise ValueError("Selected bands should not be specified for default satellite.")
-    return OmegaConf.to_object(merged)  # type: ignore
+    result: GeefetchConfig = OmegaConf.to_object(merged)  # type: ignore[invalid-assignment, unused-ignore]
+    _resolve_config_unions(result)
+    return result
