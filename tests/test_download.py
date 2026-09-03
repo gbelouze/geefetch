@@ -19,7 +19,7 @@ from geefetch.cli.download_implementation import (
     download_s1,
     download_s2,
 )
-from geefetch.cli.omegaconfig import SpeckleFilterConfig, load
+from geefetch.cli.omegaconfig import GeofileAOIConfig, SpeckleFilterConfig, load
 from geefetch.data.process import tif_is_clean
 from geefetch.utils.enums import CompositeMethod, P2Orbit, ResamplingMethod, S1Orbit
 
@@ -73,11 +73,7 @@ def paris_config_geo_file_path(
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
-    raw_paris_config.satellite_default.aoi.spatial.polygons = str(paris_geo_file)
-    raw_paris_config.satellite_default.aoi.spatial.left = -1
-    raw_paris_config.satellite_default.aoi.spatial.right = -1
-    raw_paris_config.satellite_default.aoi.spatial.bottom = -1
-    raw_paris_config.satellite_default.aoi.spatial.top = -1
+    raw_paris_config.satellite_default.aoi.spatial.geofile = str(paris_geo_file)
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     return conf_path
@@ -228,8 +224,11 @@ class TestDownloadSentinel1:
         conf = load(paris_config_geo_file_path_with_naming_config)
         download_s1(paris_config_geo_file_path_with_naming_config)
         downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
-        polys = gpd.read_file(conf.satellite_default.aoi.spatial.polygons)
+
+        assert conf.satellite_default.aoi.spatial is GeofileAOIConfig
+        polys = gpd.read_file(conf.satellite_default.aoi.spatial.geofile)
         bbox_names = polys["bbox_name"].values.tolist()
+
         assert len(downloaded_files) == 3
         for file in downloaded_files:
             assert file.parent.parent.parent.name == "s1"
@@ -349,9 +348,12 @@ class TestDownloadGediL2A:
         conf = load(paris_config_geo_file_path_with_naming_config)
         download_gedi_l2a(paris_config_geo_file_path_with_naming_config, vector=True)
         downloaded_files = list(Path(conf.data_dir).rglob("*.parquet"))[1:]
-        polys = gpd.read_file(conf.satellite_default.aoi.spatial.polygons)
+        assert isinstance(conf.satellite_default.aoi.spatial, GeofileAOIConfig)
+
+        polys = gpd.read_file(conf.satellite_default.aoi.spatial.geofile)
         bbox_names = polys["bbox_name"].values.tolist()
         assert len(downloaded_files) == 3
+
         for file in downloaded_files:
             assert file.parent.parent.parent.name == "gedi_l2a_vector"
             assert file.parent.parent.name == "sub_root_name"

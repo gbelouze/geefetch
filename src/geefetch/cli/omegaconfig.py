@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 import geopandas as gpd
 import numpy as np
+import pyproj
 from geobbox import GeoBoundingBox
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from rasterio.crs import CRS
@@ -59,8 +60,8 @@ class GEEConfig:
 
 
 @dataclass
-class SpatialAOIConfig:
-    """Configuration of the spatial area of interest.
+class BboxAOIConfig:
+    """Configuration of simple rectangular spatial area of interest.
 
     Attributes
     ----------
@@ -68,9 +69,6 @@ class SpatialAOIConfig:
     right : float
     top : float
     bottom : float
-    polygons : str | None
-        Path to a geo file readable by GeoPandas that contains a set of polygons
-        to which will be applied a bounding box. Defaults to None.
     epsg : int
         EPSG code for the CRS in which the boundaries are given. If given,
         the downloaded data will be expressed in that same CRS.
@@ -82,18 +80,11 @@ class SpatialAOIConfig:
     top: float = -1
     bottom: float = -1
 
-    polygons: str | None = None
-
     epsg: int = 4326
 
     @property
-    def polygon_gdf(self) -> gpd.GeoDataFrame | None:
-        if self.polygons:
-            gdf = gpd.read_file(self.polygons)
-            if gdf.crs.to_epsg() != self.epsg:
-                gdf.to_crs(CRS.from_epsg(self.epsg), inplace=True)
-            return gdf
-        return None
+    def crs(self) -> pyproj.CRS:
+        return pyproj.CRS.from_epsg(self.epsg)
 
     def as_bbox(self) -> GeoBoundingBox:
         return GeoBoundingBox(
@@ -104,15 +95,34 @@ class SpatialAOIConfig:
             crs=CRS.from_epsg(self.epsg),
         )
 
+
+@dataclass
+class GeofileAOIConfig:
+    """Configuration of the spatial area of interest.
+
+    Attributes
+    ----------
+    geofile : Path
+        Path to a geofile readable by GeoPandas that contains one or more polygons
+        that define the AOI.
+    """
+
+    geofile: Path
+
+    def __after_init__(self):
+        self._gdf = None
+
+    @property
+    def gdf(self) -> gpd.GeoDataFrame:
+        if self._gdf is None:
+            self._gdf = gpd.read_file(self.geofile)
+        return self._gdf
+
+    @property
+    def crs(self) -> pyproj.CRS:
+        return self.gdf.crs
+
     def as_bboxes(self, scale: int, tile_shape: int | None) -> list[GeoBoundingBox]:
-        try:
-            gdf: gpd.GeoDataFrame = self.polygon_gdf
-        except Exception as e:
-            msg = f"Failed to load geo file {self.polygons}. {e}"
-            log.error(msg)
-
-        gdf = self.polygon_gdf
-
         def snap(row):
             left, bottom, right, top = row
 
@@ -127,11 +137,14 @@ class SpatialAOIConfig:
 
             return left, bottom, right, top
 
-        snapped = np.apply_along_axis(snap, 1, gdf.bounds.to_numpy())
+        snapped = np.apply_along_axis(snap, 1, self.gdf.bounds.to_numpy())
         return [
-            GeoBoundingBox(left, bottom, right, top, CRS.from_epsg(self.epsg))
+            GeoBoundingBox(left, bottom, right, top, self.gdf.crs)
             for left, bottom, right, top in snapped
         ]
+
+
+SpatialAOIConfig = BboxAOIConfig | GeofileAOIConfig
 
 
 @dataclass
@@ -234,8 +247,8 @@ class FileNamingConfig:
         # TODO: Fix the fact that if the gdf or list of bboxes
         # change in order the dictionary won't properly match stuff
         # This function could actually be merged with the spatial AOI
-        # to have the naming_properties extracted with the GEOBounding
-        # boxes row per row, that way there is no risque to mismatch bounding boxes and gdf rows
+        # to have the naming_properties extracted with the GeoBounding
+        # boxes row per row, that way there is no risk to mismatch bounding boxes and gdf rows
         parametrized_string = (self.tile_dir_format or "") + (self.tile_stem_format or "")
         naming_properties = list(
             {var for _, var, _, _ in Formatter().parse(parametrized_string) if var}

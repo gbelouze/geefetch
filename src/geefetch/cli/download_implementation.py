@@ -8,7 +8,6 @@ import pooch
 import shapely
 from geobbox import GeoBoundingBox
 from omegaconf import OmegaConf
-from rasterio.crs import CRS
 from thefuzz import process
 
 import geefetch
@@ -24,7 +23,9 @@ from ..utils.spectral_indices import (
     load_spectral_indices_from_conf,
 )
 from .omegaconfig import (
+    BboxAOIConfig,
     FileNamingConfig,
+    GeofileAOIConfig,
     SatelliteDefaultConfig,
     SpeckleFilterConfig,
     TerrainNormalizationConfig,
@@ -58,7 +59,19 @@ def load_aoi_bboxes(
             list[GeoBoundingBox] : If no tile naming is configured.
             dict[GeoBoundingBox, dict[str, Any]] : if tile naming is configured.
     """
-    if config.aoi.spatial.polygons:
+    match config.aoi.spatial:
+        case BboxAOIConfig():
+            print("CASE BBOXAOICONFIG")  # noqa: T201
+            return config.aoi.spatial.as_bbox()
+        case GeofileAOIConfig():
+            print("CASE GEOFILEAOICONFIG")  # noqa: T201
+            return config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape)
+        case _:
+            raise TypeError(
+                "config.aoi.spatiol should be one of `BboxAOIConfig`, `GeofileAOIConfig`. "
+                f"Found {type(config.aoi.spatial)}."
+            )
+    if config.aoi.spatial.geofile:
         bboxes = config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape)
         if config.file_naming_config:
             return config.file_naming_config.get_naming_dict(
@@ -107,6 +120,7 @@ def save_config(
     dir.mkdir(exist_ok=True, parents=True)
     config_path = Path(dir / "config.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
+    assert isinstance(config, dict)
 
     del config["gee"]
     config["geefetch_version"] = geefetch.__version__
@@ -158,9 +172,10 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             config.gedi_l2a.file_naming_config,
             config.gedi_l2a.selected_bands,
             crs=(
-                CRS.from_epsg(config.gedi_l2a.aoi.spatial.epsg)
-                if config.gedi_l2a.aoi.spatial.epsg != 4326
-                else None
+                None
+                if isinstance(config.gedi_l2a.aoi.spatial, BboxAOIConfig)
+                and config.gedi_l2a.aoi.spatial.epsg == 4326
+                else config.gedi_l2a.aoi.spatial.crs
             ),
             resolution=config.gedi_l2a.resolution,
             tile_shape=config.gedi_l2a.tile_shape,
@@ -188,9 +203,10 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             config.gedi_l2a.file_naming_config,
             config.gedi_l2a.selected_bands,
             crs=(
-                CRS.from_epsg(config.gedi_l2a.aoi.spatial.epsg)
-                if config.gedi_l2a.aoi.spatial.epsg != 4326
-                else None
+                None
+                if isinstance(config.gedi_l2a.aoi.spatial, BboxAOIConfig)
+                and config.gedi_l2a.aoi.spatial.epsg == 4326
+                else config.gedi_l2a.aoi.spatial.crs
             ),
             dtype=config.gedi_l2a.dtype,
             resolution=config.gedi_l2a.resolution,
@@ -233,9 +249,10 @@ def download_gedi_l2b(config_path: Path) -> None:
         config.gedi_l2b.file_naming_config,
         config.gedi_l2b.selected_bands,
         crs=(
-            CRS.from_epsg(config.gedi_l2b.aoi.spatial.epsg)
-            if config.gedi_l2b.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(config.gedi_l2b.aoi.spatial, BboxAOIConfig)
+            and config.gedi_l2b.aoi.spatial.epsg == 4326
+            else config.gedi_l2b.aoi.spatial.crs
         ),
         resolution=config.gedi_l2b.resolution,
         tile_shape=config.gedi_l2b.tile_shape,
@@ -284,9 +301,10 @@ def download_s1(config_path: Path) -> None:
         config.s1.file_naming_config,
         config.s1.selected_bands,
         crs=(
-            CRS.from_epsg(config.s1.aoi.spatial.epsg)
-            if config.s1.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(config.s1.aoi.spatial, BboxAOIConfig)
+            and config.s1.aoi.spatial.epsg == 4326
+            else config.s1.aoi.spatial.crs
         ),
         composite_method=config.s1.composite_method,
         dtype=config.s1.dtype,
@@ -339,9 +357,10 @@ def download_s2(config_path: Path) -> None:
         config.s2.file_naming_config,
         config.s2.selected_bands,
         crs=(
-            CRS.from_epsg(config.s2.aoi.spatial.epsg)
-            if config.s2.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(config.s2.aoi.spatial, BboxAOIConfig)
+            and config.s2.aoi.spatial.epsg == 4326
+            else config.s2.aoi.spatial.crs
         ),
         composite_method=config.s2.composite_method,
         dtype=config.s2.dtype,
@@ -392,9 +411,10 @@ def download_dynworld(config_path: Path) -> None:
         config.dynworld.file_naming_config,
         config.dynworld.selected_bands,
         crs=(
-            CRS.from_epsg(config.dynworld.aoi.spatial.epsg)
-            if config.dynworld.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(config.dynworld.aoi.spatial, BboxAOIConfig)
+            and config.dynworld.aoi.spatial.epsg == 4326
+            else config.dynworld.aoi.spatial.crs
         ),
         composite_method=config.dynworld.composite_method,
         dtype=config.dynworld.dtype,
@@ -443,10 +463,10 @@ def download_landsat8(config_path: Path) -> None:
         config.landsat8.file_naming_config,
         config.landsat8.selected_bands,
         crs=(
-            CRS.from_epsg(config.landsat8.aoi.spatial.epsg)
-            if config.landsat8.aoi.spatial.epsg
-            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
-            else None
+            None
+            if isinstance(config.landsat8.aoi.spatial, BboxAOIConfig)
+            and config.landsat8.aoi.spatial.epsg == 4326
+            else config.landsat8.aoi.spatial.crs
         ),
         composite_method=config.landsat8.composite_method,
         dtype=config.landsat8.dtype,
@@ -493,10 +513,10 @@ def download_palsar2(config_path: Path) -> None:
         config.palsar2.file_naming_config,
         config.palsar2.selected_bands,
         crs=(
-            CRS.from_epsg(config.palsar2.aoi.spatial.epsg)
-            if config.palsar2.aoi.spatial.epsg
-            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
-            else None
+            None
+            if isinstance(config.palsar2.aoi.spatial, BboxAOIConfig)
+            and config.palsar2.aoi.spatial.epsg == 4326
+            else config.palsar2.aoi.spatial.crs
         ),
         composite_method=config.palsar2.composite_method,
         dtype=config.palsar2.dtype,
@@ -542,10 +562,10 @@ def download_nasadem(config_path: Path) -> None:
         bounds,
         config.nasadem.file_naming_config,
         crs=(
-            CRS.from_epsg(config.nasadem.aoi.spatial.epsg)
-            if config.nasadem.aoi.spatial.epsg
-            != 4326  # Need to check why config.s1.aoi.spatial.epsg is used for all function
-            else None
+            None
+            if isinstance(config.nasadem.aoi.spatial, BboxAOIConfig)
+            and config.nasadem.aoi.spatial.epsg == 4326
+            else config.nasadem.aoi.spatial.crs
         ),
         composite_method=config.nasadem.composite_method,
         dtype=config.nasadem.dtype,
@@ -596,9 +616,10 @@ def download_custom(config_path: Path, custom_name: str) -> None:
         end_date,
         custom_config.file_naming_config,
         crs=(
-            CRS.from_epsg(custom_config.aoi.spatial.epsg)
-            if custom_config.aoi.spatial.epsg != 4326
-            else None
+            None
+            if isinstance(custom_config.aoi.spatial, BboxAOIConfig)
+            and custom_config.aoi.spatial.epsg == 4326
+            else custom_config.aoi.spatial.crs
         ),
         composite_method=custom_config.composite_method,
         dtype=custom_config.dtype,
