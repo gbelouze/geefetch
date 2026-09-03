@@ -86,12 +86,8 @@ def paris_config_geo_file_path_with_naming_config(
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
-    raw_paris_config.satellite_default.aoi.spatial.polygons = str(paris_geo_file)
-    raw_paris_config.satellite_default.aoi.spatial.left = -1
-    raw_paris_config.satellite_default.aoi.spatial.right = -1
-    raw_paris_config.satellite_default.aoi.spatial.bottom = -1
-    raw_paris_config.satellite_default.aoi.spatial.top = -1
-    raw_paris_config.satellite_default.file_naming_config = {
+    raw_paris_config.satellite_default.aoi.spatial.geofile = str(paris_geo_file)
+    raw_paris_config.satellite_default.aoi.spatial.file_naming_config = {
         "sub_root_dir": "sub_root_name",
         "tile_dir_format": "tile_dir",
         "tile_stem_format": "{bbox_name}",
@@ -106,7 +102,7 @@ def paris_naming_configs(raw_paris_config: DictConfig, tmp_path: Path, gee_proje
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
-    raw_paris_config.satellite_default.file_naming_config = {
+    raw_paris_config.satellite_default.aoi.spatial.file_naming_config = {
         "sub_root_dir": "sub_root_name",
         "tile_dir_format": "tile_dir",
     }

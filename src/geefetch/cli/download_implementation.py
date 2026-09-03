@@ -40,6 +40,19 @@ COUNTRY_BORDERS_URL = (
 )
 
 
+def get_file_naming_config(config: SatelliteDefaultConfig) -> FileNamingConfig | None:
+    """Return the file naming config for `config`, or None if there is none.
+
+    File naming lives on the spatial AOI and only makes sense for a `GeofileAOIConfig`
+    (its columns feed the name templates). For a bbox AOI there is nothing to name
+    from, so this returns None and `geefetch.data.get` falls back to its default layout.
+    """
+    spatial = config.aoi.spatial
+    if isinstance(spatial, GeofileAOIConfig):
+        return spatial.file_naming_config
+    return None
+
+
 def load_aoi_bboxes(
     config: SatelliteDefaultConfig,
 ) -> GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]]:
@@ -61,27 +74,20 @@ def load_aoi_bboxes(
     """
     match config.aoi.spatial:
         case BboxAOIConfig():
-            print("CASE BBOXAOICONFIG")  # noqa: T201
             return config.aoi.spatial.as_bbox()
         case GeofileAOIConfig():
-            print("CASE GEOFILEAOICONFIG")  # noqa: T201
-            return config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape)
+            bboxes = config.aoi.spatial.as_bboxes(config.resolution)
+            if config.aoi.spatial.file_naming_config:
+                return config.aoi.spatial.file_naming_config.get_naming_dict(
+                    bboxes=bboxes,
+                    gdf=config.aoi.spatial.gdf,
+                )
+            return bboxes
         case _:
             raise TypeError(
                 "config.aoi.spatiol should be one of `BboxAOIConfig`, `GeofileAOIConfig`. "
                 f"Found {type(config.aoi.spatial)}."
             )
-    if config.aoi.spatial.geofile:
-        bboxes = config.aoi.spatial.as_bboxes(config.resolution, config.tile_shape)
-        if config.file_naming_config:
-            return config.file_naming_config.get_naming_dict(
-                bboxes=bboxes,
-                gdf=config.aoi.spatial.polygon_gdf,
-            )
-        else:
-            return bboxes
-    else:
-        return config.aoi.spatial.as_bbox()
 
 
 def load_country_filter_polygon(country: Any) -> shapely.Polygon | shapely.MultiPolygon | None:
@@ -151,9 +157,6 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
     data_dir = Path(config.data_dir)
     bounds = load_aoi_bboxes(config.gedi_l2a)
 
-    if config.gedi_l2a.file_naming_config is None:
-        config.gedi_l2a.file_naming_config = FileNamingConfig()
-
     if vector:
         if config.gedi_l2a.selected_bands is None:
             config.gedi_l2a.selected_bands = satellites.GEDIL2Avector().default_selected_bands
@@ -169,7 +172,7 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             config.gedi_l2a.aoi.temporal.end_date
             if config.gedi_l2a.aoi.temporal is not None
             else None,
-            config.gedi_l2a.file_naming_config,
+            get_file_naming_config(config.gedi_l2a),
             config.gedi_l2a.selected_bands,
             crs=(
                 None
@@ -200,7 +203,7 @@ def download_gedi_l2a(config_path: Path, vector: bool) -> None:
             config.gedi_l2a.aoi.temporal.end_date
             if config.gedi_l2a.aoi.temporal is not None
             else None,
-            config.gedi_l2a.file_naming_config,
+            get_file_naming_config(config.gedi_l2a),
             config.gedi_l2a.selected_bands,
             crs=(
                 None
@@ -232,9 +235,6 @@ def download_gedi_l2b(config_path: Path) -> None:
     data_dir = Path(config.data_dir)
     bounds = load_aoi_bboxes(config.gedi_l2b)
 
-    if config.gedi_l2b.file_naming_config is None:
-        config.gedi_l2b.file_naming_config = FileNamingConfig()
-
     if config.gedi_l2b.selected_bands is None:
         config.gedi_l2b.selected_bands = satellites.GEDIL2Bvector().default_selected_bands
     save_config(config.gedi_l2b, config.data_dir / "gedi_l2b_vector")
@@ -246,7 +246,7 @@ def download_gedi_l2b(config_path: Path) -> None:
         if config.gedi_l2b.aoi.temporal is not None
         else None,
         config.gedi_l2b.aoi.temporal.end_date if config.gedi_l2b.aoi.temporal is not None else None,
-        config.gedi_l2b.file_naming_config,
+        get_file_naming_config(config.gedi_l2b),
         config.gedi_l2b.selected_bands,
         crs=(
             None
@@ -282,9 +282,6 @@ def download_s1(config_path: Path) -> None:
 
     bounds = load_aoi_bboxes(config.s1)
 
-    if config.s1.file_naming_config is None:
-        config.s1.file_naming_config = FileNamingConfig()
-
     assert config.s1.terrain_normalization is None or isinstance(
         config.s1.terrain_normalization, TerrainNormalizationConfig
     )
@@ -298,7 +295,7 @@ def download_s1(config_path: Path) -> None:
         bounds,
         config.s1.aoi.temporal.start_date if config.s1.aoi.temporal is not None else None,
         config.s1.aoi.temporal.end_date if config.s1.aoi.temporal is not None else None,
-        config.s1.file_naming_config,
+        get_file_naming_config(config.s1),
         config.s1.selected_bands,
         crs=(
             None
@@ -342,8 +339,6 @@ def download_s2(config_path: Path) -> None:
         config.s2.selected_bands = satellites.S2().default_selected_bands
 
     bounds = load_aoi_bboxes(config.s2)
-    if config.s2.file_naming_config is None:
-        config.s2.file_naming_config = FileNamingConfig()
 
     save_config(config.s2, config.data_dir / "s2")
 
@@ -354,7 +349,7 @@ def download_s2(config_path: Path) -> None:
         bounds,
         config.s2.aoi.temporal.start_date if config.s2.aoi.temporal is not None else None,
         config.s2.aoi.temporal.end_date if config.s2.aoi.temporal is not None else None,
-        config.s2.file_naming_config,
+        get_file_naming_config(config.s2),
         config.s2.selected_bands,
         crs=(
             None
@@ -395,9 +390,6 @@ def download_dynworld(config_path: Path) -> None:
     data_dir = Path(config.data_dir)
     bounds = load_aoi_bboxes(config.dynworld)
 
-    if config.dynworld.file_naming_config is None:
-        config.dynworld.file_naming_config = FileNamingConfig()
-
     save_config(config.dynworld, config.data_dir / "dyn_world")
 
     data.get.download_dynworld(
@@ -408,7 +400,7 @@ def download_dynworld(config_path: Path) -> None:
         if config.dynworld.aoi.temporal is not None
         else None,
         config.dynworld.aoi.temporal.end_date if config.dynworld.aoi.temporal is not None else None,
-        config.dynworld.file_naming_config,
+        get_file_naming_config(config.dynworld),
         config.dynworld.selected_bands,
         crs=(
             None
@@ -447,9 +439,6 @@ def download_landsat8(config_path: Path) -> None:
 
     bounds = load_aoi_bboxes(config.landsat8)
 
-    if config.landsat8.file_naming_config is None:
-        config.landsat8.file_naming_config = FileNamingConfig()
-
     save_config(config.landsat8, config.data_dir / "landsat8")
 
     data.get.download_landsat8(
@@ -460,7 +449,7 @@ def download_landsat8(config_path: Path) -> None:
         if config.landsat8.aoi.temporal is not None
         else None,
         config.landsat8.aoi.temporal.end_date if config.landsat8.aoi.temporal is not None else None,
-        config.landsat8.file_naming_config,
+        get_file_naming_config(config.landsat8),
         config.landsat8.selected_bands,
         crs=(
             None
@@ -499,9 +488,6 @@ def download_palsar2(config_path: Path) -> None:
     data_dir = Path(config.data_dir)
     bounds = load_aoi_bboxes(config.palsar2)
 
-    if config.palsar2.file_naming_config is None:
-        config.palsar2.file_naming_config = FileNamingConfig()
-
     save_config(config.palsar2, config.data_dir / "palsar2")
     data_dir = Path(config.data_dir)
     data.get.download_palsar2(
@@ -510,7 +496,7 @@ def download_palsar2(config_path: Path) -> None:
         bounds,
         config.palsar2.aoi.temporal.start_date if config.palsar2.aoi.temporal is not None else None,
         config.palsar2.aoi.temporal.end_date if config.palsar2.aoi.temporal is not None else None,
-        config.palsar2.file_naming_config,
+        get_file_naming_config(config.palsar2),
         config.palsar2.selected_bands,
         crs=(
             None
@@ -548,8 +534,6 @@ def download_nasadem(config_path: Path) -> None:
     data_dir = Path(config.data_dir)
     bounds = load_aoi_bboxes(config.nasadem)
 
-    if config.nasadem.file_naming_config is None:
-        config.nasadem.file_naming_config = FileNamingConfig()
     save_config(config.nasadem, config.data_dir / "nasadem")
     if config.nasadem.aoi.temporal is not None:
         log.warning(
@@ -560,7 +544,7 @@ def download_nasadem(config_path: Path) -> None:
         data_dir,
         config.nasadem.gee.ee_project_ids,
         bounds,
-        config.nasadem.file_naming_config,
+        get_file_naming_config(config.nasadem),
         crs=(
             None
             if isinstance(config.nasadem.aoi.spatial, BboxAOIConfig)
@@ -594,9 +578,6 @@ def download_custom(config_path: Path, custom_name: str) -> None:
     )
     bounds = load_aoi_bboxes(custom_config)
 
-    if custom_config.file_naming_config is None:
-        custom_config.file_naming_config = FileNamingConfig()
-
     save_config(custom_config, config.data_dir / satellite_custom.name)
     data_dir = Path(config.data_dir)
 
@@ -614,7 +595,7 @@ def download_custom(config_path: Path, custom_name: str) -> None:
         bounds,
         start_date,
         end_date,
-        custom_config.file_naming_config,
+        get_file_naming_config(custom_config),
         crs=(
             None
             if isinstance(custom_config.aoi.spatial, BboxAOIConfig)

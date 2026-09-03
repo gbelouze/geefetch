@@ -239,8 +239,11 @@ def download(
 
     check_clean = check_clean and not as_time_series
     tiler = Tiler()
-    file_naming_config: FileNamingConfig = satellite_download_kwargs.get(
-        "file_naming_config", FileNamingConfig()
+    # `file_naming_config` is a naming concern only (resolved here, used by the
+    # tracker); pop it so it isn't forwarded as a spurious kwarg to `data.download`.
+    # A missing or `None` value means "no custom naming" -> use the defaults.
+    file_naming_config: FileNamingConfig = (
+        satellite_download_kwargs.pop("file_naming_config", None) or FileNamingConfig()
     )
     tracker = TileTracker(satellite, data_dir, file_naming_config)
     with default_bar() as progress:
@@ -384,7 +387,7 @@ def download_gedi_l2a_raster(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -410,7 +413,8 @@ def download_gedi_l2a_raster(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -458,7 +462,7 @@ def download_gedi_l2a_vector(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     tile_shape: int | None = 500,
@@ -483,7 +487,8 @@ def download_gedi_l2a_vector(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -521,7 +526,7 @@ def download_gedi_l2b_vector(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     tile_shape: int | None = 500,
@@ -546,7 +551,8 @@ def download_gedi_l2b_vector(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -584,7 +590,7 @@ def download_s1(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -616,7 +622,8 @@ def download_s1(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -700,7 +707,7 @@ def download_s2(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -733,7 +740,8 @@ def download_s2(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -814,7 +822,7 @@ def download_dynworld(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -842,7 +850,8 @@ def download_dynworld(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -901,7 +910,7 @@ def download_landsat8(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
@@ -930,7 +939,8 @@ def download_landsat8(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -992,7 +1002,7 @@ def download_palsar2(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 30,
@@ -1023,7 +1033,8 @@ def download_palsar2(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -1090,7 +1101,7 @@ def download_nasadem(
     data_dir: Path,
     ee_project_ids: str | list[str],
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -1114,7 +1125,8 @@ def download_nasadem(
     bbox : GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str,Any]]
         The box defining the region of interest
         or the list of GeoBondingBox which do not need to be tiled.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None
@@ -1174,7 +1186,7 @@ def download_custom(
     bbox: GeoBoundingBox | list[GeoBoundingBox] | dict[GeoBoundingBox, dict[str, Any]],
     start_date: str | None,
     end_date: str | None,
-    file_naming_config: FileNamingConfig,
+    file_naming_config: FileNamingConfig | None = None,
     selected_bands: list[str] | None = None,
     crs: CRS | None = None,
     resolution: int = 10,
@@ -1203,7 +1215,8 @@ def download_custom(
         The start date of the time period of interest.
     end_date : str | None
         The end date of the time period of interest.
-    file_naming_config : FileNamingConfig
+    file_naming_config : FileNamingConfig | None
+        Custom file/directory naming. If None, `geefetch` uses its default layout.
     selected_bands : list[str] | None
         The bands to download. If None, the default satellite bands are used.
     crs : CRS | None

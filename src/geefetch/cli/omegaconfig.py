@@ -101,102 +101,6 @@ class BboxAOIConfig:
 
 
 @dataclass
-class GeofileAOIConfig:
-    """Configuration of the spatial area of interest.
-
-    Attributes
-    ----------
-    geofile : Path
-        Path to a geofile readable by GeoPandas that contains one or more polygons
-        that define the AOI.
-    """
-
-    geofile: Path
-
-    def __after_init__(self):
-        self._gdf = None
-
-    @property
-    def gdf(self) -> gpd.GeoDataFrame:
-        if self._gdf is None:
-            self._gdf = gpd.read_file(self.geofile)
-        return self._gdf
-
-    @property
-    def crs(self) -> pyproj.CRS:
-        return self.gdf.crs
-
-    def as_bboxes(self, scale: int, tile_shape: int | None) -> list[GeoBoundingBox]:
-        def snap(row):
-            left, bottom, right, top = row
-
-            left = np.floor(left / scale) * scale
-            bottom = np.floor(bottom / scale) * scale
-            if tile_shape:
-                right = left + tile_shape * scale
-                top = bottom + tile_shape * scale
-            else:
-                right = np.floor(right / scale) * scale
-                top = np.floor(top / scale) * scale
-
-            return left, bottom, right, top
-
-        snapped = np.apply_along_axis(snap, 1, self.gdf.bounds.to_numpy())
-        return [
-            GeoBoundingBox(left, bottom, right, top, self.gdf.crs)
-            for left, bottom, right, top in snapped
-        ]
-
-
-SpatialAOIConfig = BboxAOIConfig | GeofileAOIConfig
-
-
-@dataclass
-class TemporalAOIConfig:
-    """Configuration of the temporal range of interest.
-
-    Attributes
-    ----------
-    start_date : str
-        Start date in 'YYYY-MM-DD' format.
-    end_date : str
-        End date in 'YYYY-MM-DD' format.
-    """
-
-    start_date: str
-    end_date: str
-
-
-@dataclass
-class AOIConfig:  # noqa: 605
-    """Configuration of a spatial/temporal Area of Interest (AOI).
-
-    Attributes
-    ----------
-    spatial : SpatialAOIConfig
-    temporal : TemporalAOIConfig | None
-    country : str | list[str] | None
-        The name of one or more countries. If given, spatial AOI is further restricted to its area
-        that intersects one of the country boundaries. Defaults to None.
-
-        .. note:: See https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
-            for possible values
-    """
-
-    spatial: SpatialAOIConfig
-    temporal: TemporalAOIConfig | None
-
-    # The name of a line in geopandas.datasets "naturalearth_lowres"
-    # ..see also: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
-    # Used to further filter the AOI to a country boundaries
-    country: str | list[str] | None = None
-
-
-# `spatial` and `country` are union-typed and can't be handled by OmegaConf
-# directly; they're relaxed to `Any` a few classes below -- see `UNION_FIELDS`.
-
-
-@dataclass
 class FileNamingConfig:
     """The structure type for the naming configuration of the downloaded files.
     With this config, we can format downloaded data with the following structure:
@@ -264,6 +168,101 @@ class FileNamingConfig:
 
 
 @dataclass
+class GeofileAOIConfig:
+    """Configuration of the spatial area of interest.
+
+    Attributes
+    ----------
+    geofile : Path
+        Path to a geofile readable by GeoPandas that contains one or more polygons
+        that define the AOI.
+    file_naming_config : FileNamingConfig | None
+        File naming configuration. Defaults to None.
+    """
+
+    geofile: Path
+    file_naming_config: FileNamingConfig | None = None
+
+    def __after_init__(self):
+        self._gdf = None
+
+    @property
+    def gdf(self) -> gpd.GeoDataFrame:
+        if self._gdf is None:
+            self._gdf = gpd.read_file(self.geofile)
+        return self._gdf
+
+    @property
+    def crs(self) -> pyproj.CRS:
+        return self.gdf.crs
+
+    def as_bboxes(self, scale: int) -> list[GeoBoundingBox]:
+        def snap(row):
+            left, bottom, right, top = row
+
+            left = np.floor(left / scale) * scale
+            bottom = np.floor(bottom / scale) * scale
+            right = np.ceil(right / scale) * scale
+            top = np.ceil(top / scale) * scale
+
+            return left, bottom, right, top
+
+        snapped = np.apply_along_axis(snap, 1, self.gdf.bounds.to_numpy())
+        return [
+            GeoBoundingBox(left, bottom, right, top, self.gdf.crs)
+            for left, bottom, right, top in snapped
+        ]
+
+
+SpatialAOIConfig = BboxAOIConfig | GeofileAOIConfig
+
+
+@dataclass
+class TemporalAOIConfig:
+    """Configuration of the temporal range of interest.
+
+    Attributes
+    ----------
+    start_date : str
+        Start date in 'YYYY-MM-DD' format.
+    end_date : str
+        End date in 'YYYY-MM-DD' format.
+    """
+
+    start_date: str
+    end_date: str
+
+
+@dataclass
+class AOIConfig:  # noqa: 605
+    """Configuration of a spatial/temporal Area of Interest (AOI).
+
+    Attributes
+    ----------
+    spatial : SpatialAOIConfig
+    temporal : TemporalAOIConfig | None
+    country : str | list[str] | None
+        The name of one or more countries. If given, spatial AOI is further restricted to its area
+        that intersects one of the country boundaries. Defaults to None.
+
+        .. note:: See https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
+            for possible values
+    """
+
+    spatial: SpatialAOIConfig
+    temporal: TemporalAOIConfig | None
+
+    # The name of a line in geopandas.datasets "naturalearth_lowres"
+    # ..see also: https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
+    # Used to further filter the AOI to a country boundaries
+    country: str | list[str] | None = None
+
+
+# `spatial` and `country` are union-typed and can't be handled by OmegaConf
+# directly; they're relaxed to `Any` a few classes below -- see `UNION_FIELDS`.
+
+
+@dataclass
 class SatelliteDefaultConfig:
     """The structured type for a GeeFetch default satellite configuration
 
@@ -294,8 +293,6 @@ class SatelliteDefaultConfig:
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
-    file_naming_config : FileNamingConfig | None
-        File naming configuration. Defaults to None.
     """
 
     aoi: AOIConfig
@@ -307,7 +304,6 @@ class SatelliteDefaultConfig:
     selected_bands: list[str] | None = None
     spectral_indices: list[str] | None = None
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR
-    file_naming_config: FileNamingConfig | None = None
 
 
 @dataclass
@@ -804,5 +800,6 @@ def load(path: Path, add_missing_sats: bool = True) -> GeefetchConfig:
     if merged.satellite_default.selected_bands is not None:
         raise ValueError("Selected bands should not be specified for default satellite.")
     result: GeefetchConfig = OmegaConf.to_object(merged)  # type: ignore[invalid-assignment, unused-ignore]
+
     _resolve_config_unions(result)
     return result
