@@ -1,5 +1,5 @@
 import tempfile
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from pathlib import Path
 
 import geopandas as gpd
@@ -21,7 +21,7 @@ from geefetch.cli.download_implementation import (
 )
 from geefetch.cli.omegaconfig import SpeckleFilterConfig, load
 from geefetch.data.process import tif_is_clean
-from geefetch.utils.enums import CompositeMethod, P2Orbit, ResamplingMethod, S1Orbit
+from geefetch.utils.enums import CompositeMethod, DType, P2Orbit, ResamplingMethod, S1Orbit
 
 
 @pytest.fixture
@@ -488,3 +488,160 @@ class TestResamplingMethods:
                 f"30m resolution pixel size ({res30_pixel_size_y}) should be"
                 f"larger than 10m resolution pixel size ({res10_pixel_size_y})"
             )
+
+
+# Requesting spectral indices must not change the other downloaded bands.
+#
+# Time series cases are expected to fail (issue #64): get_time_series() only applies
+# get_col()'s processing (cloud mask, BRDF correction, ...) when is_preprocessed is True,
+# so "no indices" and "with indices" take different code paths. Left failing on purpose;
+# s1-uint16-timeseries runs by default to keep it visible.
+#
+# Only s1 runs by default; the other satellites need --run-slow.
+SPECTRAL_INDEX_CASES: dict[str, tuple[Callable[[Path], None], list[str]]] = {
+    "s1": (download_s1, ["RFDI", "DpRVIVV"]),
+    "s2": (download_s2, ["NDVI", "NBR"]),
+    "landsat8": (download_landsat8, ["NDVI", "NBR"]),
+    "palsar2": (download_palsar2, ["RFDI", "DpRVIHH"]),
+}
+
+
+def _band_arrays_by_name(tif_path: Path) -> dict[str, np.ndarray]:
+    """Read a downloaded tif's bands, keyed by their `name` tag."""
+    with rio.open(tif_path) as ds:
+        bands = {}
+        for band_idx in range(1, ds.count + 1):
+            name = ds.tags(band_idx).get("name")
+            if name is not None:
+                bands[name] = ds.read(band_idx)
+        return bands
+
+
+def _band_arrays_by_file(satellite_dir: Path) -> dict[str, dict[str, np.ndarray]]:
+    """Map every downloaded tif under `satellite_dir`, keyed by its path relative to it, to
+    its bands (mosaic downloads produce a single tif, time series downloads produce one per
+    image)."""
+    return {
+        str(tif_path.relative_to(satellite_dir)): _band_arrays_by_name(tif_path)
+        for tif_path in sorted(satellite_dir.rglob("*.tif"))
+    }
+
+
+class TestSpectralIndicesDontChangeOtherBands:
+    @pytest.mark.parametrize(
+        ("satellite", "dtype", "composite_method"),
+        [
+            pytest.param("s1", DType.Float32, CompositeMethod.MEAN, id="s1-float32-mosaic"),
+            pytest.param("s1", DType.UInt16, CompositeMethod.TIMESERIES, id="s1-uint16-timeseries"),
+            pytest.param(
+                "s2",
+                DType.Float32,
+                CompositeMethod.MEAN,
+                id="s2-float32-mosaic",
+                marks=pytest.mark.slow,
+            ),
+            pytest.param(
+                "s2",
+                DType.UInt16,
+                CompositeMethod.TIMESERIES,
+                id="s2-uint16-timeseries",
+                marks=pytest.mark.slow,
+            ),
+            pytest.param(
+                "landsat8",
+                DType.Float32,
+                CompositeMethod.MEAN,
+                id="landsat8-float32-mosaic",
+                marks=[
+                    pytest.mark.slow,
+                    pytest.mark.xfail(
+                        reason="SR_B2 differs by up to ~0.18% when spectral_indices is "
+                        "requested, cause unknown: "
+                        "https://github.com/gbelouze/geefetch/issues/107",
+                        strict=False,
+                    ),
+                ],
+            ),
+            pytest.param(
+                "landsat8",
+                DType.UInt16,
+                CompositeMethod.TIMESERIES,
+                id="landsat8-uint16-timeseries",
+                marks=pytest.mark.slow,
+            ),
+            pytest.param(
+                "palsar2",
+                DType.Float32,
+                CompositeMethod.MEAN,
+                id="palsar2-float32-mosaic",
+                marks=pytest.mark.slow,
+            ),
+            pytest.param(
+                "palsar2",
+                DType.UInt16,
+                CompositeMethod.TIMESERIES,
+                id="palsar2-uint16-timeseries",
+                marks=pytest.mark.slow,
+            ),
+        ],
+    )
+    def test_spectral_indices_dont_change_other_bands(
+        self,
+        satellite: str,
+        dtype: DType,
+        composite_method: CompositeMethod,
+        raw_paris_config: DictConfig,
+        tmp_path: Path,
+        gee_project_id: str,
+    ) -> None:
+        download_fn, index_names = SPECTRAL_INDEX_CASES[satellite]
+
+        def write_config(data_dir: Path, spectral_indices: list[str] | None) -> Path:
+            config = raw_paris_config.copy()
+            config.data_dir = str(data_dir)
+            config.satellite_default.gee.ee_project_ids = [gee_project_id]
+            config.satellite_default.dtype = dtype
+            config.satellite_default.composite_method = composite_method
+            if spectral_indices is not None:
+                config.satellite_default.spectral_indices = spectral_indices
+            conf_path = data_dir / "config.yaml"
+            conf_path.write_text(OmegaConf.to_yaml(config))
+            return conf_path
+
+        without_dir = tmp_path / "without"
+        with_dir = tmp_path / "with"
+        without_dir.mkdir()
+        with_dir.mkdir()
+
+        download_fn(write_config(without_dir, None))
+        download_fn(write_config(with_dir, index_names))
+
+        files_without = _band_arrays_by_file(without_dir / satellite)
+        files_with = _band_arrays_by_file(with_dir / satellite)
+
+        assert files_without, "no files downloaded in the reference (no index) run"
+        assert set(files_without) <= set(
+            files_with
+        ), "requesting indices made a downloaded file disappear"
+
+        for rel_path, bands_without in files_without.items():
+            bands_with = files_with[rel_path]
+            assert set(index_names) <= set(
+                bands_with
+            ), f"{rel_path}: requested indices are missing from the download"
+            assert set(bands_without) <= set(
+                bands_with
+            ), f"{rel_path}: a non-index band disappeared when requesting indices"
+            for band_name, data_without in bands_without.items():
+                # rtol/atol allow for GEE's own floating-point noise: the composite is
+                # recomputed from scratch for each of the two downloads, and summation
+                # order in a distributed reducer (e.g. the MEAN compositor) isn't
+                # guaranteed bit-stable across separate evaluations of the same graph,
+                # regardless of whether extra bands are requested.
+                np.testing.assert_allclose(
+                    data_without,
+                    bands_with[band_name],
+                    rtol=1e-4,
+                    atol=1e-4,
+                    err_msg=f"{rel_path}: band {band_name!r} changed when requesting {index_names}",
+                )
