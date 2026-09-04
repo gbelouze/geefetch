@@ -94,7 +94,12 @@ class SatelliteABC(ABC):
     def __str__(self) -> str:
         return self.name
 
-    def convert_dtype(self, im: Image, dtype: DType) -> Image:
+    def convert_dtype(
+        self,
+        im: Image,
+        dtype: DType,
+        extra_ranges: dict[str, tuple[float, float] | None] | None = None,
+    ) -> Image:
         """Convert the image to the specified data type, applying the pixel range.
 
         Parameters
@@ -103,6 +108,11 @@ class SatelliteABC(ABC):
             The image to convert.
         dtype : DType
             The target data type.
+        extra_ranges : dict[str, tuple[float, float] | None] | None
+            Value ranges for bands not covered by `self.pixel_range`, e.g. computed
+            spectral indices, keyed by band name. A `None` range leaves that band
+            untouched by the dtype conversion (only safe for `DType.Float32`).
+            Defaults to None.
 
         Returns
         -------
@@ -111,6 +121,15 @@ class SatelliteABC(ABC):
         """
 
         pixel_range = self.pixel_range
+        if extra_ranges:
+            index_names = set(extra_ranges)
+            ranged_extras = {k: v for k, v in extra_ranges.items() if v is not None}
+            if isinstance(pixel_range, tuple):
+                band_names_: list[str] = im.bandNames().getInfo()  # type: ignore[assignment]
+                pixel_range = {b: pixel_range for b in band_names_ if b not in index_names}
+            else:
+                pixel_range = {k: v for k, v in pixel_range.items() if k not in index_names}
+            pixel_range = {**pixel_range, **ranged_extras}
         match pixel_range:
             case tuple():
                 min_p, max_p = pixel_range
