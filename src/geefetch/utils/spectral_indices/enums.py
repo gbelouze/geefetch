@@ -43,7 +43,7 @@ LANDSAT8_MAPPING = {
     "B": "SR_B2",
     "G": "SR_B3",
     "R": "SR_B4",
-    "N2": "SR_B5",
+    "N": "SR_B5",
     "S1": "SR_B6",
     "S2": "SR_B7",
 }
