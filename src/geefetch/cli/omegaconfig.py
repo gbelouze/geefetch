@@ -101,73 +101,6 @@ class BboxAOIConfig:
 
 
 @dataclass
-class FileNamingConfig:
-    """The structure type for the naming configuration of the downloaded files.
-    With this config, we can format downloaded data with the following structure:
-
-    data_dir / sub_root_dir / tile_dir_format / tile_stem_format
-
-    data_dir is pulled from the GeeFetchConfig.
-    The sub_root_dir is expected to be a string with no placeholders.
-
-    If you are downloading data with a geo file as aoi configuration,
-    you can use any parameter from the file to customize your tile names
-    and their directories (if you want them in seperate directories that is.)
-
-    tile_dir_format and tile_stem_format can be passed as parametrized strings.
-    The variables passed as string parameters should share names with the geofiles parameters.
-
-    Example
-    -------
-    tile_dir_format = "Continent-{continent}|UTM_Zone-{utm}"
-    tile_stem_format = "{id}"
-
-    For the formats above to work,
-    the geo file passed in SpatialAOI should figure continent, utm and id columns.
-
-
-    Attributes
-    ----------
-    sub_root_dir: str | None
-        Subroot directory. Defaults to None
-    tile_dir_format: str | None
-        Tile directory format. Defaults to None
-    tile_stem_format: str | None
-        Tile stem format. Defaults to None
-    """
-
-    sub_root_dir: str | None = None
-    tile_dir_format: str | None = None
-    tile_stem_format: str | None = None
-
-    def get_naming_dict(
-        self, bboxes: list[GeoBoundingBox], gdf: gpd.GeoDataFrame
-    ) -> dict[GeoBoundingBox, dict[str, Any]]:
-        """
-
-        Parameters
-        ----------
-        bboxes : list[GeoBoundingBox]
-        gdf : gpd.GeoDataFrame
-        Returns
-        -------
-        dict[GeoBoundingBox, dict[str, Any]]
-        """
-        # TODO: fix naming config without tile naming as it breaks geofile loading
-        # TODO: Fix the fact that if the gdf or list of bboxes
-        # change in order the dictionary won't properly match stuff
-        # This function could actually be merged with the spatial AOI
-        # to have the naming_properties extracted with the GeoBounding
-        # boxes row per row, that way there is no risk to mismatch bounding boxes and gdf rows
-        parametrized_string = (self.tile_dir_format or "") + (self.tile_stem_format or "")
-        naming_properties = list(
-            {var for _, var, _, _ in Formatter().parse(parametrized_string) if var}
-        )
-        values = gdf[naming_properties].to_dict(orient="records")
-        return dict(zip(bboxes, values, strict=False))
-
-
-@dataclass
 class GeofileAOIConfig:
     """Configuration of the spatial area of interest.
 
@@ -176,15 +109,50 @@ class GeofileAOIConfig:
     geofile : Path
         Path to a geofile readable by GeoPandas that contains one or more polygons
         that define the AOI.
-    file_naming_config : FileNamingConfig | None
-        File naming configuration. Defaults to None.
+    file_stem_format: str | None
+        File stem format.
+        This string is expected to be parametrized with the keys matching features of the geofile.
+        If it isn't parametrized, it will be set to None and the default file naming will be used.
+        Warning ! If this parameter is used you must be sure your geofile does not have duplicates
+        of the features you use. In such a case you will get race conditions as multiple workers
+        will try writing to the same file.
+        Defaults to None.
+        Example:
+        geofile:
+            | id   | Country | Geometry |
+          0 |- 100 | France  | Poly     |
+          1 |- 101 | France  | Poly     |
+          2 |- 235 | Swiss   | Poly     |
+
+        tile_stem_format = "{id}"
+            |- satellite_dir/id_100.tif
+            |- satellite_dir/id_101.tif
+            |- satellite_dir/id_235.tif
+
+        tile_stem_format = "{country}/{id}"
+            |- satellite_dir/France/id_100.tif
+            |- satellite_dir/France/id_101.tif
+            |- satellite_dir/Swiss/id_235.tif
+
+        tile_stem_format = "{country}"
+            |- satellite_dir/France.tif
+            |- satellite_dir/Swiss.tif
+
+        tile_stem_format = "not_parametrized"
+            |- satellite_dir/{satellite_name}_{CRS}_{bbox.left:.0f}_{bbox.bottom:.0f}.tif
+            |- satellite_dir/{satellite_name}_{CRS}_{bbox.left:.0f}_{bbox.bottom:.0f}.tif
+            |- satellite_dir/{satellite_name}_{CRS}_{bbox.left:.0f}_{bbox.bottom:.0f}.tif
     """
 
     geofile: Path
-    file_naming_config: FileNamingConfig | None = None
+    file_stem_format: str | None = None
 
-    def __after_init__(self):
+    def __post_init__(self):
         self._gdf = None
+        if self.file_stem_format is not None and not any(
+            t[1] is not None for t in Formatter().parse(self.file_stem_format)
+        ):
+            self.file_stem_format = None
 
     @property
     def gdf(self) -> gpd.GeoDataFrame:
@@ -197,21 +165,47 @@ class GeofileAOIConfig:
         return self.gdf.crs
 
     def as_bboxes(self, scale: int) -> list[GeoBoundingBox]:
-        def snap(row):
-            left, bottom, right, top = row
+        bboxes = []
+        for left, bottom, right, top in self.gdf.bounds.to_numpy():
+            bbox = GeoBoundingBox(left, bottom, right, top, self.crs)
+            if self.crs == 4326:
+                bbox = bbox.transform(list(bbox.to_utms())[0].crs)
+            bbox = bbox.with_(
+                left=np.floor(left / scale) * scale,
+                bottom=np.floor(bottom / scale) * scale,
+                right=np.ceil(right / scale) * scale,
+                top=np.ceil(top / scale) * scale,
+            )
+            bboxes.append(bbox)
+        return bboxes
 
-            left = np.floor(left / scale) * scale
-            bottom = np.floor(bottom / scale) * scale
-            right = np.ceil(right / scale) * scale
-            top = np.ceil(top / scale) * scale
+    def get_polygon_stems(self) -> list[str | None]:
+        """This function provides the list of dictionaries that map the paraetrized strings
+        of tile_dir_format and tile_stem_format to their values extracted from the gdf.
 
-            return left, bottom, right, top
+        Returns
+        -------
+        list[str | None] : List of file stems to be used when writing tiles to disk. List of Nones
+            if no file_stem_format parameter is given.
 
-        snapped = np.apply_along_axis(snap, 1, self.gdf.bounds.to_numpy())
-        return [
-            GeoBoundingBox(left, bottom, right, top, self.gdf.crs)
-            for left, bottom, right, top in snapped
-        ]
+        """
+        if self.file_stem_format is None:
+            return [None] * len(self.gdf)
+        parametrized_string = self.file_stem_format
+        naming_properties = list(
+            {var for _, var, _, _ in Formatter().parse(parametrized_string) if var}
+        )
+        stems: list[str | None] = []
+        for file_stem_kwargs in self.gdf[naming_properties].to_dict(orient="records"):
+            try:
+                stems.append(self.file_stem_format.format(**file_stem_kwargs))
+            except KeyError as e:
+                msg = (
+                    f"Couldn't format tile stem,"
+                    f"parametrized string keys mismatch the geo file features. {e}"
+                )
+                log.error(msg, e)
+        return stems
 
 
 SpatialAOIConfig = BboxAOIConfig | GeofileAOIConfig
@@ -234,7 +228,7 @@ class TemporalAOIConfig:
 
 
 @dataclass
-class AOIConfig:  # noqa: 605
+class AOIConfig:  # noqa: F605
     """Configuration of a spatial/temporal Area of Interest (AOI).
 
     Attributes
