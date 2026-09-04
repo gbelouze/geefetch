@@ -96,7 +96,7 @@ class LazyAllSpectralIndices(Mapping[str, SpectralIndexItem]):
         return self._all_spectral_indices
 
     def __getitem__(self, k: str) -> SpectralIndexItem:
-        ret = self.all_spectral_indices[k]
+        ret = self.all_spectral_indices[k].copy()
         ret["formula"] = ret["formula"].format(**CONSTANT_MAPPING)
         ret["denominator"] = (
             ret["denominator"].format(**CONSTANT_MAPPING)
