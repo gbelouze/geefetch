@@ -31,7 +31,6 @@ class Palsar2(SatelliteABC):
         "HH",
         "HV",
     ]
-    spectral_indices: list[SpectralIndex] | None = None
 
     @property
     def bands(self) -> list[str]:
@@ -53,16 +52,14 @@ class Palsar2(SatelliteABC):
     def is_raster(self) -> bool:
         return True
 
-    @property
-    def is_preprocessed(self):
-        return self.spectral_indices is not None
-
     def get_col(
         self,
         aoi: GeoBoundingBox,
         start_date: str | None = None,
         end_date: str | None = None,
         orbit: P2Orbit = P2Orbit.ASCENDING,
+        *,
+        spectral_indices: list[SpectralIndex] | None = None,
     ) -> ImageCollection:
         """Get Palsar 2 collection.
 
@@ -76,6 +73,9 @@ class Palsar2(SatelliteABC):
             End date in "YYYY-MM-DD" format.
         orbit : P2Orbit
             The orbit used to filter the collection before mosaicking.
+        spectral_indices : list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
 
         Returns
         -------
@@ -90,7 +90,7 @@ class Palsar2(SatelliteABC):
             Filter.eq("PassDirection", orbit.value)
         )
 
-        for index in self.spectral_indices or []:
+        for index in spectral_indices or []:
             palsar2_col = index.add_spectral_index_band_to_image_collection(palsar2_col)
         return palsar2_col  # type: ignore[no-any-return]
 
@@ -140,19 +140,24 @@ class Palsar2(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        self.spectral_indices = spectral_indices
-        p2_col = self.get_col(aoi, start_date, end_date, orbit)
+
+        # TODO: spectral_indices currently reroutes the per-feature loop below to resolve
+        # images by `system:index` instead of asset id. We haven't confirmed yet whether
+        # that reroute is actually necessary.
+        is_preprocessed = spectral_indices is not None
+
+        p2_col = self.get_col(aoi, start_date, end_date, orbit, spectral_indices=spectral_indices)
 
         # get the info of the collection
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Palsar-2 image.Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Palsar-2 image. Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
         images = {}
         for feature in info["features"]:  # type: ignore[index]
             sys_index = feature.get("properties").get("system:index")
-            if self.is_preprocessed:
+            if is_preprocessed:
                 im = p2_col.filter(Filter.eq("system:index", sys_index)).first()
                 footprint = PatchedBaseImage.from_id(
                     f"JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/{sys_index}"
@@ -167,7 +172,7 @@ class Palsar2(SatelliteABC):
                 )
             if Polygon(footprint["coordinates"][0]).contains(aoi.to_shapely_polygon()):
                 im = self.before_composite(im, resampling, aoi, resolution, refined_lee)
-                im = self.after_composite(im, dtype)
+                im = self.after_composite(im, dtype, spectral_indices=spectral_indices)
                 images[sys_index.removeprefix("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR/")] = (
                     PatchedBaseImage(im)
                 )
@@ -222,8 +227,7 @@ class Palsar2(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        self.spectral_indices = spectral_indices
-        p2_col = self.get_col(aoi, start_date, end_date, orbit)
+        p2_col = self.get_col(aoi, start_date, end_date, orbit, spectral_indices=spectral_indices)
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
         if n_images > 500:
@@ -232,7 +236,7 @@ class Palsar2(SatelliteABC):
                 "Expect slower download time."
             )
         if n_images == 0:
-            log.error(f"Found 0 Palsar-2 image.Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Palsar-2 image. Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Palsar-2 image.")
         log.debug(f"Palsar-2 mosaicking with {n_images} images.")
         p2_col = p2_col.map(
@@ -240,7 +244,7 @@ class Palsar2(SatelliteABC):
         )
         bounds = aoi.transform(WGS84).to_ee_geometry()
         p2_im = composite_method.transform(p2_col).clip(bounds)
-        p2_im = self.after_composite(p2_im, dtype)
+        p2_im = self.after_composite(p2_im, dtype, spectral_indices=spectral_indices)
         p2_im = PatchedBaseImage(p2_im)
         return DownloadableGeedimImage(p2_im)
 
@@ -269,12 +273,19 @@ class Palsar2(SatelliteABC):
         im = self.resample_reproject_clip(im, aoi, resampling, scale)
         return im
 
-    def after_composite(self, im: Image, dtype: DType, log_scale: bool = True) -> Image:
+    def after_composite(
+        self,
+        im: Image,
+        dtype: DType,
+        spectral_indices: list[SpectralIndex] | None = None,
+        log_scale: bool = True,
+    ) -> Image:
         # Convert from power to gamma0:
         if log_scale:
             im = im.log10().multiply(10).subtract(83)
         # Apply pixel range and dtype
-        im = self.convert_dtype(im, dtype)
+        extra_ranges = {idx.name: idx.pixel_range for idx in spectral_indices or []} or None
+        im = self.convert_dtype(im, dtype, extra_ranges=extra_ranges)
         return im
 
 
