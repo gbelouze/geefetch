@@ -417,9 +417,9 @@ class Landsat8(SatelliteABC):
         for kwarg in kwargs:
             log.warning(f"Argument {kwarg} is ignored.")
 
-        # TODO: spectral_indices currently reroutes the per-feature loop below to resolve
-        # images by `system:index` instead of asset id. We haven't confirmed yet whether
-        # that reroute is actually necessary.
+        # Once an index band is computed (addBands), the image is no longer bound to a
+        # single raw asset: system:footprint isn't recomputed for it, so the loop below
+        # resolves it by system:index and refetches the footprint from the raw asset.
         is_preprocessed = spectral_indices is not None
         extra_ranges = {idx.name: idx.pixel_range for idx in spectral_indices or []} or None
 

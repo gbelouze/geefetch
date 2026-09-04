@@ -181,9 +181,10 @@ class S1(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        # TODO: any of these three preprocessing options currently reroutes the per-feature
-        # loop below to resolve images by `system:index` instead of asset id. We haven't
-        # confirmed yet whether that reroute is actually necessary for spectral indices.
+        # Once any of these three options computes a new image (addBands, filters, ...),
+        # it's no longer bound to a single raw asset: system:footprint isn't recomputed for
+        # it, so the loop below resolves it by system:index and refetches the footprint
+        # from the raw asset instead.
         is_preprocessed = any(
             [
                 speckle_filter_config is not None,
