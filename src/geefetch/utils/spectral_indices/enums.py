@@ -86,7 +86,7 @@ class SpectralIndexItem(TypedDict):
 class LazyAllSpectralIndices(Mapping[str, SpectralIndexItem]):
     json_data_path = Path(__file__).parent / "spectral-indices-dict.json"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._all_spectral_indices: dict[str, SpectralIndexItem] | None = None
 
     @property
