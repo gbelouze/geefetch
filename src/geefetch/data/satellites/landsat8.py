@@ -319,8 +319,6 @@ class Landsat8(SatelliteABC):
         "SR_B5",
     ]
 
-    spectral_indices: list[SpectralIndex] | None = None
-
     @property
     def bands(self) -> list[str]:
         return self._bands
@@ -341,12 +339,13 @@ class Landsat8(SatelliteABC):
     def is_raster(self) -> bool:
         return True
 
-    @property
-    def is_preprocessed(self):
-        return self.spectral_indices is not None
-
     def get_col(
-        self, aoi: GeoBoundingBox, start_date: str | None = None, end_date: str | None = None
+        self,
+        aoi: GeoBoundingBox,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        *,
+        spectral_indices: list[SpectralIndex] | None = None,
     ) -> ImageCollection:
         """Get Landsat 8 collection.
 
@@ -358,6 +357,9 @@ class Landsat8(SatelliteABC):
             Start date in "YYYY-MM-DD" format.
         end_date : str | None
             End date in "YYYY-MM-DD" format.
+        spectral_indices : list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
 
         Returns
         -------
@@ -370,7 +372,7 @@ class Landsat8(SatelliteABC):
             landsat_col = landsat_col.filterDate(start_date, end_date)
         landsat_col = landsat_col.filterBounds(bounds)
         landsat_col = landsat_col.map(mask_clouds_and_saturation).map(apply_brdf_correction)
-        for spectral_index in self.spectral_indices or []:
+        for spectral_index in spectral_indices or []:
             landsat_col = spectral_index.add_spectral_index_band_to_image_collection(landsat_col)
         return landsat_col  # type: ignore[no-any-return]
 
@@ -414,18 +416,24 @@ class Landsat8(SatelliteABC):
         """
         for kwarg in kwargs:
             log.warning(f"Argument {kwarg} is ignored.")
-        self.spectral_indices = spectral_indices
-        landsat_col = self.get_col(aoi, start_date, end_date)
+
+        # TODO: spectral_indices currently reroutes the per-feature loop below to resolve
+        # images by `system:index` instead of asset id. We haven't confirmed yet whether
+        # that reroute is actually necessary.
+        is_preprocessed = spectral_indices is not None
+        extra_ranges = {idx.name: idx.pixel_range for idx in spectral_indices or []} or None
+
+        landsat_col = self.get_col(aoi, start_date, end_date, spectral_indices=spectral_indices)
 
         images = {}
         info = landsat_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Landsat 8 image.Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Landsat 8 image. Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Landsat 8 image.")
         for feature in info["features"]:  # type: ignore[index]
             sys_index = feature.get("properties").get("system:index")
-            if self.is_preprocessed:
+            if is_preprocessed:
                 im = landsat_col.filter(Filter.eq("system:index", sys_index)).first()
                 footprint = PatchedBaseImage.from_id(
                     f"LANDSAT/LC08/C02/T1_L2/{sys_index}"
@@ -442,7 +450,7 @@ class Landsat8(SatelliteABC):
                 # resample
                 im = self.resample_reproject_clip(im, aoi, resampling, resolution)
                 # apply dtype
-                im = self.convert_dtype(im, dtype)
+                im = self.convert_dtype(im, dtype, extra_ranges=extra_ranges)
                 images[sys_index.removeprefix("LANDSAT/LC08/C02/T1_L2/")] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -489,8 +497,8 @@ class Landsat8(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        self.spectral_indices = spectral_indices
-        landsat_col = self.get_col(aoi, start_date, end_date)
+        extra_ranges = {idx.name: idx.pixel_range for idx in spectral_indices or []} or None
+        landsat_col = self.get_col(aoi, start_date, end_date, spectral_indices=spectral_indices)
         # Apply resampling
         landsat_col = landsat_col.map(
             lambda img: self.resample_reproject_clip(img, aoi, resampling, resolution)
@@ -498,7 +506,7 @@ class Landsat8(SatelliteABC):
         bounds = aoi.transform(WGS84).to_ee_geometry()
         landsat_im = composite_method.transform(landsat_col).clip(bounds)
         # Apply dtype
-        landsat_im = self.convert_dtype(landsat_im, dtype)
+        landsat_im = self.convert_dtype(landsat_im, dtype, extra_ranges=extra_ranges)
         landsat_im = PatchedBaseImage(landsat_im)
         n_images = len(landsat_col.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
