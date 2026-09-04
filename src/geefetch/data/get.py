@@ -120,7 +120,11 @@ def download_chip(
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = list(selected_bands) if selected_bands is not None else satellite.default_selected_bands
+    bands = (
+        selected_bands.copy()
+        if selected_bands is not None
+        else satellite.default_selected_bands.copy()
+    )
     spectral_indices: list[SpectralIndex] | None = data_get_kwargs.get("spectral_indices")
     if spectral_indices:
         bands += [index.name for index in spectral_indices]
