@@ -67,6 +67,7 @@ nav:
   - Configuration: configuration.md
   - Satellite Data Sources:
       - Overview: satellites/index.md
+      - Spectral Indices: satellites/spectral_indices.md
       - Sentinel-1: satellites/sentinel1.md
       - Sentinel-2: satellites/sentinel2.md
       - GEDI: satellites/gedi.md

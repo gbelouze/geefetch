@@ -56,6 +56,11 @@ satellite_default:
     ee_project_ids: ["your-gee-id"]
   tile_size: 2000
   resolution: 10
+landsat8:
+  spectral_indices:
+  - IKAW
+  - RGRI
+  - MNDWI
 ```
 
 then download with

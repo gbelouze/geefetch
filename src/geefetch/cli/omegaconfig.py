@@ -152,6 +152,8 @@ class SatelliteDefaultConfig:
     selected_bands : list[str] | None
         The bands to download. If None, will use the satellite
         default bands. Defaults to None.
+    spectral_indices: list[str] | None
+        The list of spectral indices to compute and add as bands of the downloaded images.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
@@ -165,6 +167,7 @@ class SatelliteDefaultConfig:
     dtype: DType = DType.Float32
     composite_method: CompositeMethod = CompositeMethod.MEDIAN
     selected_bands: list[str] | None = None
+    spectral_indices: list[str] | None = None
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR
 
 

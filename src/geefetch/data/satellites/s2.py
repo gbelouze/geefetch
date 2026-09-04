@@ -10,6 +10,7 @@ from shapely import Polygon
 
 from ...utils.enums import CompositeMethod, DType, ResamplingMethod
 from ...utils.rasterio import WGS84
+from ...utils.spectral_indices.spectral_index import SpectralIndex
 from ..downloadables import DownloadableGeedimImage, DownloadableGeedimImageCollection
 from ..downloadables.geedim import PatchedBaseImage
 from .abc import SatelliteABC
@@ -102,6 +103,8 @@ class S2(SatelliteABC):
         end_date: str | None = None,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 30,
+        *,
+        spectral_indices: list[SpectralIndex] | None = None,
     ) -> ImageCollection:
         """Get Sentinel-2 cloud free collection.
 
@@ -119,6 +122,9 @@ class S2(SatelliteABC):
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
             Defaults to 30.
+        spectral_indices : list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
 
         Returns
         -------
@@ -159,7 +165,8 @@ class S2(SatelliteABC):
                 condition=Filter.equals(leftField="system:index", rightField="system:index"),
             )
         ).map(mask_s2_clouds)
-
+        for spectral_index in spectral_indices or []:
+            s2_cloudless = spectral_index.add_spectral_index_band_to_image_collection(s2_cloudless)
         return s2_cloudless  # type: ignore[no-any-return]
 
     def get_time_series(
@@ -172,6 +179,7 @@ class S2(SatelliteABC):
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
         resolution: float = 10,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Sentinel-2 images.
@@ -195,6 +203,9 @@ class S2(SatelliteABC):
             Threshold for cloud probability above which a pixel is filtered out (%).
         resolution: float
             The resolution for the image.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -205,35 +216,52 @@ class S2(SatelliteABC):
         """
         for kwarg in kwargs:
             log.warning(f"Argument {kwarg} is ignored.")
+
+        # Once an index band is computed (addBands), the image is no longer bound to a
+        # single raw asset: system:footprint isn't recomputed for it, so the loop below
+        # resolves it by system:index and refetches the footprint from the raw asset.
+        is_preprocessed = spectral_indices is not None
+        extra_ranges = {idx.name: idx.pixel_range for idx in spectral_indices or []} or None
+
         s2_cloudless = self.get_col(
             aoi,
             start_date,
             end_date,
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
+            spectral_indices=spectral_indices,
         )
 
         images = {}
         info = s2_cloudless.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Sentinel-2 image." f"Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Sentinel-2 image. Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-2 image.")
         for feature in info["features"]:  # type: ignore[index]
-            id_ = feature["id"]
-            footprint = PatchedBaseImage.from_id(id_).footprint
+            sys_index = feature.get("properties").get("system:index")
+            if is_preprocessed:
+                im = s2_cloudless.filter(Filter.eq("system:index", sys_index)).first()
+                footprint = PatchedBaseImage.from_id(
+                    f"COPERNICUS/S2_SR_HARMONIZED/{sys_index}"
+                ).footprint
+            else:
+                id_ = feature["id"]
+                footprint = PatchedBaseImage.from_id(id_).footprint
+                im = Image(id_)
             if footprint is None:
                 raise ValueError(
                     "Ran into image with no footprint. Did you forget to `.clip(aoi)` ?"
                 )
             if Polygon(footprint["coordinates"][0]).intersects(aoi.to_shapely_polygon()):
-                # aoi intersects im
-                im = Image(id_)
                 # resample
                 im = self.resample_reproject_clip(im, aoi, resampling, resolution)
                 # apply dtype
-                im = self.convert_dtype(im, dtype)
-                images[id_.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(im)
+                im = self.convert_dtype(im, dtype, extra_ranges=extra_ranges)
+                images[sys_index.removeprefix("COPERNICUS/S2_SR_HARMONIZED/")] = PatchedBaseImage(
+                    im
+                )
+
         return DownloadableGeedimImageCollection(images)
 
     def get(
@@ -247,6 +275,7 @@ class S2(SatelliteABC):
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
         resolution: float = 10,
+        spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Sentinel-2 images.
@@ -272,6 +301,9 @@ class S2(SatelliteABC):
             Threshold for cloud probability above which a pixel is filtered out (%).
         resolution: float
             The resolution for the image.
+        spectral_indices: list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -283,12 +315,16 @@ class S2(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
+
+        extra_ranges = {idx.name: idx.pixel_range for idx in spectral_indices or []} or None
+
         s2_cloudless = self.get_col(
             aoi,
             start_date,
             end_date,
             cloudless_portion=cloudless_portion,
             cloud_prb_thresh=cloud_prb_thresh,
+            spectral_indices=spectral_indices,
         )
         # Apply resampling
         s2_cloudless = s2_cloudless.map(
@@ -297,7 +333,7 @@ class S2(SatelliteABC):
         bounds = aoi.transform(WGS84).to_ee_geometry()
         s2_im = composite_method.transform(s2_cloudless).clip(bounds)
         # Apply dtype
-        s2_im = self.convert_dtype(s2_im, dtype)
+        s2_im = self.convert_dtype(s2_im, dtype, extra_ranges=extra_ranges)
         s2_im = PatchedBaseImage(s2_im)
         n_images = len(s2_cloudless.getInfo()["features"])  # type: ignore[index]
         if n_images > 500:
@@ -329,6 +365,7 @@ class S2(SatelliteABC):
                 new_cloudless_portion,
                 cloud_prb_thresh,
                 resolution,
+                spectral_indices=spectral_indices,
             )
         log.debug(f"Sentinel-2 mosaicking with {n_images} images.")
         return DownloadableGeedimImage(s2_im)

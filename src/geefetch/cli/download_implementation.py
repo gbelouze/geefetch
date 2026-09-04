@@ -15,6 +15,13 @@ import geefetch.data.satellites as satellites
 from geefetch import data
 from geefetch.utils.config import git_style_diff
 
+from ..utils.spectral_indices import (
+    LANDSAT8_MAPPING,
+    PALSAR2_MAPPING,
+    S1_MAPPING,
+    S2_MAPPING,
+    load_spectral_indices_from_conf,
+)
 from .omegaconfig import SpeckleFilterConfig, TerrainNormalizationConfig, load
 
 log = logging.getLogger(__name__)
@@ -62,8 +69,8 @@ def save_config(
     config_path = Path(dir / "config.yaml")
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
 
-    del config["gee"]
-    config["geefetch_version"] = geefetch.__version__
+    del config["gee"]  # ty:ignore[invalid-argument-type, not-subscriptable]
+    config["geefetch_version"] = geefetch.__version__  # ty:ignore[invalid-assignment]
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
         saved_config_yaml = config_path.read_text()
@@ -201,6 +208,9 @@ def download_s1(config_path: Path) -> None:
         )
     if config.s1.selected_bands is None:
         config.s1.selected_bands = satellites.S1().default_selected_bands
+    spectral_indices = load_spectral_indices_from_conf(
+        config.s1.spectral_indices, mapping=S1_MAPPING, dtype=config.s1.dtype
+    )
     save_config(config.s1, config.data_dir / "s1")
 
     data_dir = Path(config.data_dir)
@@ -239,6 +249,7 @@ def download_s1(config_path: Path) -> None:
         terrain_normalization_config=config.s1.terrain_normalization,
         orbit=config.s1.orbit,
         resampling=config.s1.resampling,
+        spectral_indices=spectral_indices,
     )
 
 
@@ -252,6 +263,9 @@ def download_s2(config_path: Path) -> None:
         )
     if config.s2.selected_bands is None:
         config.s2.selected_bands = satellites.S2().default_selected_bands
+    spectral_indices = load_spectral_indices_from_conf(
+        config.s2.spectral_indices, mapping=S2_MAPPING, dtype=config.s2.dtype
+    )
     save_config(config.s2, config.data_dir / "s2")
 
     data_dir = Path(config.data_dir)
@@ -281,6 +295,7 @@ def download_s2(config_path: Path) -> None:
         cloudless_portion=config.s2.cloudless_portion,
         cloud_prb_thresh=config.s2.cloud_prb_threshold,
         resampling=config.s2.resampling,
+        spectral_indices=spectral_indices,
     )
 
 
@@ -336,6 +351,9 @@ def download_landsat8(config_path: Path) -> None:
         )
     if config.landsat8.selected_bands is None:
         config.landsat8.selected_bands = satellites.Landsat8().default_selected_bands
+    spectral_indices = load_spectral_indices_from_conf(
+        config.landsat8.spectral_indices, mapping=LANDSAT8_MAPPING, dtype=config.landsat8.dtype
+    )
     save_config(config.landsat8, config.data_dir / "landsat8")
     data_dir = Path(config.data_dir)
     bounds = config.landsat8.aoi.spatial.as_bbox()
@@ -365,6 +383,7 @@ def download_landsat8(config_path: Path) -> None:
             else load_country_filter_polygon(config.landsat8.aoi.country)
         ),
         resampling=config.landsat8.resampling,
+        spectral_indices=spectral_indices,
     )
 
 
@@ -376,6 +395,9 @@ def download_palsar2(config_path: Path) -> None:
             "Palsar 2 is not configured. "
             "Pass `palsar2: {}` in the config file to use `satellite_default`."
         )
+    spectral_indices = load_spectral_indices_from_conf(
+        config.palsar2.spectral_indices, mapping=PALSAR2_MAPPING, dtype=config.palsar2.dtype
+    )
     if config.palsar2.selected_bands is None:
         config.palsar2.selected_bands = satellites.Palsar2().default_selected_bands
     save_config(config.palsar2, config.data_dir / "palsar2")
@@ -407,6 +429,7 @@ def download_palsar2(config_path: Path) -> None:
         orbit=config.palsar2.orbit,
         resampling=config.palsar2.resampling,
         refined_lee=config.palsar2.refined_lee,
+        spectral_indices=spectral_indices,
     )
 
 

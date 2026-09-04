@@ -120,7 +120,7 @@ class DownloadableGEECollection(DownloadableABC):
             executor_cls = ThreadPoolExecutor
         with (
             tempfile.TemporaryDirectory() as tmpdir,
-            executor_cls(max_workers=max_workers) as executor,
+            executor_cls(max_workers=max_workers) as executor,  # type: ignore[call-arg]
             ExitStack() as stack,
         ):
             split_tiles = list(

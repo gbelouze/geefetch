@@ -73,6 +73,10 @@ s1:
     flattening_model: "DIRECT"
     layover_shadow_buffer: 0
     dem: "USGS/SRTMGL1_003"
+  spectral_indices:
+  - VHVVR
+  - VHVVP
+  - NDPolI
 ```
 
 then download with

@@ -82,9 +82,12 @@ satellite_default:
     ee_project_ids: ["your-gee-id"]
   tile_size: 2000
   resolution: 10
-s2: # more scrict cloud filtering than the defaults
+s2: # more strict cloud filtering than the defaults
   cloudless_portion: 60
   cloud_prb_threshold: 20
+  spectral_indices:
+  - NDVI
+  - BAIS2
 ```
 
 then download with
