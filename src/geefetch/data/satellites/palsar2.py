@@ -60,6 +60,7 @@ class Palsar2(SatelliteABC):
         orbit: P2Orbit = P2Orbit.ASCENDING,
         *,
         spectral_indices: list[SpectralIndex] | None = None,
+        selected_bands: list[str] | None = None,
     ) -> ImageCollection:
         """Get Palsar 2 collection.
 
@@ -76,18 +77,34 @@ class Palsar2(SatelliteABC):
         spectral_indices : list[SpectralIndex] | None
             List of SpectralIndex objects that are used to compute and add spectral
             index bands to the downloaded images. Defaults to None.
+        selected_bands : list[str] | None
+            The bands to be downloaded.
 
         Returns
         -------
         palsar2_col : ImageCollection
         """
         bounds = aoi.buffer(10_000).transform(WGS84).to_ee_geometry()
+        selected_bands = self.default_selected_bands if selected_bands is None else selected_bands
+
+        def has_selected_band(img):
+            band_names = img.bandNames()
+            has_all = ee.List(
+                [band_names.contains(b) for b in set(selected_bands) & {"HH", "HV"}]
+            ).reduce(ee.Reducer.min())
+            return img.set("has_band", has_all)
 
         palsar2_col = ImageCollection("JAXA/ALOS/PALSAR-2/Level2_2/ScanSAR")
         if start_date is not None and end_date is not None:
             palsar2_col = palsar2_col.filterDate(start_date, end_date)
         palsar2_col = palsar2_col.filterBounds(bounds).filter(
             Filter.eq("PassDirection", orbit.value)
+        )
+        palsar2_col = (
+            palsar2_col.map(has_selected_band)
+            .filter(ee.Filter.eq("has_band", True))
+            .map(lambda img: img.set("has_band", None))
+            .select(selected_bands)
         )
 
         for index in spectral_indices or []:
@@ -105,6 +122,7 @@ class Palsar2(SatelliteABC):
         resolution: float = 25,
         refined_lee: bool = True,
         spectral_indices: list[SpectralIndex] | None = None,
+        selected_bands: list[str] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImageCollection:
         """Get a downloadable time series of Palsar-2 images.
@@ -130,6 +148,8 @@ class Palsar2(SatelliteABC):
         spectral_indices: list[SpectralIndex] | None
             List of SpectralIndex objects that are used to compute and add spectral
             index bands to the downloaded images. Defaults to None.
+        selected_bands : list[str] | None
+            The bands to be downloaded.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -146,7 +166,14 @@ class Palsar2(SatelliteABC):
         # resolves it by system:index and refetches the footprint from the raw asset.
         is_preprocessed = spectral_indices is not None
 
-        p2_col = self.get_col(aoi, start_date, end_date, orbit, spectral_indices=spectral_indices)
+        p2_col = self.get_col(
+            aoi,
+            start_date,
+            end_date,
+            orbit,
+            selected_bands=selected_bands,
+            spectral_indices=spectral_indices,
+        )
 
         # get the info of the collection
         info = p2_col.getInfo()
@@ -190,6 +217,7 @@ class Palsar2(SatelliteABC):
         resolution: float = 25,
         refined_lee: bool = True,
         spectral_indices: list[SpectralIndex] | None = None,
+        selected_bands: list[str] | None = None,
         **kwargs: Any,
     ) -> DownloadableGeedimImage:
         """Get a downloadable mosaic of Palsar-2 images.
@@ -217,6 +245,8 @@ class Palsar2(SatelliteABC):
         spectral_indices: list[SpectralIndex] | None
             List of SpectralIndex objects that are used to compute and add spectral
             index bands to the downloaded images. Defaults to None.
+        selected_bands : list[str] | None
+            The bands to be downloaded.
         **kwargs : Any
             Accepted but ignored additional arguments.
 
@@ -227,7 +257,17 @@ class Palsar2(SatelliteABC):
         """
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
-        p2_col = self.get_col(aoi, start_date, end_date, orbit, spectral_indices=spectral_indices)
+        p2_col = self.get_col(
+            aoi,
+            start_date,
+            end_date,
+            orbit,
+            selected_bands=selected_bands,
+            spectral_indices=spectral_indices,
+        )
+
+        bounds = aoi.transform(WGS84).to_ee_geometry()
+
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
         if n_images > 500:
