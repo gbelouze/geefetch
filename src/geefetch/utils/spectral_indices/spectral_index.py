@@ -55,7 +55,7 @@ class SpectralIndex:
                 denominator_mask = image.expression(
                     expression=self.expression_denominator, map_=bands
                 )
-                out.updateMask(denominator_mask.neq(0))
+                out = out.updateMask(denominator_mask.neq(0))
             return image.addBands(out)
 
         def _empty() -> Image:
