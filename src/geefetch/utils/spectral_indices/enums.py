@@ -5,8 +5,10 @@ from typing import TypedDict
 
 __all__ = [
     "ALL_SPECTRAL_INDICES",
+    "ALL_SPECTRAL_INDEX_RANGES",
     "CONSTANT_MAPPING",
     "LANDSAT8_MAPPING",
+    "PALSAR2_MAPPING",
     "S1_MAPPING",
     "S2_MAPPING",
     "SpectralIndexItem",
@@ -116,3 +118,40 @@ class LazyAllSpectralIndices(Mapping[str, SpectralIndexItem]):
 
 
 ALL_SPECTRAL_INDICES = LazyAllSpectralIndices()
+
+
+class LazyAllSpectralIndexRanges(Mapping[str, tuple[float, float]]):
+    """Per-index value ranges, kept in a separate file from `spectral-indices-dict.json` so
+    that file stays a clean, re-syncable copy of awesome-spectral-indices.
+
+    Only indices whose range is mathematically guaranteed (e.g. a two-band normalized
+    difference `(A - B)/(A + B)` with non-negative input bands, which is always in [-1, 1])
+    have an entry. Indices absent from this mapping have no known range.
+    """
+
+    json_data_path = Path(__file__).parent / "spectral-index-ranges.json"
+
+    def __init__(self) -> None:
+        self._ranges: dict[str, tuple[float, float]] | None = None
+
+    @property
+    def ranges(self) -> dict[str, tuple[float, float]]:
+        if self._ranges is None:
+            raw: dict[str, list[float]] = json.loads(self.json_data_path.read_text())
+            self._ranges = {k: (v[0], v[1]) for k, v in raw.items()}
+        return self._ranges
+
+    def __getitem__(self, k: str) -> tuple[float, float]:
+        return self.ranges[k]
+
+    def __iter__(self):
+        return iter(self.ranges)
+
+    def __len__(self):
+        return len(self.ranges)
+
+    def __contains__(self, k):
+        return k in self.ranges
+
+
+ALL_SPECTRAL_INDEX_RANGES = LazyAllSpectralIndexRanges()

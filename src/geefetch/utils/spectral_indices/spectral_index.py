@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass
 from typing import cast
 
@@ -6,10 +7,15 @@ import ee
 from ee.image import Image
 from ee.imagecollection import ImageCollection
 
-from ...cli.omegaconfig import SatelliteDefaultConfig
-from .enums import ALL_SPECTRAL_INDICES
+from ...utils.enums import DType
+from .enums import ALL_SPECTRAL_INDEX_RANGES, ALL_SPECTRAL_INDICES
 
 log = logging.getLogger(__name__)
+
+# Matches whole identifier-like tokens in a formula, e.g. picks out "N" from "N + 1" but
+# not from "N2" -- used to detect which of EXPRESSION_BANDS a formula actually references,
+# rather than a substring check (which would e.g. treat "N" as present in "N2").
+_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9]*")
 
 EXPRESSION_BANDS = [
     "HH",
@@ -38,6 +44,7 @@ class SpectralIndex:
     expression_bands: list[str]
     expression_denominator: str | None
     band_mapping: dict[str, str]
+    pixel_range: tuple[float, float] | None = None
 
     def _has_required_bands(self, image: Image) -> ee.Number:
         # In case an Image is missing a Band, this boolean will trigger the return of an empty band.
@@ -95,60 +102,79 @@ class SpectralIndex:
 
 
 def load_spectral_indices_from_conf(
-    config: SatelliteDefaultConfig, mapping: dict[str, str]
+    spectral_index_names: list[str] | None,
+    mapping: dict[str, str],
+    dtype: DType,
 ) -> list[SpectralIndex] | None:
     """Reads through a satellite configuration and produces a list of requested spectral indices.
 
     Parameters
     ----------
-    config : SatelliteDefaultConfig
-        Some satellite configuration.
+    spectral_index_names : list[str] | None
+        Some satellite configured spectral indices.
     mapping : dict[str, str]
         Mapping of spectral expression to band name. This explains which band is red, which band
         is NIR, etc.
+    dtype : DType
+        The dtype the satellite images will be converted to. An index with no known value
+        range (see `ALL_SPECTRAL_INDEX_RANGES`) can only be requested when `dtype` is
+        `DType.Float32`, since rescaling to an integer dtype requires a known range.
 
     Returns
     -------
     list[SpectralIndex] | None
-        The requested spectral indices, or None if None are configured.
+        The requested spectral indices, or None if none are configured.
 
     """
-    spectral_indices: list[SpectralIndex] | None = None
-    if config.spectral_indices:
-        spectral_indices = []
-        for spectral_index_name in config.spectral_indices:
-            if spectral_index_name not in ALL_SPECTRAL_INDICES:
-                msg = f"""
-                    {spectral_index_name} does not figure in the list of GeeFetch
-                    implemented spectral indices.\n
-                    Ask a maintainer to add it or do it yourself. Aborting.
-                """
-                log.error(msg)
-                raise ValueError(msg)
+    if spectral_index_names is None:
+        return None
 
-            spectral_index = ALL_SPECTRAL_INDICES[spectral_index_name]
-            expression = spectral_index["formula"]
+    spectral_indices = []
+    for spectral_index_name in spectral_index_names:
+        if spectral_index_name not in ALL_SPECTRAL_INDICES:
+            msg = f"""
+                {spectral_index_name} does not figure in the list of GeeFetch
+                implemented spectral indices.\n
+                Ask a maintainer to add it or do it yourself. Aborting.
+            """
+            log.error(msg)
+            raise ValueError(msg)
 
-            expression_bands = [band for band in EXPRESSION_BANDS if band in expression]
-            missing_bands_from_mapping = [band for band in expression_bands if band not in mapping]
+        spectral_index = ALL_SPECTRAL_INDICES[spectral_index_name]
+        expression = spectral_index["formula"]
 
-            if missing_bands_from_mapping:
-                # Do not initialize the SpectralIndex if any of the bands used
-                # in the expression are missing from the sensor band mapping.
-                msg = f"""
-                    {spectral_index_name} won't be calculated as the following bands do not
-                    figure in the sensor band mapping: {missing_bands_from_mapping}.
-                """
-                log.warning(msg)
+        expression_tokens = set(_TOKEN_RE.findall(expression))
+        expression_bands = [band for band in EXPRESSION_BANDS if band in expression_tokens]
+        missing_bands_from_mapping = [band for band in expression_bands if band not in mapping]
 
-            else:
-                spectral_indices.append(
-                    SpectralIndex(
-                        name=spectral_index_name,
-                        expression=expression,
-                        expression_bands=expression_bands,
-                        expression_denominator=spectral_index["denominator"],
-                        band_mapping=mapping,
-                    )
-                )
+        if missing_bands_from_mapping:
+            # Do not initialize the SpectralIndex if any of the bands used
+            # in the expression are missing from the sensor band mapping.
+            msg = f"""
+                {spectral_index_name} won't be calculated as the following bands do not
+                figure in the sensor band mapping: {missing_bands_from_mapping}.
+            """
+            log.warning(msg)
+            continue
+
+        pixel_range = ALL_SPECTRAL_INDEX_RANGES.get(spectral_index_name)
+        if pixel_range is None and dtype != DType.Float32:
+            msg = (
+                f"Spectral index {spectral_index_name} has no known value range, so it "
+                f"cannot be converted to {dtype}. Use `dtype: float32`, or pick a spectral "
+                "index with a known range (see spectral-index-ranges.json)."
+            )
+            log.error(msg)
+            raise ValueError(msg)
+
+        spectral_indices.append(
+            SpectralIndex(
+                name=spectral_index_name,
+                expression=expression,
+                expression_bands=expression_bands,
+                expression_denominator=spectral_index["denominator"],
+                band_mapping=mapping,
+                pixel_range=pixel_range,
+            )
+        )
     return spectral_indices
