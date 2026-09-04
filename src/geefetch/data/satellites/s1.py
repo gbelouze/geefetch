@@ -29,9 +29,6 @@ __all__ = ["S1"]
 class S1(SatelliteABC):
     _bands = ["HH", "HV", "VV", "VH", "angle"]
     _default_selected_bands = ["VV", "VH"]
-    speckle_filter_config: SpeckleFilterConfig | None
-    terrain_normalization_config: TerrainNormalizationConfig | None
-    spectral_indices: list[SpectralIndex] | None = None
 
     @property
     def bands(self) -> list[str]:
@@ -53,16 +50,6 @@ class S1(SatelliteABC):
     def resolution(self):
         return 10
 
-    @property
-    def is_preprocessed(self):
-        return any(
-            [
-                (self.speckle_filter_config is not None),
-                (self.terrain_normalization_config is not None),
-                (self.spectral_indices is not None),
-            ]
-        )
-
     def get_col(
         self,
         aoi: GeoBoundingBox,
@@ -70,6 +57,10 @@ class S1(SatelliteABC):
         end_date: str | None = None,
         orbit: S1Orbit = S1Orbit.ASCENDING,
         selected_bands: list[str] | None = None,
+        *,
+        speckle_filter_config: SpeckleFilterConfig | None = None,
+        terrain_normalization_config: TerrainNormalizationConfig | None = None,
+        spectral_indices: list[SpectralIndex] | None = None,
     ) -> ImageCollection:
         """Get Sentinel-1 collection.
 
@@ -85,6 +76,11 @@ class S1(SatelliteABC):
             The orbit used to filter the collection.
         selected_bands : list[str] | None
             The bands to be downloaded.
+        speckle_filter_config : SpeckleFilterConfig | None
+        terrain_normalization_config : TerrainNormalizationConfig | None
+        spectral_indices : list[SpectralIndex] | None
+            List of SpectralIndex objects that are used to compute and add spectral
+            index bands to the downloaded images. Defaults to None.
 
         Returns
         -------
@@ -126,11 +122,11 @@ class S1(SatelliteABC):
             case S1Orbit.AS_BANDS:
                 raise ValueError(f"Cannot get S1 collection with {orbit=}")
         col = col.map(f_mask_edges)
-        if self.speckle_filter_config:
-            col = speckle_filter_wrapper(col, *astuple(self.speckle_filter_config))
-        if self.terrain_normalization_config:
-            col = terrain_normalization_wrapper(col, *astuple(self.terrain_normalization_config))
-        for spectral_index in self.spectral_indices or []:
+        if speckle_filter_config:
+            col = speckle_filter_wrapper(col, *astuple(speckle_filter_config))
+        if terrain_normalization_config:
+            col = terrain_normalization_wrapper(col, *astuple(terrain_normalization_config))
+        for spectral_index in spectral_indices or []:
             col = spectral_index.add_spectral_index_band_to_image_collection(col)
         return col  # type: ignore[no-any-return]
 
@@ -185,22 +181,38 @@ class S1(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        self.speckle_filter_config = speckle_filter_config
-        self.terrain_normalization_config = terrain_normalization_config
-        self.spectral_indices = spectral_indices
+        # TODO: any of these three preprocessing options currently reroutes the per-feature
+        # loop below to resolve images by `system:index` instead of asset id. We haven't
+        # confirmed yet whether that reroute is actually necessary for spectral indices.
+        is_preprocessed = any(
+            [
+                speckle_filter_config is not None,
+                terrain_normalization_config is not None,
+                spectral_indices is not None,
+            ]
+        )
 
         if orbit == S1Orbit.AS_BANDS:
             raise ValueError("Orbit AS_BANDS is not permitted for downloading time series.")
-        s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
+        s1_col = self.get_col(
+            aoi,
+            start_date,
+            end_date,
+            orbit,
+            selected_bands,
+            speckle_filter_config=speckle_filter_config,
+            terrain_normalization_config=terrain_normalization_config,
+            spectral_indices=spectral_indices,
+        )
         images = {}
         info = s1_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 Sentinel-1 image.Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 Sentinel-1 image. Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 Sentinel-1 image.")
         for feature in info["features"]:  # type: ignore[index]
             sys_index = feature.get("properties").get("system:index")
-            if self.is_preprocessed:
+            if is_preprocessed:
                 im = s1_col.filter(Filter.eq("system:index", sys_index)).first()
                 footprint = PatchedBaseImage.from_id(
                     f"COPERNICUS/S1_GRD_FLOAT/{sys_index}"
@@ -218,7 +230,7 @@ class S1(SatelliteABC):
                 # convert to power and resample
                 im = self.before_composite(im, resampling, aoi, resolution)
                 # Apply pixel range and dtype
-                im = self.after_composite(im, dtype)
+                im = self.after_composite(im, dtype, spectral_indices)
                 images[sys_index] = PatchedBaseImage(im)
         return DownloadableGeedimImageCollection(images)
 
@@ -276,12 +288,17 @@ class S1(SatelliteABC):
         for key in kwargs:
             log.warning(f"Argument {key} is ignored.")
 
-        self.speckle_filter_config = speckle_filter_config
-        self.terrain_normalization_config = terrain_normalization_config
-        self.spectral_indices = spectral_indices
-
         def get_im(orbit: S1Orbit) -> Image:
-            s1_col = self.get_col(aoi, start_date, end_date, orbit, selected_bands)
+            s1_col = self.get_col(
+                aoi,
+                start_date,
+                end_date,
+                orbit,
+                selected_bands,
+                speckle_filter_config=speckle_filter_config,
+                terrain_normalization_config=terrain_normalization_config,
+                spectral_indices=spectral_indices,
+            )
 
             info = s1_col.getInfo()
             n_images = len(info["features"])  # type: ignore[index]
@@ -291,7 +308,7 @@ class S1(SatelliteABC):
                     "Expect slower download time."
                 )
             if n_images == 0:
-                log.error(f"Found 0 Sentinel-1 image." f"Check region {aoi.transform(WGS84)}.")
+                log.error(f"Found 0 Sentinel-1 image. Check region {aoi.transform(WGS84)}.")
                 raise RuntimeError("Collection of 0 Sentinel-1 image.")
 
             log.debug(f"Sentinel-1 mosaicking with {n_images} images.")
@@ -302,7 +319,7 @@ class S1(SatelliteABC):
             bounds = aoi.transform(WGS84).to_ee_geometry()
             s1_im = composite_method.transform(s1_col).clip(bounds)
             # Process composite
-            s1_im = self.after_composite(s1_im, dtype)
+            s1_im = self.after_composite(s1_im, dtype, spectral_indices)
             return s1_im
 
         match orbit:
@@ -331,11 +348,17 @@ class S1(SatelliteABC):
         im = self.resample_reproject_clip(im, aoi, resampling, scale)
         return im
 
-    def after_composite(self, im: Image, dtype: DType) -> Image:
+    def after_composite(
+        self,
+        im: Image,
+        dtype: DType,
+        spectral_indices: list[SpectralIndex] | None = None,
+    ) -> Image:
         # Convert from power to db
         im = im.log10().multiply(10)
         # Apply pixel range and dtype
-        im = self.convert_dtype(im, dtype)
+        extra_ranges = {idx.name: idx.pixel_range for idx in spectral_indices or []} or None
+        im = self.convert_dtype(im, dtype, extra_ranges=extra_ranges)
         return im
 
     @property
