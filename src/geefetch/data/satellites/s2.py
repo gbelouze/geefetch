@@ -1,10 +1,7 @@
 import logging
 from typing import Any, cast
 
-from ee.ee_list import List
-from ee.element import Element
 from ee.filter import Filter
-from ee.geometry import Geometry
 from ee.image import Image
 from ee.imagecollection import ImageCollection
 from ee.join import Join
@@ -59,7 +56,6 @@ class S2(SatelliteABC):
         "B12",
     ]
     spectral_indices: list[SpectralIndex] | None = None
-    add_cloud_mask: bool = False
 
     @property
     def bands(self) -> list[str]:
@@ -101,15 +97,6 @@ class S2(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
-
-    @property
-    def is_preprocessed(self) -> bool:
-        return (self.spectral_indices is not None) or (self.add_cloud_mask)
-
-    @staticmethod
-    def contains_aoi(aoi: Geometry, im: Image) -> Element:
-        contains = im.geometry().contains(aoi, 1)
-        return im.set("contains_bounds", contains)
 
     @classmethod
     def homogenise_band_order(cls, im_col: ImageCollection) -> ImageCollection:
@@ -159,90 +146,6 @@ class S2(SatelliteABC):
             "MSK_CLASSI_SNOW_ICE",
         ]
         return cast(ImageCollection, im_col.map(lambda img: img.select(band_order)))
-
-    @classmethod
-    def get_monthly_n_least_cloudy_col(
-        cls, bounds: Geometry, ee_aoi: Geometry, start_date: str, end_date: str, n: int
-    ) -> ImageCollection:
-        s2_col = (
-            ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-            .filterBounds(bounds)
-            .filterDate(start_date, end_date)
-            .map(lambda im: cls.contains_aoi(ee_aoi, im))
-            .filter(Filter.eq("contains_bounds", True))
-        )
-
-        months = List.sequence(1, 12)
-
-        def by_month(m):
-            monthly_imgs = s2_col.filter(Filter.calendarRange(m, m, "month"))
-            # sort by cloudiness and take top-n
-            return monthly_imgs.sort("CLOUDY_PIXEL_PERCENTAGE").toList(n)
-
-        s2_n_least_cloudy: ImageCollection = ImageCollection.fromImages(
-            months.map(by_month).flatten()
-        )
-        return s2_n_least_cloudy
-
-    @classmethod
-    def get_cloudless_col(
-        cls,
-        bounds: Geometry,
-        start_date: str,
-        end_date: str,
-        cloudless_portion: int,
-        cloud_prb_thresh: int,
-    ) -> ImageCollection:
-        s2_col = (
-            ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-            .filterBounds(bounds)
-            .filterDate(start_date, end_date)
-            .filter(
-                f"CLOUDY_PIXEL_PERCENTAGE<={100 - cloudless_portion} && "
-                f"HIGH_PROBA_CLOUDS_PERCENTAGE<={(100 - cloudless_portion) // 2}"
-            )
-        )
-        s2_cloud = (
-            ImageCollection("COPERNICUS/S2_CLOUD_PROBABILITY")
-            .filterBounds(bounds)
-            .filterDate(start_date, end_date)
-        )
-
-        s2_cloud = s2_cloud
-        s2_col = s2_col.filterDate(start_date, end_date)
-
-        def mask_s2_clouds(im: Image) -> Image:
-            qa = im.select("QA60")
-            cloud_prb = Image(im.get("s2cloudless")).select("probability")
-            cloud_bit_mask = 1 << 10
-            cirrus_bit_mask = 1 << 11
-            mask = (
-                (qa.bitwiseAnd(cloud_bit_mask).eq(0))
-                .And(qa.bitwiseAnd(cirrus_bit_mask).eq(0))
-                .And(cloud_prb.lt(cloud_prb_thresh))
-            )
-            return im.updateMask(mask)
-
-        s2_cloudless: ImageCollection = ImageCollection(
-            Join.saveFirst("s2cloudless").apply(
-                primary=s2_col,
-                secondary=s2_cloud,
-                condition=Filter.equals(leftField="system:index", rightField="system:index"),
-            )
-        ).map(mask_s2_clouds)
-        return s2_cloudless
-
-    @staticmethod
-    def get_cloud_mask(s2_col: ImageCollection) -> ImageCollection:
-        def add_cloud_mask_band(img: Image) -> Image:
-            cloud_mask = Image(img.select("cs").lte(0.4).rename("cloud_shadow_mask").uint8())
-            return img.addBands(cloud_mask)
-
-        s2_with_cloud_mask: ImageCollection = s2_col.linkCollection(
-            ImageCollection("GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED"), ["cs"]
-        ).map(add_cloud_mask_band)
-
-        return s2_with_cloud_mask
 
     def get_col(
         self,
@@ -313,6 +216,7 @@ class S2(SatelliteABC):
                 condition=Filter.equals(leftField="system:index", rightField="system:index"),
             )
         ).map(mask_s2_clouds)
+        s2_col = self.homogenise_band_order(s2_col)
         for spectral_index in spectral_indices or []:
             s2_cloudless = spectral_index.add_spectral_index_band_to_image_collection(s2_cloudless)
         return s2_cloudless  # type: ignore[no-any-return]
@@ -326,8 +230,6 @@ class S2(SatelliteABC):
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
-        n_least_cloudy_monthly: int | None = None,
-        add_cloud_mask: bool = False,
         resolution: float = 10,
         spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
@@ -351,11 +253,6 @@ class S2(SatelliteABC):
             Images that do not fullfill the requirement are filtered out.
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
-        n_least_cloudy_monthly : int | None
-            Number of least cloudy images to keep in image collection per month.
-        add_cloud_mask: bool
-            Wether to add to the image collection a cloud mask created with
-            GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED. Defaults to False.
         resolution: float
             The resolution for the image.
         spectral_indices: list[SpectralIndex] | None
@@ -429,7 +326,6 @@ class S2(SatelliteABC):
         resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
         cloudless_portion: int = 60,
         cloud_prb_thresh: int = 40,
-        add_cloud_mask: bool = False,
         resolution: float = 10,
         spectral_indices: list[SpectralIndex] | None = None,
         **kwargs: Any,
@@ -455,9 +351,6 @@ class S2(SatelliteABC):
             Images that do not fullfill the requirement are filtered out.
         cloud_prb_thresh : int
             Threshold for cloud probability above which a pixel is filtered out (%).
-        add_cloud_mask: bool
-            Wether to add to the image collection a cloud mask created with
-            GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED. Defaults to False.
         resolution: float
             The resolution for the image.
         spectral_indices: list[SpectralIndex] | None
@@ -523,7 +416,6 @@ class S2(SatelliteABC):
                 resampling,
                 new_cloudless_portion,
                 cloud_prb_thresh,
-                self.add_cloud_mask,
                 resolution,
                 spectral_indices=spectral_indices,
             )

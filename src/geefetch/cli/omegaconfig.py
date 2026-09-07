@@ -411,20 +411,10 @@ class S2Config(SatelliteDefaultConfig):
         Default is 40.
     cloud_prb_threshold : int
         Threshold for cloud probability above which a pixel is filtered out (%). Default is 40.
-    n_least_cloudy_monthly : int | None
-        The number of least cloudy images to keep.
-        This attribute is only used for TimeSeries and bypasses the
-        cloudless_portion and cloud_prb_threshold attributes.
-    add_cloud_mask : bool
-        Wether to add to the image collection a cloud mask created with
-        GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED. Defaults to False.
     """
 
     cloudless_portion: int = 40
     cloud_prb_threshold: int = 40
-    n_least_cloudy_monthly: int | None = None
-    # TODO Make add_cloud_mask a tuple with boolean and mask threshold
-    add_cloud_mask: bool = False
 
 
 @dataclass

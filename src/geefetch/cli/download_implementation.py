@@ -328,11 +328,7 @@ def download_s2(config_path: Path) -> None:
     spectral_indices = load_spectral_indices_from_conf(
         config.s2.spectral_indices, mapping=S2_MAPPING, dtype=config.s2.dtype
     )
-    if (
-        (config.s2.selected_bands is None)
-        and (config.s2.add_cloud_mask is False)
-        and (spectral_indices is None)
-    ):
+    if (config.s2.selected_bands is None) and (spectral_indices is None):
         config.s2.selected_bands = satellites.S2().default_selected_bands
 
     data_dir = Path(config.data_dir)
@@ -355,8 +351,6 @@ def download_s2(config_path: Path) -> None:
         max_tile_size=config.s2.gee.max_tile_size,
         cloudless_portion=config.s2.cloudless_portion,
         cloud_prb_thresh=config.s2.cloud_prb_threshold,
-        n_least_cloudy_monthly=config.s2.n_least_cloudy_monthly,
-        add_cloud_mask=config.s2.add_cloud_mask,
         resampling=config.s2.resampling,
         spectral_indices=spectral_indices,
     )

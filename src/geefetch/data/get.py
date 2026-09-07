@@ -603,8 +603,6 @@ def download_s2(
     dtype: DType = DType.Float32,
     cloudless_portion: int = 60,
     cloud_prb_thresh: int = 40,
-    n_least_cloudy_monthly: int | None = None,
-    add_cloud_mask: bool = False,
     resampling: ResamplingMethod = ResamplingMethod.BILINEAR,
     spectral_indices: list[SpectralIndex] | None = None,
 ) -> None:
@@ -644,13 +642,6 @@ def download_s2(
         See :meth:`geefetch.data.s2.get`. Defaults to 60.
     cloud_prb_thresh : int
         Cloud probability threshold. See :meth:`geefetch.data.s2.get`. Defaults to 40.
-    n_least_cloudy_monthly : int | None
-        The number of least cloudy images kept per months. Only used for timeseries and replaces
-        the masking functionality that uses cloudless_portion and cloud_prb_threshold.
-        Defaults to None.
-    add_cloud_mask : bool
-        Wether to add to the image collection a cloud mask created with
-        GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED. Defaults to False.
     resampling : ResamplingMethod
         The resampling method to use when reprojecting images.
         Can be BILINEAR, BICUBIC or NEAREST.
@@ -658,8 +649,6 @@ def download_s2(
     spectral_indices : list[SpectralIndex] | None
         List of indices to calculate and add as bands of the downloaded images. Defaults to None.
     """
-    if add_cloud_mask:
-        selected_bands = (selected_bands or []) + ["cloud_shadow_mask"]
 
     download(
         data_dir=data_dir,
@@ -676,8 +665,6 @@ def download_s2(
             "composite_method": composite_method,
             "cloudless_portion": cloudless_portion,
             "cloud_prb_thresh": cloud_prb_thresh,
-            "n_least_cloudy_monthly": n_least_cloudy_monthly,
-            "add_cloud_mask": add_cloud_mask,
             "dtype": dtype,
             "resampling": resampling,
             "resolution": resolution,
