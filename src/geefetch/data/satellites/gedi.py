@@ -258,7 +258,7 @@ class GEDIL2Araster(SatelliteABC):
         info = gedi_col.getInfo()
         n_images = len(info["features"])  # type: ignore[index]
         if n_images == 0:
-            log.error(f"Found 0 GEDI image." f"Check region {aoi.transform(WGS84)}.")
+            log.error(f"Found 0 GEDI image. Check region {aoi.transform(WGS84)}.")
             raise RuntimeError("Collection of 0 GEDI image.")
         for feature in info["features"]:  # type: ignore[index]
             id_ = feature["id"]

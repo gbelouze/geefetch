@@ -120,14 +120,14 @@ def download_chip(
     **kwargs: Any,
 ) -> Path:
     """Download a specific chip of data from the satellite."""
-    bands = []
-    spectra_indices: list[SpectralIndex] | None = data_get_kwargs.get("spectral_indices")
-    if selected_bands:
-        bands += selected_bands
-    if spectra_indices:
-        bands += [index.name for index in spectra_indices]
-    if not bands:
-        bands = satellite.default_selected_bands
+    bands = (
+        selected_bands.copy()
+        if selected_bands is not None
+        else satellite.default_selected_bands.copy()
+    )
+    spectral_indices: list[SpectralIndex] | None = data_get_kwargs.get("spectral_indices")
+    if spectral_indices:
+        bands += [index.name for index in spectral_indices]
     if out.exists():
         log.debug(f"Found feature chip [cyan]{out}[/]")
         if not geofile_is_clean(out):
@@ -548,7 +548,7 @@ def download_s1(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     spectral_indices : list[SpectralIndex] | None
-        List of indices to calculate and add as bands of the downloaded images. Defaults to None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None.
     """
 
     download_selected_bands: list[str] | None
@@ -656,7 +656,7 @@ def download_s2(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     spectral_indices : list[SpectralIndex] | None
-        List of indices to calculate and add as bands of the downloaded images. Defaults to None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None.
     """
     if add_cloud_mask:
         selected_bands = (selected_bands or []) + ["cloud_shadow_mask"]
@@ -811,7 +811,7 @@ def download_landsat8(
         Can be BILINEAR, BICUBIC or NEAREST.
         Defaults to ResamplingMethod.BILINEAR.
     spectral_indices : list[SpectralIndex] | None
-        List of indices to calculate and add as bands of the downloaded images. Defaults to None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None.
     """
     download(
         data_dir=data_dir,
@@ -894,7 +894,7 @@ def download_palsar2(
         Whether to apply the Refined Lee filter to reduce speckle noise.
         Defaults to True.
     spectral_indices : list[SpectralIndex] | None
-        List of indices to calculate and add as bands of the downloaded images. Defaults to None
+        List of indices to calculate and add as bands of the downloaded images. Defaults to None.
     """
     download(
         data_dir=data_dir,

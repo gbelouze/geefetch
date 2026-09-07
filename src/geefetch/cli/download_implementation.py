@@ -142,8 +142,8 @@ def save_config(
     config = OmegaConf.to_container(omegaconf.DictConfig(config))
     assert isinstance(config, dict)
 
-    del config["gee"]
-    config["geefetch_version"] = geefetch.__version__
+    del config["gee"]  # ty:ignore[invalid-argument-type, not-subscriptable]
+    config["geefetch_version"] = geefetch.__version__  # ty:ignore[invalid-assignment]
     config_yaml = OmegaConf.to_yaml(config)
     if config_path.exists():
         saved_config_yaml = config_path.read_text()
@@ -280,7 +280,9 @@ def download_s1(config_path: Path) -> None:
         )
     if config.s1.selected_bands is None:
         config.s1.selected_bands = satellites.S1().default_selected_bands
-    spectral_indices = load_spectral_indices_from_conf(config=config.s1, mapping=S1_MAPPING)
+    spectral_indices = load_spectral_indices_from_conf(
+        config.s1.spectral_indices, mapping=S1_MAPPING, dtype=config.s1.dtype
+    )
     save_config(config.s1, config.data_dir / "s1")
 
     data_dir = Path(config.data_dir)
@@ -323,8 +325,9 @@ def download_s2(config_path: Path) -> None:
             "Sentinel-2 is not configured. "
             "Pass `s2: {}` in the config file to use `satellite_default`."
         )
-    spectral_indices = load_spectral_indices_from_conf(config=config.s2, mapping=S2_MAPPING)
-
+    spectral_indices = load_spectral_indices_from_conf(
+        config.s2.spectral_indices, mapping=S2_MAPPING, dtype=config.s2.dtype
+    )
     if (
         (config.s2.selected_bands is None)
         and (config.s2.add_cloud_mask is False)
@@ -405,13 +408,12 @@ def download_landsat8(config_path: Path) -> None:
     if config.landsat8.selected_bands is None:
         config.landsat8.selected_bands = satellites.Landsat8().default_selected_bands
     spectral_indices = load_spectral_indices_from_conf(
-        config=config.landsat8, mapping=LANDSAT8_MAPPING
+        config.landsat8.spectral_indices, mapping=LANDSAT8_MAPPING, dtype=config.landsat8.dtype
     )
     data_dir = Path(config.data_dir)
 
     tile_tracker = TileTracker(satellites.Landsat8(), data_dir)
     tiles = load_aoi_tiles(config.landsat8, tile_tracker)
-
     save_config(config.landsat8, config.data_dir / "landsat8")
 
     data.get.download_landsat8(
@@ -442,7 +444,7 @@ def download_palsar2(config_path: Path) -> None:
             "Pass `palsar2: {}` in the config file to use `satellite_default`."
         )
     spectral_indices = load_spectral_indices_from_conf(
-        config=config.palsar2, mapping=PALSAR2_MAPPING
+        config.palsar2.spectral_indices, mapping=PALSAR2_MAPPING, dtype=config.palsar2.dtype
     )
     if config.palsar2.selected_bands is None:
         config.palsar2.selected_bands = satellites.Palsar2().default_selected_bands
