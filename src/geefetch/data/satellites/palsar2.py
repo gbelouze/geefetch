@@ -31,7 +31,6 @@ class Palsar2(SatelliteABC):
         "HH",
         "HV",
     ]
-    spectral_indices: list[SpectralIndex] | None = None
 
     @property
     def bands(self) -> list[str]:
@@ -52,10 +51,6 @@ class Palsar2(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
-
-    @property
-    def is_preprocessed(self):
-        return self.spectral_indices is not None
 
     def get_col(
         self,
@@ -273,8 +268,6 @@ class Palsar2(SatelliteABC):
 
         bounds = aoi.transform(WGS84).to_ee_geometry()
 
-        self.spectral_indices = spectral_indices
-        p2_col = self.get_col(aoi, start_date, end_date, orbit)
         info = p2_col.getInfo()
         n_images = len(info["features"])  # type: ignore
         if n_images > 500:
