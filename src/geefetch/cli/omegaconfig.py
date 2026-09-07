@@ -170,6 +170,7 @@ class GeofileAOIConfig:
             bbox = GeoBoundingBox(left, bottom, right, top, self.crs)
             if self.crs == 4326:
                 bbox = bbox.transform(list(bbox.to_utms())[0].crs)
+                left, bottom, right, top = bbox
             bbox = bbox.with_(
                 left=np.floor(left / scale) * scale,
                 bottom=np.floor(bottom / scale) * scale,
