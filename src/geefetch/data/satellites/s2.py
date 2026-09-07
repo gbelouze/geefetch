@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, cast
 
 from ee.filter import Filter
 from ee.image import Image
@@ -42,6 +42,7 @@ class S2(SatelliteABC):
         "TCI_B",
         "MSK_CLDPRB",
     ]
+
     _default_selected_bands = [
         "B2",
         "B3",
@@ -54,6 +55,7 @@ class S2(SatelliteABC):
         "B11",
         "B12",
     ]
+    spectral_indices: list[SpectralIndex] | None = None
 
     @property
     def bands(self) -> list[str]:
@@ -95,6 +97,55 @@ class S2(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
+
+    @classmethod
+    def homogenise_band_order(cls, im_col: ImageCollection) -> ImageCollection:
+        """Homogenises the band ordering across an image collection.
+
+        Parameters
+        ----------
+        im_col : ImageCollection
+            The image collection to homogenise
+
+        Returns
+        -------
+        ImageCollection
+            The image collection with a homogenised band ordering.
+
+        Discussion
+        ----------
+        I was getting issues when downloading early S2 images where mappings
+        failed due to unhomogenised band order accross image collections.
+        """
+        band_order = [
+            "B1",
+            "B2",
+            "B3",
+            "B4",
+            "B5",
+            "B6",
+            "B7",
+            "B8",
+            "B8A",
+            "B9",
+            "B11",
+            "B12",
+            "AOT",
+            "WVP",
+            "SCL",
+            "TCI_R",
+            "TCI_G",
+            "TCI_B",
+            "MSK_CLDPRB",
+            "MSK_SNWPRB",
+            "QA10",
+            "QA20",
+            "QA60",
+            "MSK_CLASSI_OPAQUE",
+            "MSK_CLASSI_CIRRUS",
+            "MSK_CLASSI_SNOW_ICE",
+        ]
+        return cast(ImageCollection, im_col.map(lambda img: img.select(band_order)))
 
     def get_col(
         self,
@@ -165,6 +216,7 @@ class S2(SatelliteABC):
                 condition=Filter.equals(leftField="system:index", rightField="system:index"),
             )
         ).map(mask_s2_clouds)
+        s2_col = self.homogenise_band_order(s2_col)
         for spectral_index in spectral_indices or []:
             s2_cloudless = spectral_index.add_spectral_index_band_to_image_collection(s2_cloudless)
         return s2_cloudless  # type: ignore[no-any-return]

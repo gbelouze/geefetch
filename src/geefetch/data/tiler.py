@@ -159,12 +159,10 @@ class TileTracker:
         self,
         satellite: SatelliteABC,
         project_dir: Path,
-        sub_root: str | None = None,
         filter: Callable[[Path], bool] | str | None = None,
     ):
         self._satellite = satellite
         self.project_dir = project_dir
-        self.sub_root = sub_root
         self._filter = filter
         if self._filter is None and satellite.is_raster:
             self._filter = r".*\.tif"
@@ -175,9 +173,10 @@ class TileTracker:
     @property
     def root(self) -> Path:
         """The root directory where data is stored."""
-        if self.sub_root is not None:
-            return self.project_dir / self.satellite.name / self.sub_root
         return self.project_dir / self.satellite.name
+
+    def _get_tile_stem(self, bbox: GeoBoundingBox) -> str:
+        return f"{self.satellite.name}_{self.name_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
 
     @property
     def satellite(self) -> SatelliteABC:
@@ -190,13 +189,20 @@ class TileTracker:
             return ret
         return f"EPSG{crs.to_epsg()}"
 
-    def get_path(self, bbox: GeoBoundingBox, format: Format | None = None) -> Path:
+    def get_path(
+        self, bbox: GeoBoundingBox, format: Format | None = None, tile_stem: str | None = None
+    ) -> Path:
         tile_suffix = (
             ".tif" if self.satellite.is_raster else ".geojson" if format is None else format.value
         )
-        tile_stem = (
-            f"{self.satellite.name}_{self.name_crs(bbox.crs)}_{bbox.left:.0f}_{bbox.bottom:.0f}"
-        )
+        if tile_stem is None:
+            tile_stem = self._get_tile_stem(bbox)
+        else:
+            if (
+                "/" in tile_stem
+                and not (parent := Path.joinpath(self.root, Path(tile_stem).parent)).exists()
+            ):
+                parent.mkdir(exist_ok=True)
         tile_path = self.root / (tile_stem + tile_suffix)
         if not self.filter(tile_path):
             raise RuntimeError(

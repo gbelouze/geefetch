@@ -12,6 +12,7 @@ Each release can have sections: "Added", "Changed", "Deprecated", "Removed", "Fi
 
 ### Added
 
+- Added support for spatial AOIs defined by a geofile (parquet/ gpkg etc). [9bb66e4](https://github.com/gbelouze/geefetch/pull/106/changes/9bb66e47caa4b4a44f055c0f535d356c9407910d)
 - Added support for GEDI L2B product. [cd16ff9f](https://github.com/gbelouze/geefetch/pull/85/commits/cd16ff9f51a458da6becceb289b84a4a4b222eb1)
 - Added support for spectral indices. Spectral indices can now be downloaded as bands for the following sensors: S1, S2, Palsar2, Landsat8. [9732ff4d](https://github.com/gbelouze/geefetch/commit/9732ff4d7184e7457085bd061923fa7a5dcedde4)
 

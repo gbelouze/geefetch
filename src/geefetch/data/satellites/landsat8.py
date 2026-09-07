@@ -319,6 +319,8 @@ class Landsat8(SatelliteABC):
         "SR_B5",
     ]
 
+    spectral_indices: list[SpectralIndex] | None = None
+
     @property
     def bands(self) -> list[str]:
         return self._bands
@@ -338,6 +340,10 @@ class Landsat8(SatelliteABC):
     @property
     def is_raster(self) -> bool:
         return True
+
+    @property
+    def is_preprocessed(self):
+        return self.spectral_indices is not None
 
     def get_col(
         self,

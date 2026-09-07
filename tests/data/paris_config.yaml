@@ -1,7 +1,7 @@
 data_dir: null
 satellite_default:
   resolution: 10
-  tile_size: 1000
+  tile_shape: 1000
   dtype: UInt8
   composite_method: MEAN
   aoi:

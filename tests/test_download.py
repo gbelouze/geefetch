@@ -19,7 +19,7 @@ from geefetch.cli.download_implementation import (
     download_s1,
     download_s2,
 )
-from geefetch.cli.omegaconfig import SpeckleFilterConfig, load
+from geefetch.cli.omegaconfig import GeofileAOIConfig, SpeckleFilterConfig, load
 from geefetch.data.process import tif_is_clean
 from geefetch.utils.enums import CompositeMethod, DType, P2Orbit, ResamplingMethod, S1Orbit
 
@@ -31,7 +31,7 @@ def paris_config_path(
     raw_paris_config = raw_paris_config.copy()
     raw_paris_config.data_dir = str(tmp_path)
     raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
-
+    raw_paris_config.gedi_l2a.aoi.temporal.end_date = "2022-12-30"
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     yield conf_path
@@ -61,6 +61,39 @@ def paris_spectral_indices_path(raw_paris_config: DictConfig, tmp_path: Path, ge
         "DpRVIVV",
         "RFDI",
     ]
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
+def paris_config_geo_file_path(
+    raw_paris_config: DictConfig, paris_geo_file: Path, tmp_path: Path, gee_project_id: str
+):
+    raw_paris_config = raw_paris_config.copy()
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
+    raw_paris_config.satellite_default.aoi.spatial = {
+        "geofile": str(paris_geo_file),
+    }
+    raw_paris_config.gedi_l2a.aoi.temporal.end_date = "2022-12-30"
+    conf_path = tmp_path / "config.yaml"
+    conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
+    return conf_path
+
+
+@pytest.fixture
+def paris_config_geo_file_path_with_naming_config(
+    raw_paris_config: DictConfig, paris_geo_file: Path, tmp_path: Path, gee_project_id: str
+):
+    raw_paris_config = raw_paris_config.copy()
+    raw_paris_config.data_dir = str(tmp_path)
+    raw_paris_config.satellite_default.gee.ee_project_ids = [gee_project_id]
+    raw_paris_config.satellite_default.aoi.spatial = {
+        "geofile": str(paris_geo_file),
+        "file_stem_format": "sub_dir/{bbox_name}",
+    }
+    raw_paris_config.gedi_l2a.aoi.temporal.end_date = "2022-12-30"
     conf_path = tmp_path / "config.yaml"
     conf_path.write_text(OmegaConf.to_yaml(raw_paris_config))
     return conf_path
@@ -174,6 +207,29 @@ class TestDownloadSentinel1:
     ):
         download_s1(paris_spectral_indices_timeseries_path)
 
+    def test_download_s1_from_geo_file_with_file_naming(
+        self, paris_config_geo_file_path_with_naming_config: Path
+    ):
+        conf = load(paris_config_geo_file_path_with_naming_config)
+        download_s1(paris_config_geo_file_path_with_naming_config)
+        downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+
+        assert isinstance(conf.satellite_default.aoi.spatial, GeofileAOIConfig)
+        polys = gpd.read_file(conf.satellite_default.aoi.spatial.geofile)
+        bbox_names = polys["bbox_name"].values.tolist()
+
+        assert len(downloaded_files) == 3
+        for file in downloaded_files:
+            assert file.parent.parent.name == "s1"
+            assert file.parent.name == "sub_dir"
+            assert file.name.removesuffix(".tif") in bbox_names
+
+    def test_download_s1_from_geo_file(self, paris_config_geo_file_path: Path):
+        conf = load(paris_config_geo_file_path)
+        download_s1(paris_config_geo_file_path)
+        downloaded_files = list(Path(conf.data_dir).rglob("*.tif"))
+        assert len(downloaded_files) == 3
+
     def test_download_timeseries_s1(self, paris_timeseriesconfig_path: Path):
         download_s1(paris_timeseriesconfig_path)
         conf = load(paris_timeseriesconfig_path)
@@ -259,11 +315,37 @@ class TestDownloadGediL2A:
         gdf = gpd.read_parquet(downloaded_path)
         assert gdf.columns.to_list() == ["id", "rh95", "rh98", "geometry"]
 
+    def test_download_gedi_l2a_from_geo_file_with_file_naming(
+        self, paris_config_geo_file_path_with_naming_config: Path
+    ):
+        conf = load(paris_config_geo_file_path_with_naming_config)
+        download_gedi_l2a(paris_config_geo_file_path_with_naming_config, vector=True)
+        downloaded_files = list(Path(conf.data_dir).rglob("*.parquet"))[1:]
+        assert isinstance(conf.satellite_default.aoi.spatial, GeofileAOIConfig)
+
+        polys = gpd.read_file(conf.satellite_default.aoi.spatial.geofile)
+        bbox_names = polys["bbox_name"].values.tolist()
+        assert len(downloaded_files) == 3
+
+        for file in downloaded_files:
+            assert file.parent.parent.name == "gedi_l2a_vector"
+            assert file.parent.name == "sub_dir"
+            assert file.name.removesuffix(".parquet") in bbox_names
+
+    def test_download_gedi_l2a_from_geo_file(self, paris_config_geo_file_path: Path):
+        conf = load(paris_config_geo_file_path)
+        download_gedi_l2a(paris_config_geo_file_path, vector=True)
+        downloaded_files = list(Path(conf.data_dir).rglob("*.parquet"))
+        assert len(downloaded_files) == 4
+
     def test_download_gedi_l2a_raster(self, paris_config_path: Path):
         download_gedi_l2a(paris_config_path, vector=False)
         conf = load(paris_config_path)
+        from rich import print
+
+        print(list(Path(conf.data_dir).rglob("*")))
         downloaded_files = sorted(list(Path(conf.data_dir).rglob("*.tif")))
-        assert len(downloaded_files) == 2
+        assert len(downloaded_files) == 1
         assert downloaded_files[0].parts[-2:] == (
             "gedi_l2a_raster",
             "gedi_l2a_raster_EPSG2154_650000_6860000.tif",

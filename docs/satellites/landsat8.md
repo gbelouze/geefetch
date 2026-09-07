@@ -54,7 +54,7 @@ satellite_default:
       end_date: "2023-06-30"
   gee:
     ee_project_ids: ["your-gee-id"]
-  tile_size: 2000
+  tile_shape: 2000
   resolution: 10
 landsat8:
   spectral_indices:
